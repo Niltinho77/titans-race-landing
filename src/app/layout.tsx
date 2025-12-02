@@ -29,7 +29,6 @@ export default function RootLayout({
         className={`
           ${montserrat.variable} 
           ${permanentMarker.variable}
-          bg-titans-bg text-titans-text
           min-h-screen
         `}
       >

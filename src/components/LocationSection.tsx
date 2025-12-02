@@ -1,27 +1,30 @@
+// src/components/LocationSection.tsx
 export function LocationSection() {
   return (
-    <section id="local" className="py-16 md:py-24 px-4 bg-gradient-to-b from-black/60 to-titans-primary/20">
-      <div className="max-w-5xl mx-auto grid gap-8 md:grid-cols-[1.3fr_1fr] items-start">
+    <section
+      id="local"
+      className="border-t border-white/5 bg-black px-4 py-16 md:py-20"
+    >
+      <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-[1.2fr_1fr]">
         <div>
-          <h2 className="font-giz text-3xl md:text-4xl mb-6">Local & Estrutura</h2>
-          <p className="text-sm md:text-base text-titans-text/80 mb-4">
-            A Titans Race será realizada em área campestre em Alegrete/RS, com terreno
-            variado, trechos de lama, obstáculos naturais e estrutura adequada para
-            atletas e público.
+          <h2 className="font-giz text-3xl text-white md:text-4xl">
+            Local & Estrutura
+          </h2>
+          <p className="mt-4 text-sm text-zinc-200 md:text-base">
+            A prova será realizada em área campestre em Alegrete/RS, com terreno
+            variado, trechos de lama, subida, descida e pontos estratégicos para
+            montagem de obstáculos, público e estrutura de apoio.
           </p>
-          <ul className="space-y-2 text-sm text-titans-text/70">
-            <li>• Estacionamento no local</li>
-            <li>• Pontos de hidratação durante o percurso</li>
-            <li>• Equipe de saúde e ambulância de prontidão</li>
-            <li>• Área de concentração, pórtico de largada e chegada</li>
+          <ul className="mt-4 space-y-2 text-sm text-zinc-300">
+            <li>• Estacionamento</li>
+            <li>• Ambulância e equipe de saúde</li>
+            <li>• Pontos de hidratação</li>
+            <li>• Área de aquecimento e pós-prova</li>
           </ul>
         </div>
 
-        <div className="rounded-xl overflow-hidden border border-white/10 bg-black/70 h-64">
-          {/* aqui depois você embute o mapa real */}
-          <div className="w-full h-full flex items-center justify-center text-xs text-titans-text/50">
-            MAPA / GOOGLE MAPS (placeholder)
-          </div>
+        <div className="h-64 rounded-2xl border border-white/10 bg-gradient-to-br from-[#361259] via-black to-black text-[11px] text-zinc-200 flex items-center justify-center">
+          MAPA / GOOGLE MAPS (placeholder)
         </div>
       </div>
     </section>

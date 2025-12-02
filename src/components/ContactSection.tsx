@@ -1,29 +1,35 @@
+// src/components/ContactSection.tsx
 export function ContactSection() {
   return (
-    <section id="contato" className="py-16 md:py-20 px-4 bg-black/95">
-      <div className="max-w-5xl mx-auto grid gap-8 md:grid-cols-2">
+    <section
+      id="contato"
+      className="border-t border-white/5 bg-[#05010D] px-4 py-16 md:py-20"
+    >
+      <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2">
         <div>
-          <h2 className="font-giz text-3xl md:text-4xl mb-6">Contato & WhatsApp</h2>
-          <p className="text-sm text-titans-text/80 mb-4">
-            Fale diretamente com a organização da Titans Race para dúvidas, patrocínios
-            e informações gerais.
+          <h2 className="font-giz text-3xl text-white md:text-4xl">
+            Contato & WhatsApp
+          </h2>
+          <p className="mt-3 text-sm text-zinc-300 md:text-base">
+            Canal direto com a organização da Titans Race para dúvidas,
+            parcerias, patrocínios e informações sobre a prova.
           </p>
-          <ul className="space-y-2 text-sm text-titans-text/80">
-            <li>WhatsApp: <span className="text-titans-accent">(+55) (00) 00000-0000</span></li>
+          <ul className="mt-4 space-y-2 text-sm text-zinc-300">
+            <li>WhatsApp: <span className="text-[#F5E04E]">(+55) (00) 00000-0000</span></li>
             <li>E-mail: contato@titansrace.com.br</li>
           </ul>
         </div>
 
-        <div className="space-y-4 text-sm text-titans-text/70">
+        <div className="space-y-3 text-sm text-zinc-200">
           <a
             href="https://wa.me/0000000000000"
-            className="block w-full text-center px-4 py-3 rounded-full bg-emerald-500 text-black font-semibold uppercase text-xs tracking-wide shadow-lg"
+            className="block w-full rounded-full bg-emerald-500 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-lg hover:bg-emerald-400 transition"
           >
             Falar no WhatsApp
           </a>
           <a
             href="#"
-            className="block w-full text-center px-4 py-3 rounded-full border border-titans-text/40 text-titans-text font-medium uppercase text-[11px] tracking-wide hover:bg-white/5"
+            className="block w-full rounded-full border border-white/20 px-4 py-3 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5 transition"
           >
             Entrar no grupo oficial
           </a>

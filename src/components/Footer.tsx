@@ -1,15 +1,16 @@
+// src/components/Footer.tsx
 import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-black/95 py-6 px-4 text-[11px] text-titans-text/60">
-      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <footer className="border-t border-white/10 bg-black px-4 py-6 text-[11px] text-zinc-400">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
         <span>© {new Date().getFullYear()} Titans Race · Alegrete/RS</span>
-        <div className="flex items-center gap-4">
-          <Link href="/regulamento" className="hover:text-titans-accent">
+        <div className="flex gap-4">
+          <Link href="/regulamento" className="hover:text-[#F5E04E]">
             Regulamento
           </Link>
-          <Link href="/politica-de-privacidade" className="hover:text-titans-accent">
+          <Link href="/politica-de-privacidade" className="hover:text-[#F5E04E]">
             Política de Privacidade
           </Link>
         </div>
