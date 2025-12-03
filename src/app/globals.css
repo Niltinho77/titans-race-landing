@@ -1,3 +1,4 @@
+/* src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,13 +7,16 @@
   color-scheme: dark;
 }
 
+/* Corpo padrão bem dark */
 body {
-  @apply bg-titans-bg text-titans-text;
-  font-family: var(--font-montserrat), system-ui, -apple-system,
+  @apply bg-black text-slate-100;
+  font-family: var(--font-body), system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.font-giz {
-  font-family: var(--font-permanent-marker), system-ui, -apple-system,
+/* Classe para títulos de aventura */
+.heading-adventure {
+  font-family: var(--font-heading), system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0.12em;
 }

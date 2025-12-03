@@ -1,16 +1,17 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import { Montserrat, Permanent_Marker } from "next/font/google";
+import { Inter, Bebas_Neue } from "next/font/google";
 
-const montserrat = Montserrat({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-montserrat",
+  variable: "--font-body",
 });
 
-const permanentMarker = Permanent_Marker({
+const bebas = Bebas_Neue({
   subsets: ["latin"],
   weight: "400",
-  variable: "--font-permanent-marker",
+  variable: "--font-heading",
 });
 
 export const metadata: Metadata = {
@@ -27,8 +28,8 @@ export default function RootLayout({
     <html lang="pt-BR" className="dark">
       <body
         className={`
-          ${montserrat.variable} 
-          ${permanentMarker.variable}
+          ${inter.variable}
+          ${bebas.variable}
           min-h-screen
         `}
       >

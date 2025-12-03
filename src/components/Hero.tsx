@@ -1,74 +1,44 @@
+// src/components/Hero.tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const phrases = [
-  "Supere seus limites.",
-  "Enfrente os obstáculos.",
-  "Entre para a elite.",
-  "Titans Race está chegando.",
-];
-
 export default function Hero() {
-  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
-  const [displayText, setDisplayText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  useEffect(() => {
-    const phrase = phrases[currentPhraseIndex];
-    const typingSpeed = isDeleting ? 40 : 90;
-    const pauseAtEnd = 1400;
-
-    const timer = setTimeout(() => {
-      if (!isDeleting) {
-        if (displayText.length < phrase.length) {
-          setDisplayText(phrase.slice(0, displayText.length + 1));
-        } else {
-          setTimeout(() => setIsDeleting(true), pauseAtEnd);
-        }
-      } else {
-        if (displayText.length > 0) {
-          setDisplayText(phrase.slice(0, displayText.length - 1));
-        } else {
-          setIsDeleting(false);
-          setCurrentPhraseIndex((prev) => (prev + 1) % phrases.length);
-        }
-      }
-    }, typingSpeed);
-
-    return () => clearTimeout(timer);
-  }, [displayText, isDeleting, currentPhraseIndex]);
-
   return (
     <section
       id="inicio"
-      className="relative flex min-h-[100vh] items-center overflow-hidden bg-black pt-16"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden"
     >
-      {/* Imagem de fundo (troca a URL depois por uma foto real) */}
-      <div
-        className="absolute inset-0 bg-[url('/titans-hero.jpg')] bg-cover bg-center"
-        aria-hidden="true"
+      {/* VÍDEO DE FUNDO – troque o src quando tiver o vídeo oficial */}
+      <video
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+        src="/videos/1202.mov"
+        autoPlay
+        loop
+        muted
+        playsInline
       />
-      {/* Overlays de cor */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#12041F]/90 to-black" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-[#361259]/60" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-12 md:flex-row md:items-center">
-        {/* Texto */}
+      {/* Overlays para escurecer e dar clima de aventura */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/95" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(248,250,252,0.22)_0,_transparent_55%)]" />
+
+      {/* Conteúdo */}
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 md:flex-row md:items-center">
+        {/* Bloco de texto principal */}
         <div className="flex-1">
           <motion.p
-            className="mb-3 text-[11px] uppercase tracking-[0.3em] text-zinc-300"
+            className="mb-3 text-[11px] uppercase tracking-[0.3em] text-slate-300"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
           >
             ALEGRETE · CORRIDA DE OBSTÁCULOS
           </motion.p>
 
           <motion.h1
-            className="font-giz text-4xl leading-tight text-white sm:text-5xl md:text-6xl"
-            initial={{ opacity: 0, y: 8 }}
+            className="heading-adventure text-4xl text-slate-50 sm:text-5xl md:text-6xl"
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
           >
@@ -76,95 +46,81 @@ export default function Hero() {
           </motion.h1>
 
           <motion.p
-            className="mt-4 max-w-xl text-sm text-zinc-200 md:text-base"
-            initial={{ opacity: 0, y: 8 }}
+            className="mt-4 max-w-xl text-sm text-slate-200 md:text-base"
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.25 }}
+            transition={{ duration: 0.6, delay: 0.25 }}
           >
-            Uma experiência imersiva inspirada em provas militares: lama, fogo,
-            carga, equipe e superação real. A primeira edição em Alegrete está
-            pronta para selecionar os verdadeiros Titãs.
+            Uma prova de obstáculos em clima de operação: lama, fogo, carga,
+            cordas e trabalho em equipe. Nada de esteira, nada de ar-condicionado.
+            É você, o terreno e a vontade de provar que merece o título de Titã.
           </motion.p>
 
-          {/* linha digitando */}
-          <motion.div
-            className="mt-6 flex h-10 items-center text-lg font-semibold text-[#F5E04E] sm:text-2xl"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-          >
-            <span>{displayText}</span>
-            <span className="ml-1 h-6 w-[2px] animate-pulse bg-[#F5E04E]" />
-          </motion.div>
-
-          {/* CTAs */}
+          {/* CTA */}
           <motion.div
             className="mt-8 flex flex-col gap-3 sm:flex-row"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
+            transition={{ duration: 0.6, delay: 0.45 }}
           >
             <a
               href="#inscricoes"
-              className="inline-flex items-center justify-center rounded-full bg-[#F5E04E] px-9 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-black shadow-lg shadow-[#F5E04E]/40 hover:translate-y-[1px] hover:bg-[#ffe765] transition"
+              className="inline-flex items-center justify-center rounded-full bg-orange-500 px-10 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-950 shadow-[0_14px_40px_rgba(0,0,0,0.75)] hover:bg-orange-400 hover:translate-y-[1px] transition"
             >
-              Inscreva-se agora
+              Quero encarar a prova
             </a>
             <a
-              href="#sobre"
-              className="inline-flex items-center justify-center rounded-full border border-white/25 px-9 py-3 text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-100 hover:bg-white/5 transition"
+              href="#regulamento"
+              className="inline-flex items-center justify-center rounded-full border border-slate-300/40 px-10 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-50/90 hover:bg-slate-50/5 transition"
             >
-              Conheça a experiência
+              Ver regulamento
             </a>
           </motion.div>
 
-          {/* barra de stats em uma faixa, tipo Bravus */}
+          {/* Linha com stats (distância, obstáculos, modalidade) */}
           <motion.div
-            className="mt-8 rounded-full border border-white/15 bg-black/50 px-6 py-3 text-[11px] text-zinc-200 backdrop-blur"
-            initial={{ opacity: 0, y: 8 }}
+            className="mt-8 grid max-w-xl grid-cols-3 gap-4 rounded-2xl bg-black/55 px-5 py-4 text-[11px] text-slate-200 backdrop-blur-md border border-slate-700/60"
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <div className="grid grid-cols-3 gap-4 text-center sm:text-left">
-              <div>
-                <p className="text-zinc-400">Distância</p>
-                <p className="text-sm font-semibold text-white">+/- 6 KM</p>
-              </div>
-              <div>
-                <p className="text-zinc-400">Obstáculos</p>
-                <p className="text-sm font-semibold text-white">+ 15 DESAFIOS</p>
-              </div>
-              <div>
-                <p className="text-zinc-400">Modalidade</p>
-                <p className="text-sm font-semibold text-white">
-                  EQUIPE & SOLO
-                </p>
-              </div>
+            <div>
+              <p className="text-slate-400">Distância</p>
+              <p className="mt-1 text-sm font-semibold text-slate-50">
+                +/- 6 km
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-400">Obstáculos</p>
+              <p className="mt-1 text-sm font-semibold text-slate-50">
+                +15 desafios
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-400">Modalidade</p>
+              <p className="mt-1 text-sm font-semibold text-slate-50">
+                Solo & Equipes
+              </p>
             </div>
           </motion.div>
         </div>
 
-        {/* bloco “vídeo” menor, só para dar equilíbrio visual */}
+        {/* Bloco extra (mini-card) – opcional, mantém equilíbrio visual */}
         <motion.div
-          className="flex flex-1 items-end justify-center md:justify-end"
-          initial={{ opacity: 0, x: 12 }}
+          className="mt-8 flex flex-1 items-end justify-center md:mt-0 md:justify-end"
+          initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, delay: 0.4 }}
+          transition={{ duration: 0.7, delay: 0.35 }}
         >
-          <div className="relative h-56 w-full max-w-sm overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-[#361259] via-black to-black shadow-2xl">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25)_0,_transparent_55%)] opacity-35" />
-            <div className="relative z-10 flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur">
-                <div className="ml-1 h-0 w-0 border-y-[8px] border-l-[14px] border-y-transparent border-l-white" />
-              </div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-200">
-                Vídeo oficial em breve
-              </p>
-              <p className="text-[11px] text-zinc-400">
-                Espaço reservado para o vídeo conceito da Titans Race que será
-                usado na apresentação final.
-              </p>
-            </div>
+          <div className="w-full max-w-sm rounded-3xl border border-slate-700/70 bg-black/70 p-4 backdrop-blur-md shadow-[0_20px_60px_rgba(0,0,0,0.9)]">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-400">
+              edição de estreia
+            </p>
+            <p className="mt-2 text-sm text-slate-100">
+              Vagas limitadas para a primeira Titans Race em Alegrete. Ideal para
+              equipes de academias, unidades militares, empresas e grupos de
+              amigos que querem uma experiência fora da rotina.
+            </p>
           </div>
         </motion.div>
       </div>
