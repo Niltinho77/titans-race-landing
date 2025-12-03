@@ -11,6 +11,8 @@ type Lot = {
   name: string;
   status: LotStatus;
   fakePrice: string;
+  image: string;
+  imageAlt?: string;
 };
 
 const lots: Lot[] = [
@@ -18,19 +20,25 @@ const lots: Lot[] = [
     id: "lote1",
     name: "Lote 1",
     status: "ativo",
-    fakePrice: "R$ ---",
+    fakePrice: "R$ 187",
+    image: "/images/lote1.png",
+    imageAlt: "Atletas correndo na Titans Race – Lote 1",
   },
   {
     id: "lote2",
     name: "Lote 2",
     status: "bloqueado",
-    fakePrice: "R$ ---",
+    fakePrice: "R$ 220",
+    image: "/images/lote2.png",
+    imageAlt: "Representação visual do Lote 2",
   },
   {
     id: "loteFinal",
     name: "Lote Final",
     status: "bloqueado",
-    fakePrice: "R$ ---",
+    fakePrice: "R$ 250",
+    image: "/images/lote-final.png",
+    imageAlt: "Representação visual do Lote Final",
   },
 ];
 
@@ -69,20 +77,31 @@ export function RegistrationSection() {
         <div className="mt-14 grid gap-4 md:grid-cols-[1.3fr_1fr]">
           {/* CARD PRINCIPAL – LOTE ATIVO */}
           <motion.div
-            className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#050509] via-[#050814] to-black p-6 shadow-[0_20px_60px_rgba(0,0,0,0.9)] md:h-full"
+            className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-black p-6 shadow-[0_20px_60px_rgba(0,0,0,0.9)] md:h-full"
             initial={{ opacity: 0, scale: 0.97, y: 10 }}
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             whileHover={{ scale: 1.02, y: -4 }}
           >
-            {/* Glow em hover com laranja, igual vibe dos tiles */}
+            {/* Fundo com foto preenchendo todo o card */}
+            <img
+              src={loteAtivo.image}
+              alt={loteAtivo.imageAlt ?? loteAtivo.name}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+
+            {/* Overlay escuro para contraste do texto */}
+            <div className="absolute inset-0 bg-black/60" />
+
+            {/* Glow em hover com laranja */}
             <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <div className="absolute inset-[1px] rounded-3xl bg-gradient-to-br from-orange-500/40 via-transparent to-orange-200/25 blur-xl" />
             </div>
 
-            <div className="relative flex items-center justify-between text-[11px] text-zinc-200">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-400">
+            {/* Conteúdo sobre a imagem */}
+            <div className="relative z-10 flex items-center justify-between text-[11px] text-zinc-200">
+              <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-300">
                 Lote atual
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-orange-400/40 bg-orange-500/10 px-3 py-1 text-[10px] text-orange-200 backdrop-blur-sm">
@@ -91,20 +110,20 @@ export function RegistrationSection() {
               </span>
             </div>
 
-            <div className="relative mt-6">
+            <div className="relative z-10 mt-6">
               <p className="heading-adventure text-4xl text-white md:text-5xl">
                 {loteAtivo.name}
               </p>
-              <p className="mt-4 text-sm text-zinc-400">
+              <p className="mt-4 text-sm text-zinc-200">
                 Valor ilustrativo:{" "}
-                <span className="text-zinc-100">{loteAtivo.fakePrice}</span>
+                <span className="text-white">{loteAtivo.fakePrice}</span>
               </p>
             </div>
 
-            <div className="relative mt-6">
+            <div className="relative z-10 mt-6">
               <button
                 disabled
-                className="w-full rounded-full bg-zinc-100 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md cursor-default hover:bg-zinc-200 transition"
+                className="w-full rounded-full bg-zinc-100 px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md cursor-default"
               >
                 Selecionar (visual)
               </button>
@@ -122,14 +141,24 @@ export function RegistrationSection() {
             {lots.slice(1).map((lot, index) => (
               <motion.div
                 key={lot.id}
-                className="group relative flex flex-1 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#050509] via-[#050814] to-black p-5 text-sm text-zinc-200 opacity-70"
+                className="group relative flex flex-1 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-black p-5 text-sm text-zinc-200"
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.15 + index * 0.08 }}
               >
-                <div className="relative flex items-center justify-between text-[11px] text-zinc-300">
-                  <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-500">
+                {/* Fundo com foto apagada para lotes bloqueados */}
+                <img
+                  src={lot.image}
+                  alt={lot.imageAlt ?? lot.name}
+                  className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale"
+                />
+
+                {/* Overlay escuro */}
+                <div className="absolute inset-0 bg-black/60" />
+
+                <div className="relative z-10 flex items-center justify-between text-[11px] text-zinc-300">
+                  <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-400">
                     Próximo lote
                   </span>
                   <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
@@ -138,17 +167,17 @@ export function RegistrationSection() {
                   </span>
                 </div>
 
-                <div className="relative mt-4">
+                <div className="relative z-10 mt-4">
                   <p className="heading-adventure text-2xl text-white md:text-3xl">
                     {lot.name}
                   </p>
-                  <p className="mt-3 text-xs text-zinc-500">
+                  <p className="mt-3 text-xs text-zinc-300">
                     Valor ilustrativo:{" "}
-                    <span className="text-zinc-200">{lot.fakePrice}</span>
+                    <span className="text-zinc-100">{lot.fakePrice}</span>
                   </p>
                 </div>
 
-                <div className="relative mt-4">
+                <div className="relative z-10 mt-4">
                   <button
                     disabled
                     className="w-full rounded-full bg-zinc-900 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 cursor-not-allowed"

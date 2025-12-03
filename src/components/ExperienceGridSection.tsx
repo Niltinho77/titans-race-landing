@@ -14,60 +14,64 @@ type Tile = {
 };
 
 const tiles: Tile[] = [
-  {
-    id: "kids",
-    title: "KIDS",
-    subtitle: "Aventura em versão segura.",
-    location: "Alegrete · Sede Campestre",
-    image: "/images/kids.png",
-    href: "#inscricoes",
-    className: "md:col-span-2 md:row-span-2",
-  },
-  {
-    id: "duplas",
-    title: "DUPLAS",
-    subtitle: "Um puxa o outro.",
-    location: "Alegrete · Titans Race",
-    image: "/images/duplas.png",
-    href: "#inscricoes",
-    className: "md:col-span-2 md:row-span-1",
-  },
-  {
-    id: "competicao",
-    title: "COMPETIÇÃO",
-    subtitle: "Para quem quer tempo.",
-    location: "Alegrete · Cronometragem oficial",
-    image: "/images/competicao.png",
-    href: "#inscricoes",
-    className: "md:col-span-1 md:row-span-2",
-  },
-  {
-    id: "diversao",
-    title: "DIVERSÃO",
-    subtitle: "Lama, risada e histórias.",
-    location: "Alegrete · Experiência Titans",
-    image: "/images/diversao.png",
-    href: "#inscricoes",
-    className: "md:col-span-1 md:row-span-2",
-  },
-  {
-    id: "localizacao",
-    title: "LOCALIZAÇÃO",
-    subtitle: "Veja o mapa da prova.",
-    location: "Alegrete · Ver no mapa",
-    image: "/images/localizacao.jpg",
-    href: "#local",
-    className: "md:col-span-1 md:row-span-1",
-  },
-  {
-    id: "sede",
-    title: "SEDE CAMPESTRE",
-    subtitle: "Estrutura do local.",
-    location: "Espaço Titans · Alegrete",
-    image: "/images/sede.jpg",
-    href: "#local",
-    className: "md:col-span-1 md:row-span-1",
-  },
+ {
+  id: "kids",
+  title: "KIDS",
+  subtitle: "Aventura em versão segura.",
+  location: "Para os pequenos Titãs em formação.",
+  image: "/images/kids.png",
+  href: "#inscricoes",
+  className: "md:col-span-2 md:row-span-2",
+},
+{
+  id: "duplas",
+  title: "DUPLAS",
+  subtitle: "Um puxa o outro.",
+  location: "Dois atletas, um único ritmo.",
+  image: "/images/duplas.png",
+  href: "#inscricoes",
+  className: "md:col-span-2 md:row-span-1",
+},
+{
+  id: "competicao",
+  title: "COMPETIÇÃO",
+  subtitle: "Para quem quer tempo.",
+  location: "Superação com cronometragem oficial.",
+  image: "/images/competicao.png",
+  href: "#inscricoes",
+  className: "md:col-span-1 md:row-span-2",
+},
+{
+  id: "diversao",
+  title: "DIVERSÃO",
+  subtitle: "Lama, risada e histórias.",
+  location: "O desafio ideal pra curtir e marcar memória.",
+  image: "/images/diversao.png",
+  href: "#inscricoes",
+  className: "md:col-span-1 md:row-span-2",
+},
+
+{
+  id: "sede",
+  title: "BR-290 km 474",
+  subtitle: "Estrutura do local.",
+  location: "O palco oficial da Titans Race.",
+  image: "/images/sede.png",
+  href: "#local",
+  className: "md:col-span-1 md:row-span-1",
+},
+
+{
+  id: "localizacao",
+  title: "LOCALIZAÇÃO",
+  subtitle: "Veja o mapa da prova.",
+  location: "Ponto exato da arena Titans.",
+  image: "/images/localizacao.png",
+  href: "#local",
+  className: "md:col-span-1 md:row-span-1",
+},
+
+
 ];
 
 export function ExperienceGridSection() {

@@ -30,7 +30,7 @@ export function LocationSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           A Titans Race acontecerá em uma área campestre de Alegrete/RS,
-          com terreno variado, setores de lama, montes naturais, áreas
+          com terreno variado, setores de lama, desafios naturais, áreas
           abertas e pontos estratégicos para montagem de obstáculos.
         </motion.p>
 
@@ -59,7 +59,7 @@ export function LocationSection() {
             transition={{ duration: 0.6 }}
           >
             <img
-              src="/images/local-1.jpg"
+              src="/images/local-1.png"
               alt="Local da prova"
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
