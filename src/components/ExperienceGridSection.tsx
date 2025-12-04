@@ -20,7 +20,7 @@ const tiles: Tile[] = [
     subtitle: "Aventura em versão segura.",
     location: "Alegrete · Sede Campestre",
     image: "/images/kids.png",
-    href: "#inscricoes",
+    href: "/checkout?modality=kids",
     className: "md:col-span-2 md:row-span-2",
   },
   {
@@ -29,7 +29,7 @@ const tiles: Tile[] = [
     subtitle: "Um puxa o outro.",
     location: "Alegrete · Titans Race",
     image: "/images/duplas.png",
-    href: "#inscricoes",
+    href: "/checkout?modality=duplas",
     className: "md:col-span-2 md:row-span-1",
   },
   {
@@ -38,7 +38,7 @@ const tiles: Tile[] = [
     subtitle: "Para quem quer tempo.",
     location: "Alegrete · Cronometragem oficial",
     image: "/images/competicao.png",
-    href: "#inscricoes",
+    href: "/checkout?modality=competicao",
     className: "md:col-span-1 md:row-span-2",
   },
   {
@@ -47,7 +47,7 @@ const tiles: Tile[] = [
     subtitle: "Lama, risada e histórias.",
     location: "Alegrete · Experiência Titans",
     image: "/images/diversao.png",
-    href: "#inscricoes",
+    href: "/checkout?modality=diversao",
     className: "md:col-span-1 md:row-span-2",
   },
   {
