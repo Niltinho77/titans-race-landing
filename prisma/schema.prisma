@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,52 +8,44 @@ datasource db {
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  modalityId    String
-  tickets       Int
-  status        String      @default("PENDING")
-  termsAccepted Boolean     @default(false)
-
-  // valores em centavos
-  totalAmount   Int?
-  ticketsAmount Int?        // <- adicionar
-  extrasAmount  Int?        // <- adicionar
-
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  stripeSessionId       String?  @unique
+  id                    String        @id @default(cuid())
+  modalityId            String
+  tickets               Int
+  status                String        @default("PENDING")
+  termsAccepted         Boolean       @default(false)
+  totalAmount           Int?
+  ticketsAmount         Int?
+  extrasAmount          Int?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  stripeSessionId       String?       @unique
   stripePaymentIntentId String?
-
-  participants  Participant[]
+  participants          Participant[]
 }
 
 model Participant {
-  id               String             @id @default(cuid())
-  order            Order              @relation(fields: [orderId], references: [id])
-  orderId          String
-
-  fullName         String
-  cpf              String
-  birthDate        String
-  phone            String
-  email            String
-  city             String?
-  state            String?
-  tshirtSize       String
-  emergencyName    String?
-  emergencyPhone   String?
-  healthInfo       String?
-
-  extras           ParticipantExtra[]
+  id             String             @id @default(cuid())
+  orderId        String
+  fullName       String
+  cpf            String
+  birthDate      String
+  phone          String
+  email          String
+  city           String?
+  state          String?
+  tshirtSize     String
+  emergencyName  String?
+  emergencyPhone String?
+  healthInfo     String?
+  order          Order              @relation(fields: [orderId], references: [id])
+  extras         ParticipantExtra[]
 }
 
 model ParticipantExtra {
-  id            String        @id @default(cuid())
-  participant   Participant   @relation(fields: [participantId], references: [id])
+  id            String      @id @default(cuid())
   participantId String
-
   type          String
   size          String?
   quantity      Int
+  participant   Participant @relation(fields: [participantId], references: [id])
 }
