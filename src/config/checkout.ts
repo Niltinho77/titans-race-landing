@@ -6,8 +6,8 @@ export type Modality = {
   id: ModalityId;
   name: string;
   description: string;
-  basePrice: number; // em centavos - pra Stripe depois
-  ticketLabel: string; // texto que aparece no "ingressos"
+  basePrice: number; // em centavos
+  ticketLabel: string;
 };
 
 export const MODALITIES: Modality[] = [
@@ -16,7 +16,7 @@ export const MODALITIES: Modality[] = [
     name: "Kids",
     description:
       "Percurso adaptado para crianças, com obstáculos seguros e monitorados.",
-    basePrice: 0,
+    basePrice: 12000, // R$ 120,00
     ticketLabel: "ingressos Kids",
   },
   {
@@ -24,7 +24,7 @@ export const MODALITIES: Modality[] = [
     name: "Duplas",
     description:
       "Inscrição para dupla. Cada ingresso de dupla equivale a 2 participantes correndo juntos.",
-    basePrice: 0,
+    basePrice: 26000, // R$ 260,00 (dupla)
     ticketLabel: "ingressos de dupla",
   },
   {
@@ -32,7 +32,7 @@ export const MODALITIES: Modality[] = [
     name: "Competição",
     description:
       "Prova cronometrada para quem quer tempo, performance e ranking.",
-    basePrice: 0,
+    basePrice: 19000, // R$ 190,00
     ticketLabel: "ingressos Competição",
   },
   {
@@ -40,7 +40,7 @@ export const MODALITIES: Modality[] = [
     name: "Diversão",
     description:
       "Percurso com foco em experiência, lama, superação e boas histórias.",
-    basePrice: 0,
+    basePrice: 17000, // R$ 170,00
     ticketLabel: "ingressos Diversão",
   },
 ];
@@ -61,7 +61,7 @@ export const EXTRAS: ExtraConfig[] = [
     id: "camisa",
     name: "Camisa oficial Titans",
     description: "Camisa técnica da prova para usar no dia e depois.",
-    price: 0,
+    price: 5900, // R$ 59,00
     hasSize: true,
     sizes: ["PP", "P", "M", "G", "GG"],
   },
@@ -69,7 +69,7 @@ export const EXTRAS: ExtraConfig[] = [
     id: "luva",
     name: "Luva de grip",
     description: "Proteção extra para os obstáculos mais desafiadores.",
-    price: 0,
+    price: 2500, // R$ 25,00
     hasSize: true,
     sizes: ["P", "M", "G"],
   },
@@ -77,7 +77,7 @@ export const EXTRAS: ExtraConfig[] = [
     id: "meia",
     name: "Meia performance",
     description: "Conforto e segurança em todo o percurso.",
-    price: 0,
+    price: 2000, // R$ 20,00
     hasSize: true,
     sizes: ["P", "M", "G"],
   },

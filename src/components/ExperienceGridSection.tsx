@@ -73,7 +73,7 @@ const tiles: Tile[] = [
 export function ExperienceGridSection() {
   return (
     <section
-      id="experiencias"
+      id="inscricoes"
       className="relative bg-black px-4 py-10 md:px-0 md:py-0"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-4 py-4 md:py-10">

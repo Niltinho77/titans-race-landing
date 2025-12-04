@@ -36,6 +36,70 @@ type CheckoutScreenProps = {
   initialModality: Modality | null;
 };
 
+function formatCurrency(cents: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(cents / 100);
+}
+
+const onlyDigits = (value: string) => value.replace(/\D/g, "");
+
+// CPF -> 000.000.000-00
+function formatCPF(value: string): string {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9)
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(
+    6,
+    9
+  )}-${digits.slice(9)}`;
+}
+
+// Telefone -> (99) 99999-9999
+function formatPhone(value: string): string {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  if (digits.length === 0) return "";
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+// Data -> dd/mm/aaaa
+function formatDate(value: string): string {
+  const digits = onlyDigits(value).slice(0, 8);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4)
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+// validações simples pra liberar próximo passo
+function isValidCPF(value: string): boolean {
+  return onlyDigits(value).length === 11;
+}
+
+function isValidPhone(value: string): boolean {
+  return onlyDigits(value).length === 11;
+}
+
+function isValidDate(value: string): boolean {
+  return value.length === 10;
+}
+
+function isValidEmail(value: string): boolean {
+  return value.includes("@") && value.includes(".");
+}
+
 const DEFAULT_TSHIRT_SIZES = ["PP", "P", "M", "G", "GG"];
 
 export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
@@ -44,6 +108,9 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   const [tickets, setTickets] = useState<number>(1);
   const [participants, setParticipants] = useState<ParticipantForm[]>([]);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!modality && initialModality) {
@@ -58,6 +125,38 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     }
     return tickets;
   }, [modality, tickets]);
+
+    const { ticketsTotal, extrasTotal, grandTotal } = useMemo(() => {
+    if (!modality) {
+      return {
+        ticketsTotal: 0,
+        extrasTotal: 0,
+        grandTotal: 0,
+      };
+    }
+
+    // total só dos ingressos
+    const ticketsTotalCalc = tickets * modality.basePrice;
+
+    // total dos extras (percorrendo todos participantes)
+    let extrasTotalCalc = 0;
+
+    for (const participant of participants) {
+      for (const extra of participant.extras) {
+        const config = EXTRAS.find((e) => e.id === extra.type);
+        if (!config) continue;
+
+        const quantity = extra.quantity ?? 1;
+        extrasTotalCalc += config.price * quantity;
+      }
+    }
+
+    return {
+      ticketsTotal: ticketsTotalCalc,
+      extrasTotal: extrasTotalCalc,
+      grandTotal: ticketsTotalCalc + extrasTotalCalc,
+    };
+  }, [modality, tickets, participants]);
 
   useEffect(() => {
     if (!participantsCount) {
@@ -147,29 +246,79 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   };
 
   const canGoToStep2 = tickets > 0 && modality;
-  const canGoToStep3 = participants.every(
-    (p) =>
-      p.fullName.trim() &&
-      p.cpf.trim() &&
-      p.birthDate.trim() &&
-      p.phone.trim() &&
-      p.email.trim()
+  const canGoToStep3 = participants.length > 0 && participants.every((p) => {
+  return (
+    p.fullName.trim().length > 3 &&
+    isValidCPF(p.cpf) &&
+    isValidDate(p.birthDate) &&
+    isValidPhone(p.phone) &&
+    isValidEmail(p.email)
   );
+});
 
   const canFinish = termsAccepted;
 
-  const handleFinish = () => {
+    const handleFinish = async () => {
+  if (!modality) return;
+  if (!termsAccepted) return;
+
+  setIsSubmitting(true);
+  setSubmitError(null);
+
+  try {
     const payload = {
       modalityId: modality.id as ModalityId,
       tickets,
-      participants,
+      participants: participants.map((p) => ({
+        fullName: p.fullName,
+        cpf: p.cpf,
+        birthDate: p.birthDate,
+        phone: p.phone,
+        email: p.email,
+        city: p.city,
+        state: p.state,
+        tshirtSize: p.tshirtSize,
+        emergencyName: p.emergencyName,
+        emergencyPhone: p.emergencyPhone,
+        healthInfo: p.healthInfo,
+        extras: p.extras,
+      })),
       termsAccepted,
     };
 
-    console.log("Checkout payload (visual):", payload);
-    alert(
-      "Fluxo visual concluído. Depois aqui vamos integrar com Stripe e backend."
-    );
+    const res = await fetch("/api/checkout/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error || "Erro ao salvar inscrição.");
+    }
+
+    const data: { orderId: string; checkoutUrl?: string } = await res.json();
+
+    setCreatedOrderId(data.orderId);
+
+    if (data.checkoutUrl) {
+      // 🔁 Redireciona para o Stripe
+      window.location.href = data.checkoutUrl;
+      return;
+    } else {
+      // fallback: caso por algum motivo não venha URL
+      setSubmitError(
+        "Inscrição registrada, mas não foi possível abrir o pagamento. Entre em contato com a organização."
+      );
+    }
+  } catch (err: any) {
+    console.error(err);
+    setSubmitError(err.message || "Erro inesperado ao finalizar.");
+  } finally {
+    setIsSubmitting(false);
+  }
   };
 
   return (
@@ -220,13 +369,76 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         )}
       </div>
 
-      {/* Navegação */}
-      <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-5 text-[11px] md:flex-row md:items-center md:justify-between">
-        <div className="text-zinc-500">
-          *Fluxo visual para apresentação. Integração com pagamento será
-          conectada após aprovação do projeto.
+            {/* Resumo financeiro */}
+      <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-200 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
+            Resumo financeiro
+          </p>
+          <p className="mt-1 text-sm text-zinc-200">
+            {tickets} {modality.ticketLabel}
+          </p>
         </div>
 
+        <div className="flex flex-col gap-1 text-right md:text-left">
+          <p className="text-sm">
+            Subtotal ingressos:{" "}
+            <span className="font-semibold text-white">
+              {formatCurrency(ticketsTotal)}
+            </span>
+          </p>
+          <p className="text-sm">
+            Extras:{" "}
+            <span className="font-semibold text-white">
+              {formatCurrency(extrasTotal)}
+            </span>
+          </p>
+          <p className="text-sm">
+            Total:{" "}
+            <span className="font-semibold text-orange-400">
+              {formatCurrency(grandTotal)}
+            </span>
+          </p>
+        </div>
+      </div>
+
+            {/* Navegação + mensagens */}
+      <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-5 text-[11px] md:flex-row md:items-center md:justify-between">
+        {/* Mensagens de status */}
+        <div className="flex flex-col gap-2 text-[11px] text-zinc-400 md:w-1/2">
+          {submitError && (
+            <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-red-200">
+              {submitError}
+            </p>
+          )}
+
+          {createdOrderId && (
+            <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-200">
+              Inscrição registrada com sucesso! Número do pedido:{" "}
+              <span className="font-semibold">{createdOrderId}</span>.
+              Você receberá todas as informações do evento no e-mail informado.
+            </p>
+          )}
+        </div>
+
+        {/* Botões de navegação */}
+        <div className="flex flex-col items-stretch gap-2 md:w-auto md:flex-row md:items-center">
+          {/* 🔙 Botão para voltar ao início da landing */}
+          <a
+            href="/#inicio"
+            className="rounded-full border border-white/20 px-4 py-2 text-center font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5"
+          >
+            Voltar para o início
+          </a>
+
+          {/* Botões de passo / finalizar */}
+
+          {submitError && (
+          <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[11px] text-red-100">
+            {submitError}
+          </div>
+        )}
+        
         <div className="flex justify-end gap-3">
           {step > 1 && (
             <button
@@ -243,7 +455,10 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
                 if (step === 1 && canGoToStep2) setStep(2);
                 if (step === 2 && canGoToStep3) setStep(3);
               }}
-              disabled={(step === 1 && !canGoToStep2) || (step === 2 && !canGoToStep3)}
+                disabled={
+                  (step === 1 && !canGoToStep2) ||
+                  (step === 2 && !canGoToStep3)
+                }
               className="rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Próximo
@@ -253,14 +468,15 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           {step === 3 && (
             <button
               onClick={handleFinish}
-              disabled={!canFinish}
+                disabled={!canFinish || isSubmitting}
               className="rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Finalizar (visual)
+                {isSubmitting ? "Enviando..." : "Finalizar inscrição"}
             </button>
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -404,23 +620,30 @@ function Step2Participants({
               <Input
                 label="CPF"
                 value={participant.cpf}
-                onChange={(v) => onChange(index, "cpf", v)}
+                onChange={(v) => onChange(index, "cpf", formatCPF(v))}
+                maxLength={14}
+                inputMode="numeric"
               />
               <Input
                 label="Data de nascimento"
                 placeholder="dd/mm/aaaa"
                 value={participant.birthDate}
-                onChange={(v) => onChange(index, "birthDate", v)}
+                onChange={(v) => onChange(index, "birthDate", formatDate(v))}
+                maxLength={10}
+                inputMode="numeric"
               />
               <Input
                 label="Telefone / WhatsApp"
                 value={participant.phone}
-                onChange={(v) => onChange(index, "phone", v)}
+                onChange={(v) => onChange(index, "phone", formatPhone(v))}
+                maxLength={15}
+                inputMode="tel"
               />
               <Input
                 label="E-mail"
                 value={participant.email}
                 onChange={(v) => onChange(index, "email", v)}
+                type="email"
               />
               <Input
                 label="Cidade / UF"
@@ -444,7 +667,9 @@ function Step2Participants({
               <Input
                 label="Telefone do contato"
                 value={participant.emergencyPhone}
-                onChange={(v) => onChange(index, "emergencyPhone", v)}
+                onChange={(v) => onChange(index, "emergencyPhone", formatPhone(v))}
+                maxLength={15}
+                inputMode="tel"
               />
             </div>
 
@@ -599,18 +824,27 @@ function Input({
   value,
   onChange,
   placeholder,
+  type = "text",
+  maxLength,
+  inputMode,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  type?: string;
+  maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   return (
     <div className="flex flex-col gap-1 text-xs">
       <label className="text-zinc-400">{label}</label>
       <input
+        type={type}
         value={value}
         placeholder={placeholder}
+        maxLength={maxLength}
+        inputMode={inputMode}
         onChange={(e) => onChange(e.target.value)}
         className="rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
       />
