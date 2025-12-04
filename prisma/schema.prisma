@@ -1,0 +1,60 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  modalityId    String
+  tickets       Int
+  status        String      @default("PENDING")
+  termsAccepted Boolean     @default(false)
+
+  // valores em centavos
+  totalAmount   Int?
+  ticketsAmount Int?        // <- adicionar
+  extrasAmount  Int?        // <- adicionar
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  stripeSessionId       String?  @unique
+  stripePaymentIntentId String?
+
+  participants  Participant[]
+}
+
+model Participant {
+  id               String             @id @default(cuid())
+  order            Order              @relation(fields: [orderId], references: [id])
+  orderId          String
+
+  fullName         String
+  cpf              String
+  birthDate        String
+  phone            String
+  email            String
+  city             String?
+  state            String?
+  tshirtSize       String
+  emergencyName    String?
+  emergencyPhone   String?
+  healthInfo       String?
+
+  extras           ParticipantExtra[]
+}
+
+model ParticipantExtra {
+  id            String        @id @default(cuid())
+  participant   Participant   @relation(fields: [participantId], references: [id])
+  participantId String
+
+  type          String
+  size          String?
+  quantity      Int
+}
