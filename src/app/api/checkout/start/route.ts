@@ -95,77 +95,89 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 💾 Cria Order no banco
-    const order = await prisma.order.create({
-      data: {
-        modalityId: modality.id,
-        tickets: body.tickets,
-        status: "PENDING",
-        termsAccepted: body.termsAccepted,
-        totalAmount,
-        participants: {
-          create: body.participants.map((p) => ({
-            fullName: p.fullName,
-            cpf: p.cpf,
-            birthDate: p.birthDate,
-            phone: p.phone,
-            email: p.email,
-            city: p.city ?? "",
-            state: p.state ?? "",
-            tshirtSize: p.tshirtSize,
-            emergencyName: p.emergencyName ?? "",
-            emergencyPhone: p.emergencyPhone ?? "",
-            healthInfo: p.healthInfo ?? "",
-            extras: {
-              create:
-                p.extras?.map((e) => ({
-                  type: e.type,
-                  size: e.size ?? null,
-                  quantity: e.quantity && e.quantity > 0 ? e.quantity : 1,
-                })) ?? [],
-            },
-          })),
+   // 💾 Cria Order no banco
+const order = await prisma.order.create({
+  data: {
+    modalityId: modality.id,
+    tickets: body.tickets,
+    status: "PENDING",
+    termsAccepted: body.termsAccepted,
+    totalAmount,
+    participants: {
+      create: body.participants.map((p) => ({
+        fullName: p.fullName,
+        cpf: p.cpf,
+        birthDate: p.birthDate,
+        phone: p.phone,
+        email: p.email,
+        city: p.city ?? "",
+        state: p.state ?? "",
+        tshirtSize: p.tshirtSize,
+        emergencyName: p.emergencyName ?? "",
+        emergencyPhone: p.emergencyPhone ?? "",
+        healthInfo: p.healthInfo ?? "",
+        extras: {
+          create:
+            p.extras?.map((e) => ({
+              type: e.type,
+              size: e.size ?? null,
+              quantity: e.quantity && e.quantity > 0 ? e.quantity : 1,
+            })) ?? [],
+        },
+      })),
+    },
+  },
+});
+
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+// 🧾 Cria a Stripe Checkout Session
+const session = await stripe.checkout.sessions.create({
+  mode: "payment",
+  currency: "brl",
+  payment_method_types: ["card"],
+  line_items: [
+    {
+      price_data: {
+        currency: "brl",
+        unit_amount: totalAmount, // centavos
+        product_data: {
+          name: `Titans Race – ${modality.name}`,
+          description: `Ingressos: ${body.tickets}`,
         },
       },
-    });
+      quantity: 1,
+    },
+  ],
+  metadata: {
+    orderId: order.id,
+    modalityId: modality.id,
+  },
+  success_url: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
+  cancel_url: `${siteUrl}/checkout?modality=${modality.id}&cancelled=1`,
+});
 
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+// opcional mas legal: salvar IDs da Stripe
+await prisma.order.update({
+  where: { id: order.id },
+  data: {
+    stripeSessionId: session.id,
+    stripePaymentIntentId:
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : null,
+  },
+});
 
-    // 🧾 Cria a Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      currency: "brl",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "brl",
-            unit_amount: totalAmount, // centavos
-            product_data: {
-              name: `Titans Race – ${modality.name}`,
-              description: `Ingressos: ${body.tickets}`,
-            },
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        orderId: order.id,
-        modalityId: modality.id,
-      },
-      success_url: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
-      cancel_url: `${siteUrl}/checkout?modality=${modality.id}&cancelled=1`,
-    });
-
-    return NextResponse.json(
-      {
-        orderId: order.id,
-        totalAmount: order.totalAmount,
-        checkoutUrl: session.url,
-      },
-      { status: 201 }
-    );
+return NextResponse.json(
+  {
+    orderId: order.id,
+    totalAmount: totalAmount,
+    checkoutUrl: session.url,
+  },
+  { status: 201 }
+);
   } catch (err) {
     console.error("Erro em /api/checkout/start:", err);
     return NextResponse.json(
