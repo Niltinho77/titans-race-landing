@@ -88,7 +88,7 @@ export function RegistrationSection() {
           transition={{ duration: 0.5, delay: 0.15 }}
         >
           <a
-            href="#experiencias"
+            href="#inscricoes"
             className="inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
           >
             Iniciar inscrição

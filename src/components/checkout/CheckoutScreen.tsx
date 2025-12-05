@@ -823,10 +823,30 @@ function Step3ExtrasAndTerms({
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-300">
-        <p className="text-[11px] text-zinc-400">
+       <p className="text-[11px] text-zinc-400">
           Antes de finalizar, é necessário concordar com o regulamento e o termo
-          de responsabilidade da prova.
+          de responsabilidade da prova. Você pode acessar os documentos nos links abaixo:
         </p>
+
+        <div className="mt-2 flex flex-wrap gap-3 text-[11px]">
+          <a
+            href="/docs/regulamento.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
+          >
+            Ver regulamento (PDF)
+          </a>
+
+          <a
+            href="/docs/termo-responsabilidade.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
+          >
+            Ver termo de responsabilidade (PDF)
+          </a>
+        </div>
 
         <div className="mt-3 flex items-start gap-2">
           <input
@@ -837,12 +857,9 @@ function Step3ExtrasAndTerms({
             className="mt-0.5 h-3.5 w-3.5 rounded border border-white/20 bg-black"
           />
           <label htmlFor="terms" className="text-[11px] leading-relaxed">
-            Declaro que li e aceito o{" "}
-            <a href="/regulamento" className="text-orange-400 underline">
-              regulamento
-            </a>{" "}
-            e o termo de responsabilidade da Titans Race, estou apto(a) a
-            participar da prova e ciente dos riscos inerentes à atividade.
+            Declaro que li e aceito o regulamento e o termo de responsabilidade da
+            Titans Race, estou apto(a) a participar da prova e ciente dos riscos
+            inerentes à atividade.
           </label>
         </div>
       </div>

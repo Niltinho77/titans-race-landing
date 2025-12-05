@@ -129,7 +129,9 @@ export default function Hero() {
               Vou encarar
             </a>
             <a
-              href="#regulamento"
+              href="/docs/regulamento.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-full border border-slate-300/40 px-10 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-50/90 hover:bg-slate-50/5 transition"
             >
               Ver regulamento
