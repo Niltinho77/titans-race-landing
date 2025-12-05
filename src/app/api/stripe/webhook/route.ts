@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 export const runtime = "nodejs"; // importante: stripe não roda em edge
 
@@ -54,14 +55,35 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        await prisma.order.update({
+        // Atualiza pedido pra PAID
+        const updatedOrder = await prisma.order.update({
           where: { id: orderId },
           data: {
             status: "PAID",
             stripeSessionId: session.id,
             stripePaymentIntentId: paymentIntentId,
           },
+          include: {
+            participants: true,
+          },
         });
+
+        // Envia e-mail pro participante principal (primeiro da lista)
+        const mainParticipant = updatedOrder.participants[0];
+
+        if (mainParticipant) {
+          await sendOrderConfirmationEmail({
+            to: mainParticipant.email,
+            participantName: mainParticipant.fullName,
+            orderId: updatedOrder.id,
+            modalityName: updatedOrder.modalityId, // se quiser, pode mapear pra nome bonitinho
+            totalAmount: updatedOrder.totalAmount ?? 0,
+          });
+        } else {
+          console.warn(
+            `Pedido ${updatedOrder.id} marcado como PAID, mas sem participantes. E-mail não enviado.`
+          );
+        }
 
         break;
       }
@@ -83,9 +105,7 @@ export async function POST(req: NextRequest) {
         break;
       }
 
-      // você pode tratar refund, cancel etc. depois
       default:
-        // console.log(`Evento Stripe ignorado: ${event.type}`);
         break;
     }
 

@@ -43,6 +43,19 @@ function formatCurrency(cents: number): string {
   }).format(cents / 100);
 }
 
+const STRIPE_FEE_PERCENT = 0.0399; // 3,99%
+const STRIPE_FEE_FIXED = 39;       // R$ 0,39 em centavos
+
+function calculateFee(amountCents: number) {
+  if (amountCents <= 0) {
+    return { totalWithFee: 0, feeAmount: 0 };
+  }
+  const bruto = (amountCents + STRIPE_FEE_FIXED) / (1 - STRIPE_FEE_PERCENT);
+  const totalWithFee = Math.round(bruto);
+  const feeAmount = totalWithFee - amountCents;
+  return { totalWithFee, feeAmount };
+}
+
 const onlyDigits = (value: string) => value.replace(/\D/g, "");
 
 // CPF -> 000.000.000-00
@@ -126,37 +139,45 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     return tickets;
   }, [modality, tickets]);
 
-    const { ticketsTotal, extrasTotal, grandTotal } = useMemo(() => {
-    if (!modality) {
-      return {
-        ticketsTotal: 0,
-        extrasTotal: 0,
-        grandTotal: 0,
-      };
-    }
-
-    // total só dos ingressos
-    const ticketsTotalCalc = tickets * modality.basePrice;
-
-    // total dos extras (percorrendo todos participantes)
-    let extrasTotalCalc = 0;
-
-    for (const participant of participants) {
-      for (const extra of participant.extras) {
-        const config = EXTRAS.find((e) => e.id === extra.type);
-        if (!config) continue;
-
-        const quantity = extra.quantity ?? 1;
-        extrasTotalCalc += config.price * quantity;
+      const { ticketsTotal, extrasTotal, grandTotal, feeAmount, grandTotalWithFee } =
+    useMemo(() => {
+      if (!modality) {
+        return {
+          ticketsTotal: 0,
+          extrasTotal: 0,
+          grandTotal: 0,
+          feeAmount: 0,
+          grandTotalWithFee: 0,
+        };
       }
-    }
 
-    return {
-      ticketsTotal: ticketsTotalCalc,
-      extrasTotal: extrasTotalCalc,
-      grandTotal: ticketsTotalCalc + extrasTotalCalc,
-    };
-  }, [modality, tickets, participants]);
+      // total só dos ingressos
+      const ticketsTotalCalc = tickets * modality.basePrice;
+
+      // total dos extras (percorrendo todos participantes)
+      let extrasTotalCalc = 0;
+
+      for (const participant of participants) {
+        for (const extra of participant.extras) {
+          const config = EXTRAS.find((e) => e.id === extra.type);
+          if (!config) continue;
+
+          const quantity = extra.quantity ?? 1;
+          extrasTotalCalc += config.price * quantity;
+        }
+      }
+
+      const subtotal = ticketsTotalCalc + extrasTotalCalc;
+      const { totalWithFee, feeAmount } = calculateFee(subtotal);
+
+      return {
+        ticketsTotal: ticketsTotalCalc,
+        extrasTotal: extrasTotalCalc,
+        grandTotal: subtotal,
+        feeAmount,
+        grandTotalWithFee: totalWithFee,
+      };
+    }, [modality, tickets, participants]);
 
   useEffect(() => {
     if (!participantsCount) {
@@ -369,7 +390,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         )}
       </div>
 
-            {/* Resumo financeiro */}
+                 {/* Resumo financeiro */}
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-200 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
@@ -378,13 +399,17 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           <p className="mt-1 text-sm text-zinc-200">
             {tickets} {modality.ticketLabel}
           </p>
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Os valores abaixo já consideram todos os participantes e extras
+            selecionados.
+          </p>
         </div>
 
         <div className="flex flex-col gap-1 text-right md:text-left">
           <p className="text-sm">
-            Subtotal ingressos:{" "}
+            Subtotal inscrição:{" "}
             <span className="font-semibold text-white">
-              {formatCurrency(ticketsTotal)}
+              {formatCurrency(grandTotal)}
             </span>
           </p>
           <p className="text-sm">
@@ -394,9 +419,15 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
             </span>
           </p>
           <p className="text-sm">
-            Total:{" "}
+            Taxa da plataforma de pagamento:{" "}
+            <span className="font-semibold text-white">
+              {formatCurrency(feeAmount)}
+            </span>
+          </p>
+          <p className="text-sm">
+            Total com taxas:{" "}
             <span className="font-semibold text-orange-400">
-              {formatCurrency(grandTotal)}
+              {formatCurrency(grandTotalWithFee)}
             </span>
           </p>
         </div>

@@ -13,9 +13,13 @@ model Order {
   tickets               Int
   status                String        @default("PENDING")
   termsAccepted         Boolean       @default(false)
-  totalAmount           Int?
-  ticketsAmount         Int?
-  extrasAmount          Int?
+// valores em centavos
+  totalAmount           Int?          // valor líquido (sem taxa)
+  ticketsAmount         Int?          // só ingressos
+  extrasAmount          Int?          // só extras
+  feeAmount             Int?          // taxa da plataforma
+  totalAmountWithFee    Int?          // valor cobrado do atleta (com taxa)
+
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   stripeSessionId       String?       @unique
