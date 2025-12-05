@@ -15,8 +15,7 @@ export default function HomePage() {
       <Hero />
       <ExperienceGridSection />
       <LocationSection />
-      <RegistrationSection />
-      <SponsorsSection />
+      <RegistrationSection /> 
       <ContactSection />
       <Footer />
     </main>

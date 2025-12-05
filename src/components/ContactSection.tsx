@@ -35,7 +35,7 @@ export function ContactSection() {
               <div>
                 <p className="text-zinc-400">WhatsApp (organização)</p>
                 <p className="font-medium text-zinc-100">
-                  (+55) (00) 00000-0000
+                 (55) 99223-4690
                 </p>
               </div>
             </div>
@@ -52,17 +52,7 @@ export function ContactSection() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 text-xs md:text-sm">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-black/60">
-                <Users className="h-4 w-4 text-orange-400" />
-              </div>
-              <div>
-                <p className="text-zinc-400">Grupo oficial Titans Race</p>
-                <p className="font-medium text-zinc-100">
-                  Link será disponibilizado na versão final
-                </p>
-              </div>
-            </div>
+            
           </div>
         </motion.div>
 
@@ -75,23 +65,18 @@ export function ContactSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <a
-            href="https://wa.me/0000000000000"
+            href="https://wa.me/5555992234690"
             className="block w-full rounded-full bg-orange-500 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-lg transition hover:bg-orange-400"
           >
             Falar no WhatsApp
           </a>
 
           <a
-            href="#"
+            href="https://chat.whatsapp.com/I6hYJ3lR7iqAneNCoEYJdN"
             className="block w-full rounded-full border border-white/20 px-4 py-3 text-center text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-100 transition hover:bg-white/5"
           >
             Entrar no grupo oficial
           </a>
-
-          <p className="mt-3 text-[11px] text-zinc-500">
-            *Links e contatos são ilustrativos nesta fase de apresentação do
-            projeto.
-          </p>
         </motion.div>
       </div>
     </section>
