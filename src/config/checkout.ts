@@ -32,7 +32,7 @@ export const MODALITIES: Modality[] = [
     name: "Competição",
     description:
       "Prova cronometrada para quem quer tempo, performance e ranking.",
-    basePrice: 19000, // R$ 190,00
+    basePrice: 19, // R$ 190,00
     ticketLabel: "ingressos Competição",
   },
   {
