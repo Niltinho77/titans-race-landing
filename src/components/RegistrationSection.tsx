@@ -2,15 +2,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Lock } from "lucide-react";
-
-type LotStatus = "ativo" | "bloqueado";
+import { Lock } from "lucide-react";
 
 type Lot = {
   id: string;
   name: string;
-  status: LotStatus;
-  price: string;
   image: string;
   imageAlt?: string;
   note?: string;
@@ -18,31 +14,32 @@ type Lot = {
 
 const lots: Lot[] = [
   {
+    id: "lotePromocional",
+    name: "Lote Promocional",
+    image: "/images/lote-promocional.png",
+    imageAlt: "Lote promocional de lançamento – Titans Race",
+    note: "Vagas limitadas para o lançamento oficial.",
+  },
+  {
     id: "lote1",
     name: "1º Lote",
-    status: "ativo",
-    price: "R$ 187",
     image: "/images/lote1.png",
     imageAlt: "Atletas correndo na Titans Race – 1º Lote",
-    note: "Valor promocional de lançamento",
+    note: "Disponível após o encerramento do lote promocional.",
   },
   {
     id: "lote2",
     name: "2º Lote",
-    status: "bloqueado",
-    price: "R$ 220",
     image: "/images/lote2.png",
     imageAlt: "Representação visual do 2º Lote",
-    note: "Entra em vigor após encerramento do 1º lote",
+    note: "Entra em vigor após encerramento do 1º lote.",
   },
   {
     id: "loteFinal",
     name: "Lote Final",
-    status: "bloqueado",
-    price: "R$ 250",
     image: "/images/lote-final.png",
     imageAlt: "Representação visual do Lote Final",
-    note: "Última oportunidade de inscrição",
+    note: "Última oportunidade de inscrição.",
   },
 ];
 
@@ -73,13 +70,12 @@ export function RegistrationSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          Os valores abaixo representam os lotes de inscrição da Titans Race.
-          O valor final é calculado automaticamente no checkout, de acordo com
-          o lote vigente no momento da inscrição, independente da modalidade
-          escolhida.
+          As inscrições da Titans Race serão abertas em breve. Assim que os lotes
+          forem liberados, publicaremos os valores, datas e modalidades
+          disponíveis aqui no site e nos canais oficiais.
         </motion.p>
 
-        {/* CTA simples para iniciar inscrição */}
+        {/* CTA (desabilitado) */}
         <motion.div
           className="mt-6"
           initial={{ opacity: 0, y: 10 }}
@@ -87,17 +83,19 @@ export function RegistrationSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.15 }}
         >
-          <a
-            href="#inscricoes"
-            className="inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
+          <button
+            type="button"
+            disabled
+            className="inline-flex cursor-not-allowed items-center rounded-full border border-white/15 bg-black/40 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300 opacity-80"
+            title="Inscrições em breve"
           >
-            Iniciar inscrição
-          </a>
+            Inscrições em breve
+          </button>
         </motion.div>
 
         {/* GRID PRINCIPAL */}
         <div className="mt-14 grid gap-4 md:grid-cols-[1.3fr_1fr]">
-          {/* CARD PRINCIPAL – LOTE ATIVO */}
+          {/* CARD PRINCIPAL – LOTE DE DESTAQUE (em breve) */}
           <motion.div
             className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-black p-6 shadow-[0_20px_60px_rgba(0,0,0,0.9)] md:h-full"
             initial={{ opacity: 0, scale: 0.97, y: 10 }}
@@ -115,16 +113,17 @@ export function RegistrationSection() {
 
             {/* Glow em hover */}
             <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              <div className="absolute inset-[1px] rounded-3xl bg-gradient-to-br from-orange-500/40 via-transparent to-orange-200/25 blur-xl" />
+              <div className="absolute inset-[1px] rounded-3xl bg-gradient-to-br from-orange-500/35 via-transparent to-orange-200/20 blur-xl" />
             </div>
 
             <div className="relative z-10 flex items-center justify-between text-[11px] text-zinc-200">
               <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-300">
-                Lote atual
+                Lote de lançamento
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-orange-400/40 bg-orange-500/10 px-3 py-1 text-[10px] text-orange-200 backdrop-blur-sm">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Inscrições abertas
+
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] text-zinc-300 backdrop-blur-[1px]">
+                <Lock className="h-3.5 w-3.5" />
+                Em breve
               </span>
             </div>
 
@@ -132,12 +131,11 @@ export function RegistrationSection() {
               <p className="heading-adventure text-4xl text-white md:text-5xl">
                 {loteAtivo.name}
               </p>
+
               <p className="mt-4 text-sm text-zinc-200">
-                A partir de{" "}
-                <span className="text-white font-semibold">
-                  {loteAtivo.price}
-                </span>
+                Inscrições <span className="font-semibold text-white">em breve</span>
               </p>
+
               {loteAtivo.note && (
                 <p className="mt-2 text-[11px] text-zinc-400">
                   {loteAtivo.note}
@@ -166,7 +164,7 @@ export function RegistrationSection() {
                 <img
                   src={lot.image}
                   alt={lot.imageAlt ?? lot.name}
-                  className="absolute inset-0 h-full w-full object-cover opacity-40 grayscale"
+                  className="absolute inset-0 h-full w-full object-cover opacity-45 grayscale"
                 />
                 <div className="absolute inset-0 bg-black/60" />
 
@@ -184,12 +182,11 @@ export function RegistrationSection() {
                   <p className="heading-adventure text-2xl text-white md:text-3xl">
                     {lot.name}
                   </p>
+
                   <p className="mt-3 text-xs text-zinc-300">
-                    Previsto a partir de{" "}
-                    <span className="text-zinc-100 font-medium">
-                      {lot.price}
-                    </span>
+                    Inscrições em breve
                   </p>
+
                   {lot.note && (
                     <p className="mt-1 text-[11px] text-zinc-400">
                       {lot.note}
