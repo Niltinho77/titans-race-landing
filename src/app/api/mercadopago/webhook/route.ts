@@ -6,6 +6,7 @@ import { mpPayment } from "@/lib/mercadopago";
 
 export const runtime = "nodejs";
 
+// -------------------- Signature helpers --------------------
 function parseSignatureHeader(signature: string | null) {
   if (!signature) return null;
 
@@ -36,12 +37,12 @@ function safeEqual(a: string, b: string) {
 }
 
 function verifyMpSignature(params: {
-  paymentId: string;
+  resourceId: string;
   xRequestId: string | null;
   xSignature: string | null;
   secret: string | undefined;
 }) {
-  const { paymentId, xRequestId, xSignature, secret } = params;
+  const { resourceId, xRequestId, xSignature, secret } = params;
 
   // Se você não configurar secret, não bloqueia.
   if (!secret) return true;
@@ -50,9 +51,9 @@ function verifyMpSignature(params: {
   if (!parsed) return false;
   if (!xRequestId) return false;
 
-  // Manifest usado pelo MP em exemplos: `id:${id};request-id:${requestId};ts:${ts};`
-  // (há discussões públicas com esse formato) :contentReference[oaicite:1]{index=1}
-  const manifest = `id:${paymentId};request-id:${xRequestId};ts:${parsed.ts};`;
+  // manifest (modelo prático usado nos exemplos do MP):
+  // `id:${id};request-id:${requestId};ts:${ts};`
+  const manifest = `id:${resourceId};request-id:${xRequestId};ts:${parsed.ts};`;
 
   const computed = crypto
     .createHmac("sha256", secret)
@@ -62,8 +63,8 @@ function verifyMpSignature(params: {
   return safeEqual(computed, parsed.v1);
 }
 
+// -------------------- Status mapping --------------------
 function mapMpToOrderStatus(mpStatus?: string) {
-  // você pode ajustar os nomes como quiser no seu sistema
   switch (mpStatus) {
     case "approved":
       return "PAID";
@@ -77,59 +78,123 @@ function mapMpToOrderStatus(mpStatus?: string) {
   }
 }
 
+// -------------------- Merchant order -> paymentId --------------------
+async function resolvePaymentIdFromMerchantOrder(merchantOrderId: string) {
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) return null;
+
+  const res = await fetch(
+    `https://api.mercadopago.com/merchant_orders/${merchantOrderId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) return null;
+
+  const mo = await res.json();
+  const pid = mo?.payments?.[0]?.id;
+  return pid ? String(pid) : null;
+}
+
 export async function POST(req: NextRequest) {
+  // ✅ webhook deve quase sempre responder 200 para o MP (ack)
   try {
     if (!mpPayment) {
-      return NextResponse.json({ error: "Mercado Pago não configurado." }, { status: 500 });
+      console.warn("MP webhook: mpPayment null (MP_ACCESS_TOKEN ausente?)");
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
 
-    // MP costuma enviar o id no query (data.id / id) e às vezes também no body
-    const { searchParams } = new URL(req.url);
+    const url = new URL(req.url);
+    const searchParams = url.searchParams;
 
-    let paymentId =
-      searchParams.get("data.id") ||
-      searchParams.get("id") ||
-      undefined;
-
+    // tenta ler body (nem sempre vem JSON parseável)
     let body: any = null;
     try {
       body = await req.json();
     } catch {
-      // ok: alguns webhooks vêm sem JSON parseável no Next
+      body = null;
     }
 
-    paymentId =
-      paymentId ||
+    // MP pode mandar identificação por query ou body
+    const topic =
+      searchParams.get("topic") ||
+      searchParams.get("type") ||
+      body?.type ||
+      null;
+
+    const resourceIdRaw =
+      searchParams.get("data.id") ||
+      searchParams.get("id") ||
       body?.data?.id ||
       body?.id ||
-      undefined;
+      null;
 
-    if (!paymentId) {
-      // responde 200 pra não ficar re-tentando infinito, mas loga
-      console.warn("MP webhook sem paymentId", { query: Object.fromEntries(searchParams), body });
+    if (!resourceIdRaw) {
+      console.warn("MP webhook sem resourceId", {
+        url: req.url,
+        query: Object.fromEntries(searchParams),
+        body,
+      });
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
+    const resourceId = String(resourceIdRaw);
+
     // (Opcional) validar assinatura do webhook
-    const mpSecret = process.env.MP_WEBHOOK_SECRET; // você define no painel do MP
+    const mpSecret = process.env.MP_WEBHOOK_SECRET; // defina no painel do MP (opcional)
     const xSignature = req.headers.get("x-signature");
     const xRequestId = req.headers.get("x-request-id");
 
     const valid = verifyMpSignature({
-      paymentId,
+      resourceId, // assinatura é do ID notificado (resource)
       xRequestId,
       xSignature,
       secret: mpSecret,
     });
 
     if (!valid) {
+      // se você ativou secret, essa proteção faz sentido
       return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
     }
 
-    // Busca o pagamento real na API (fonte da verdade)
-    const payment = await mpPayment.get({ id: paymentId });
+    // resolve paymentId dependendo do tipo de notificação
+    let paymentId: string | null = null;
 
-    const externalRef = payment?.external_reference; // deve ser order.id (como você setou)
+    if (topic === "merchant_order" || topic === "order") {
+      paymentId = await resolvePaymentIdFromMerchantOrder(resourceId);
+      if (!paymentId) {
+        console.warn("MP webhook: merchant_order sem paymentId", {
+          resourceId,
+          topic,
+          body,
+        });
+        return NextResponse.json({ ok: true }, { status: 200 });
+      }
+    } else {
+      // padrão: é payment mesmo
+      paymentId = resourceId;
+    }
+
+    // busca o pagamento (fonte da verdade)
+    let payment: any;
+    try {
+      payment = await mpPayment.get({ id: paymentId });
+    } catch (e: any) {
+      // ✅ isso acontece no "teste do painel" (id fake) e em alguns cenários de notificação
+      console.warn("MP payment.get falhou (ignorado)", {
+        paymentId,
+        status: e?.status,
+        message: e?.message,
+        cause: e?.cause,
+        topic,
+        resourceId,
+      });
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    const externalRef = payment?.external_reference; // order.id
     const mpStatus = payment?.status as string | undefined;
 
     if (!externalRef) {
@@ -139,9 +204,8 @@ export async function POST(req: NextRequest) {
 
     const newOrderStatus = mapMpToOrderStatus(mpStatus);
 
-    // Atualização idempotente
     await prisma.order.update({
-      where: { id: externalRef },
+      where: { id: String(externalRef) },
       data: {
         status: newOrderStatus,
         mpPaymentId: String(payment.id),
@@ -152,8 +216,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
     console.error("Erro webhook Mercado Pago:", err);
-    // importante: normalmente é melhor responder 200 se você já recebeu e vai reprocessar por fila.
-    // mas como você ainda está integrando, deixo 500 para você enxergar erros.
-    return NextResponse.json({ error: "Erro no webhook." }, { status: 500 });
+    // ✅ não derruba o webhook
+    return NextResponse.json({ ok: true }, { status: 200 });
   }
 }
