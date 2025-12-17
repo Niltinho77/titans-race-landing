@@ -20,6 +20,14 @@ model Order {
   feeAmount             Int?          // taxa da plataforma
   totalAmountWithFee    Int?          // valor cobrado do atleta (com taxa)
 
+   // ✅ Mercado Pago
+  mpPreferenceId        String?  @unique
+  mpPaymentId           String?
+  mpPaymentStatus       String?
+
+  // ✅ Para evitar e-mail duplicado
+  confirmationEmailSentAt DateTime?
+
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   stripeSessionId       String?       @unique

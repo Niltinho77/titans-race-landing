@@ -307,7 +307,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
       termsAccepted,
     };
 
-    const res = await fetch("/api/checkout/start", {
+    const res = await fetch("/api/checkout/start-mp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
