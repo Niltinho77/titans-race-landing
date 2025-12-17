@@ -16,7 +16,7 @@ export const MODALITIES: Modality[] = [
     name: "Kids",
     description:
       "Percurso adaptado para crianças, com obstáculos seguros e monitorados.",
-    basePrice: 12000, // R$ 120,00
+    basePrice: 12, // R$ 120,00
     ticketLabel: "ingressos Kids",
   },
   {
