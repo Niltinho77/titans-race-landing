@@ -1,8 +1,13 @@
 // src/app/admin/inscricoes/page.tsx
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+
+type OrderWithParticipants = Prisma.OrderGetPayload<{
+  include: { participants: { include: { extras: true } } };
+}>;
 
 function formatCurrency(cents: number | null | undefined): string {
   const value = (cents ?? 0) / 100;
@@ -48,16 +53,11 @@ function statusClasses(status: string) {
 }
 
 export default async function AdminInscricoesPage() {
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      participants: {
-        include: {
-          extras: true,
-        },
-      },
-    },
-  });
+  const orders: OrderWithParticipants[] = await prisma.order.findMany({
+  orderBy: { createdAt: "desc" },
+  include: { participants: { include: { extras: true } } },
+});
+
 
   const totalInscricoes = orders.length;
   const pagos = orders.filter((o) => o.status === "PAID").length;

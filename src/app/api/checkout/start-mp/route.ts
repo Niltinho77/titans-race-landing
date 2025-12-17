@@ -114,27 +114,34 @@ export async function POST(req: NextRequest) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
     const notificationUrl = process.env.MP_WEBHOOK_URL; // webhook público
 
-    const preference = await mpPreference.create({
-      body: {
-        items: [
-          {
-              title: `Titans Race – ${modality.name}`,
-              quantity: 1,
-              currency_id: "BRL",
-              unit_price: Number((totalWithFee / 100).toFixed(2)),
-              id: ""
+    // ... dentro do mpPreference.create
+      const preference = await mpPreference.create({
+        body: {
+          items: [
+              {
+                id: modality.id, // ✅ obrigatório pelo tipo
+                title: `Titans Race – ${modality.name}`,
+                quantity: 1,
+                currency_id: "BRL",
+                unit_price: Number((totalWithFee / 100).toFixed(2)),
+              },
+            ],
+
+          external_reference: order.id,
+          notification_url: notificationUrl,
+          back_urls: {
+            success: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
+            pending: `${siteUrl}/checkout/pendente?orderId=${order.id}`,
+            failure: `${siteUrl}/checkout?modality=${modality.id}&cancelled=1`,
           },
-        ],
-        external_reference: order.id, // ✅ chave do seu pedido
-        notification_url: notificationUrl,
-        back_urls: {
-          success: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
-          pending: `${siteUrl}/checkout/pendente?orderId=${order.id}`,
-          failure: `${siteUrl}/checkout?modality=${modality.id}&cancelled=1`,
+          auto_return: "approved",
+
+          // opcional (bom)
+          statement_descriptor: "TITANS RACE",
+          metadata: { orderId: order.id, modalityId: modality.id },
         },
-        auto_return: "approved",
-      },
-    });
+      });
+
 
     await prisma.order.update({
       where: { id: order.id },
