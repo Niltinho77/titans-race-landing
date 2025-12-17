@@ -16,14 +16,16 @@ type Tile = {
 
 const tiles: Tile[] = [
   {
-    id: "kids",
-    title: "KIDS",
-    subtitle: "Aventura em versão segura.",
-    location: "Inscrições em breve",
-    image: "/images/kids.png",
-    disabled: true,
-    className: "md:col-span-2 md:row-span-2",
-  },
+  id: "kids",
+  title: "KIDS",
+  subtitle: "Aventura em versão segura.",
+  location: "Inscrições abertas",
+  image: "/images/kids.png",
+  disabled: false,
+  href: "/checkout?modality=kids",
+  className: "md:col-span-2 md:row-span-2",
+},
+
   {
     id: "duplas",
     title: "DUPLAS",
