@@ -3,8 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { mpPayment } from "@/lib/mercadopago";
+import { sendOrderConfirmationEmail } from "@/lib/email";
+import { getModalityById } from "@/config/checkout";
+
 
 export const runtime = "nodejs";
+
+
 
 // -------------------- Signature helpers --------------------
 function parseSignatureHeader(signature: string | null) {
@@ -65,6 +70,7 @@ function verifyMpSignature(params: {
 
 // -------------------- Status mapping --------------------
 function mapMpToOrderStatus(mpStatus?: string) {
+  
   switch (mpStatus) {
     case "approved":
       return "PAID";
@@ -204,16 +210,51 @@ export async function POST(req: NextRequest) {
 
     const newOrderStatus = mapMpToOrderStatus(mpStatus);
 
-    await prisma.order.update({
-      where: { id: String(externalRef) },
-      data: {
-        status: newOrderStatus,
-        mpPaymentId: String(payment.id),
-        mpPaymentStatus: mpStatus ?? null,
-      },
-    });
+    const updatedOrder = await prisma.order.update({
+  where: { id: String(externalRef) },
+  data: {
+    status: newOrderStatus,
+    mpPaymentId: String(payment.id),
+    mpPaymentStatus: mpStatus ?? null,
+  },
+});
 
-    return NextResponse.json({ ok: true }, { status: 200 });
+// ✅ Se aprovou, envia e-mail 1 vez só
+if (newOrderStatus === "PAID") {
+  const order = await prisma.order.findUnique({
+    where: { id: String(externalRef) },
+    include: { participants: true },
+  });
+
+  if (order && !order.confirmationEmailSentAt) {
+    const main = order.participants[0];
+    const modality = getModalityById(order.modalityId);
+
+    try {
+      await sendOrderConfirmationEmail({
+        to: main?.email ?? "",
+        participantName: main?.fullName ?? "Participante",
+        orderId: order.id,
+        modalityName: modality?.name ?? order.modalityId,
+        totalAmount: order.totalAmountWithFee ?? order.totalAmount ?? 0,
+      });
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { confirmationEmailSentAt: new Date() },
+      });
+
+      console.log("E-mail de confirmação enviado:", order.id, main?.email);
+    } catch (e) {
+      console.error("Falha ao enviar e-mail Resend:", e);
+      // não retorna erro; pagamento já foi processado
+    }
+  }
+}
+
+return NextResponse.json({ ok: true }, { status: 200 });
+
+
   } catch (err) {
     console.error("Erro webhook Mercado Pago:", err);
     // ✅ não derruba o webhook
