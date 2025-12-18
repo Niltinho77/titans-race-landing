@@ -1,16 +1,22 @@
+// app/checkout/pendente/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default function PendentePage({
-  searchParams,
-}: {
-  searchParams: { orderId?: string };
-}) {
-  const orderId = searchParams?.orderId ?? "";
+export default function PendentePage() {
+  const sp = useSearchParams();
+
+  // ✅ MP manda orderId (nos seus back_urls) + também manda external_reference
+  const orderId = useMemo(() => {
+    const byOrderId = sp.get("orderId");
+    const byExternalRef = sp.get("external_reference");
+    return byOrderId || byExternalRef || "";
+  }, [sp]);
+
   const [status, setStatus] = useState<string>("PENDING");
   const [error, setError] = useState<string | null>(null);
 
@@ -19,17 +25,20 @@ export default function PendentePage({
 
     let alive = true;
     let tries = 0;
-    const maxTries = 90; // 90 * 2s = 3 minutos
+    const maxTries = 90; // 3 minutos (90 * 2s)
 
     const tick = async () => {
       tries++;
 
       try {
-        const res = await fetch(`/api/orders/${orderId}/status`, { cache: "no-store" });
+        const res = await fetch(`/api/orders/${orderId}/status`, {
+          cache: "no-store",
+        });
         if (!res.ok) throw new Error("Falha ao consultar status do pedido.");
         const data = (await res.json()) as { status: string };
 
         if (!alive) return;
+
         setStatus(data.status);
 
         if (data.status === "PAID") {
@@ -41,6 +50,8 @@ export default function PendentePage({
           window.location.href = `/checkout/falha?orderId=${orderId}`;
           return;
         }
+
+        setError(null);
       } catch (e: any) {
         if (!alive) return;
         setError(e?.message ?? "Erro ao consultar status.");
@@ -50,6 +61,7 @@ export default function PendentePage({
     };
 
     tick();
+
     return () => {
       alive = false;
     };
@@ -63,7 +75,9 @@ export default function PendentePage({
         </h1>
 
         {!orderId ? (
-          <p className="text-zinc-300">orderId não encontrado na URL.</p>
+          <p className="text-zinc-300">
+            orderId não encontrado na URL. Volte e tente novamente.
+          </p>
         ) : (
           <>
             <p className="text-zinc-300">
@@ -87,12 +101,13 @@ export default function PendentePage({
             )}
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href={`/checkout/sucesso?orderId=${orderId}`}
+              {/* ✅ não manda direto pro sucesso (porque pode não estar pago ainda) */}
+              <button
+                onClick={() => window.location.reload()}
                 className="rounded-full bg-orange-500 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black"
               >
-                Já paguei (verificar)
-              </Link>
+                Atualizar agora
+              </button>
 
               <Link
                 href="/#inicio"
