@@ -1,15 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { orderId: string } }
-) {
+type Ctx = {
+  params: Promise<{ orderId: string }>;
+};
+
+export async function GET(_req: NextRequest, { params }: Ctx) {
+  const { orderId } = await params;
+
+  if (!orderId) {
+    return NextResponse.json({ error: "orderId ausente" }, { status: 400 });
+  }
+
   const order = await prisma.order.findUnique({
-    where: { id: params.orderId },
+    where: { id: orderId },
     select: { status: true },
   });
 
