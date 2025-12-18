@@ -61,23 +61,42 @@ async function reserveBibNumbers(
 ): Promise<number[]> {
   if (qty <= 0) return [];
 
+  // faixa inicial por modalidade (ajuste como quiser)
+  const startMap: Record<string, number> = {
+    kids: 0,
+    diversao: 100,
+    competicao: 500,
+    duplas: 800,
+    equipes: 900,
+  };
+
+  const startAt = startMap[modalityId] ?? 1000; // fallback
+
   const rows = await tx.$queryRaw<{ nextNumber: number }[]>`
-    UPDATE "BibCounter"
-    SET "nextNumber" = "nextNumber" + ${qty}
-    WHERE "id" = ${modalityId}
-    RETURNING "nextNumber"
+    WITH upsert AS (
+      INSERT INTO "BibCounter" ("id", "nextNumber")
+      VALUES (${modalityId}, ${startAt})
+      ON CONFLICT ("id") DO NOTHING
+      RETURNING "nextNumber"
+    ),
+    updated AS (
+      UPDATE "BibCounter"
+      SET "nextNumber" = "nextNumber" + ${qty}
+      WHERE "id" = ${modalityId}
+      RETURNING "nextNumber"
+    )
+    SELECT "nextNumber" FROM updated;
   `;
 
-  if (!rows || rows.length === 0) {
-    throw new Error(`BibCounter não encontrado para modalidade: ${modalityId}`);
+  if (!rows?.length) {
+    throw new Error(`Falha ao reservar numeração para modalidade: ${modalityId}`);
   }
 
-  // RETURNING devolve o nextNumber já atualizado
   const newNext = rows[0].nextNumber;
   const start = newNext - qty;
-
   return Array.from({ length: qty }, (_, i) => start + i);
 }
+
 
 export async function POST(req: NextRequest) {
   try {
