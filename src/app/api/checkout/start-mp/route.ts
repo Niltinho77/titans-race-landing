@@ -159,7 +159,8 @@ export async function POST(req: NextRequest) {
     const { totalWithFee, feeAmount } = applyFee(totalAmount);
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    const notificationUrl = process.env.MP_WEBHOOK_URL; // webhook público
+    const notificationUrl =
+     process.env.MP_WEBHOOK_URL ?? `${siteUrl}/api/mercadopago/webhook`;
 
     // ✅ Criação do pedido + reserva de bibs numa transação (evita duplicidade)
     const order = await prisma.$transaction(async (tx) => {
@@ -258,8 +259,9 @@ export async function POST(req: NextRequest) {
         back_urls: {
           success: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
           pending: `${siteUrl}/checkout/pendente?orderId=${order.id}`,
-          failure: `${siteUrl}/checkout?modality=${modality.id}&cancelled=1`,
-        },
+          failure: `${siteUrl}/checkout/falha?orderId=${order.id}`,
+
+          },
         auto_return: "approved",
 
         statement_descriptor: "TITANS RACE",
