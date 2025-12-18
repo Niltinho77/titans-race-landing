@@ -168,20 +168,24 @@ export async function POST(req: NextRequest) {
     // resolve paymentId dependendo do tipo de notificação
     let paymentId: string | null = null;
 
-    if (topic === "merchant_order" || topic === "order") {
-      paymentId = await resolvePaymentIdFromMerchantOrder(resourceId);
+    const isMerchantOrder =
+      topic === "merchant_order" ||
+      topic === "order" ||
+      (typeof topic === "string" && topic.includes("merchant_order")) ||
+      (typeof topic === "string" && topic.includes("order"));
+
+
+    if (isMerchantOrder) {
+  paymentId = await resolvePaymentIdFromMerchantOrder(resourceId);
+
+      // se ainda não existe payment no merchant order, ACK e espera próximo webhook
       if (!paymentId) {
-        console.warn("MP webhook: merchant_order sem paymentId", {
-          resourceId,
-          topic,
-          body,
-        });
         return NextResponse.json({ ok: true }, { status: 200 });
       }
     } else {
-      // padrão: é payment mesmo
       paymentId = resourceId;
     }
+
 
     // busca o pagamento (fonte da verdade)
     let payment: any;

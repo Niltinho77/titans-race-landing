@@ -1,8 +1,9 @@
+// app/checkout/sucesso/page.tsx
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
-type SearchParams = Promise<{ orderId?: string }>;
+export const dynamic = "force-dynamic";
 
 function formatCurrency(cents: number | null | undefined): string {
   const value = (cents ?? 0) / 100;
@@ -12,15 +13,12 @@ function formatCurrency(cents: number | null | undefined): string {
   }).format(value);
 }
 
-export const dynamic = "force-dynamic";
-
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: { orderId?: string };
 }) {
-  const params = await searchParams;
-  const orderId = params.orderId;
+  const orderId = searchParams?.orderId;
 
   if (!orderId) {
     return (
@@ -30,8 +28,8 @@ export default async function SuccessPage({
             Pedido não encontrado
           </h1>
           <p className="mb-4 text-zinc-300">
-            Não recebemos o identificador do pedido. Verifique o link de
-            confirmação ou volte para a página inicial.
+            Não recebemos o identificador do pedido. Verifique o link de confirmação
+            ou volte para a página inicial.
           </p>
           <Link
             href="/#inicio"
@@ -46,9 +44,7 @@ export default async function SuccessPage({
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: {
-      participants: true,
-    },
+    include: { participants: true },
   });
 
   if (!order) {
@@ -60,8 +56,7 @@ export default async function SuccessPage({
           </h1>
           <p className="mb-4 text-zinc-300">
             Não localizamos nenhuma inscrição com o identificador informado.
-            Se o pagamento foi concluído, entre em contato com a organização
-            da Titans Race com o comprovante para validação.
+            Se o pagamento foi concluído, entre em contato com a organização.
           </p>
           <Link
             href="/#inicio"
@@ -96,7 +91,7 @@ export default async function SuccessPage({
 
         <p className="mb-4 text-zinc-300">
           Sua inscrição foi registrada com sucesso. Assim que o pagamento for
-          confirmado pela operadora, sua vaga estará garantida para a prova.
+          confirmado, sua vaga estará garantida.
         </p>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -107,25 +102,17 @@ export default async function SuccessPage({
             <p className="mt-2 text-xs text-zinc-400">
               Número do pedido:
               <br />
-              <span className="font-mono text-[11px] text-zinc-200">
-                {order.id}
-              </span>
+              <span className="font-mono text-[11px] text-zinc-200">{order.id}</span>
             </p>
             <p className="mt-2 text-xs text-zinc-400">
               Status:
               <br />
-              <span className="font-semibold text-emerald-300">
-                {order.status === "PENDING"
-                  ? "Aguardando confirmação de pagamento"
-                  : order.status}
-              </span>
+              <span className="font-semibold text-emerald-300">{order.status}</span>
             </p>
             <p className="mt-2 text-xs text-zinc-400">
               Total:
               <br />
-              <span className="font-semibold text-white">
-                {totalFormatted}
-              </span>
+              <span className="font-semibold text-white">{totalFormatted}</span>
             </p>
           </div>
 
@@ -135,35 +122,18 @@ export default async function SuccessPage({
             </p>
             {firstParticipant ? (
               <>
-                <p className="mt-2 text-sm text-zinc-100">
-                  {firstParticipant.fullName}
-                </p>
+                <p className="mt-2 text-sm text-zinc-100">{firstParticipant.fullName}</p>
                 <p className="mt-1 text-xs text-zinc-400">
-                  CPF:{" "}
-                  <span className="font-mono text-[11px]">
-                    {firstParticipant.cpf}
-                  </span>
+                  CPF: <span className="font-mono text-[11px]">{firstParticipant.cpf}</span>
                 </p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  E-mail: {firstParticipant.email}
-                </p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  Telefone: {firstParticipant.phone}
-                </p>
+                <p className="mt-1 text-xs text-zinc-400">E-mail: {firstParticipant.email}</p>
+                <p className="mt-1 text-xs text-zinc-400">Telefone: {firstParticipant.phone}</p>
               </>
             ) : (
-              <p className="mt-2 text-xs text-zinc-400">
-                Dados de participante não encontrados.
-              </p>
+              <p className="mt-2 text-xs text-zinc-400">Dados não encontrados.</p>
             )}
           </div>
         </div>
-
-        <p className="mt-6 text-xs text-zinc-400">
-          Você receberá um e-mail com as informações da prova, horários e
-          orientações finais. Guarde o número do pedido para qualquer contato
-          com a organização.
-        </p>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
