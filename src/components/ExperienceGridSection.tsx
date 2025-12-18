@@ -14,25 +14,30 @@ type Tile = {
   className?: string;
 };
 
+
+  // =========================================================
+  // COMO DEIXAR TODOS OS BOTÕES ATIVOS RAPIDAMENTE:
+  // - Para abrir inscrições: coloque `disabled: false` e defina `href`
+  // - Para fechar inscrições: coloque `disabled: true` e remova/ignore `href`
+  // =========================================================
 const tiles: Tile[] = [
   {
-  id: "kids",
-  title: "KIDS",
-  subtitle: "Aventura em versão segura.",
-  location: "Inscrições abertas",
-  image: "/images/kids.png",
-  disabled: false,
-  href: "/checkout?modality=kids",
-  className: "md:col-span-2 md:row-span-2",
-},
-
+    id: "kids",
+    title: "KIDS",
+    subtitle: "Aventura em versão segura.",
+    location: "Inscrições em breve",
+    image: "/images/kids.png",
+    disabled: false,
+    href: "/checkout?modality=kids",
+    className: "md:col-span-2 md:row-span-2",
+  },
   {
     id: "duplas",
     title: "DUPLAS",
     subtitle: "Um puxa o outro.",
     location: "Inscrições em breve",
     image: "/images/duplas.png",
-    disabled: true,
+    disabled: false,
     className: "md:col-span-2 md:row-span-1",
   },
   {
@@ -41,7 +46,7 @@ const tiles: Tile[] = [
     subtitle: "Para quem quer tempo.",
     location: "Inscrições em breve",
     image: "/images/competicao.png",
-    disabled: true,
+    disabled: false,
     className: "md:col-span-1 md:row-span-2",
   },
   {
@@ -50,18 +55,17 @@ const tiles: Tile[] = [
     subtitle: "Lama, risada e histórias.",
     location: "Inscrições em breve",
     image: "/images/diversao.png",
-    disabled: true,
+    disabled: false,
     className: "md:col-span-1 md:row-span-2",
   },
-
-  // CONTINUAM ATIVOS
   {
-    id: "localizacao",
-    title: "LOCALIZAÇÃO",
-    subtitle: "Veja o mapa da prova.",
-    location: "Alegrete · Ver no mapa",
-    image: "/images/localizacao.webp",
-    href: "#local",
+    id: "equipes",
+    title: "EQUIPES",
+    subtitle: "4 pessoas. Um objetivo.",
+    location: "Inscrições abertas",
+    image: "/images/equipes.png",
+    disabled: false,
+    href: "/checkout?modality=equipes",
   },
   {
     id: "contato",
@@ -69,9 +73,12 @@ const tiles: Tile[] = [
     subtitle: "Fale com a organização",
     location: "WhatsApp Oficial",
     image: "/images/contato.jpg",
+    disabled: false,
     href: "https://wa.me/5555992234690?text=Olá!%20Tenho%20interesse%20na%20Titans%20Race",
   },
 ];
+
+ 
 
 export function ExperienceGridSection() {
   return (
@@ -91,7 +98,7 @@ export function ExperienceGridSection() {
         </div>
 
         {/* GRID */}
-        <div className="grid min-h-[80vh] grid-cols-1 gap-4 md:min-h-[100vh] md:grid-cols-4 md:grid-rows-3">
+        <div className="grid min-h-[80vh] grid-cols-1 gap-4 md:min-h-[100vh] md:grid-cols-4 md:grid-rows-3 md:grid-flow-dense">
           {tiles.map((tile, index) => (
             <motion.div
               key={tile.id}
@@ -128,14 +135,15 @@ export function ExperienceGridSection() {
 
               {/* Overlay “Inscrições em breve” */}
               {tile.disabled && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">                  <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-orange-400">
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+                  <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-orange-400">
                     Inscrições em breve
                   </span>
                 </div>
               )}
 
               {/* Glow */}
-              <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <div className="absolute inset-[1px] rounded-3xl bg-gradient-to-br from-orange-500/45 via-transparent to-yellow-300/25 blur-[6px]" />
               </div>
 

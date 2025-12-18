@@ -1,6 +1,13 @@
 // src/config/checkout.ts
 
-export type ModalityId = "kids" | "duplas" | "competicao" | "diversao";
+// src/config/checkout.ts
+
+export type ModalityId =
+  | "kids"
+  | "duplas"
+  | "competicao"
+  | "diversao"
+  | "equipes";
 
 export type Modality = {
   id: ModalityId;
@@ -16,7 +23,7 @@ export const MODALITIES: Modality[] = [
     name: "Kids",
     description:
       "Percurso adaptado para crianças, com obstáculos seguros e monitorados.",
-    basePrice: 120, // R$ 120,00
+    basePrice: 100, // R$ 100,00
     ticketLabel: "ingressos Kids",
   },
   {
@@ -24,15 +31,26 @@ export const MODALITIES: Modality[] = [
     name: "Duplas",
     description:
       "Inscrição para dupla. Cada ingresso de dupla equivale a 2 participantes correndo juntos.",
-    basePrice: 38000, // R$ 260,00 (dupla)
+    basePrice: 340, // R$ 340,00 (dupla)
     ticketLabel: "ingressos de dupla",
   },
+
+  // ✅ NOVA MODALIDADE
+  {
+    id: "equipes",
+    name: "Equipes",
+    description:
+      "Inscrição por equipe. Cada ingresso equivale a 4 participantes. Regra: a equipe deve conter pelo menos 1 mulher.",
+    basePrice: 660, // R$ 660,00 (equipe)
+    ticketLabel: "inscrições de equipe",
+  },
+
   {
     id: "competicao",
     name: "Competição",
     description:
       "Prova cronometrada para quem quer tempo, performance e ranking.",
-    basePrice: 19700, // R$ 190,00
+    basePrice: 175, // R$ 175,00
     ticketLabel: "ingressos Competição",
   },
   {
@@ -40,10 +58,13 @@ export const MODALITIES: Modality[] = [
     name: "Diversão",
     description:
       "Percurso com foco em experiência, lama, superação e boas histórias.",
-    basePrice: 18700, // R$ 170,00
+    basePrice: 165, // R$ 165,00
     ticketLabel: "ingressos Diversão",
   },
 ];
+
+
+
 
 export type ExtraType = "camisa" | "luva" | "meia";
 
@@ -61,7 +82,7 @@ export const EXTRAS: ExtraConfig[] = [
     id: "camisa",
     name: "Camisa oficial Titans",
     description: "Camisa técnica da prova para usar no dia e depois.",
-    price: 5900, // R$ 59,00
+    price: 5900, 
     hasSize: true,
     sizes: ["PP", "P", "M", "G", "GG"],
   },
@@ -69,7 +90,7 @@ export const EXTRAS: ExtraConfig[] = [
     id: "luva",
     name: "Luva personalizada",
     description: "Proteção extra para os obstáculos mais desafiadores.",
-    price: 3000, // R$ 25,00
+    price: 3000, 
     hasSize: true,
     sizes: ["P", "M", "G"],
   },
@@ -77,7 +98,7 @@ export const EXTRAS: ExtraConfig[] = [
     id: "meia",
     name: "Meia personalizada",
     description: "Conforto e segurança em todo o percurso.",
-    price: 2500, // R$ 20,00
+    price: 2500,
     hasSize: true,
     sizes: ["P", "M", "G"],
   },

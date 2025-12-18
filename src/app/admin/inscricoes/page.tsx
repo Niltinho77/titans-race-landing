@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import Link from "next/link";
+import { getModalityById } from "@/config/checkout";
 
 export const dynamic = "force-dynamic";
 
@@ -52,17 +53,44 @@ function statusClasses(status: string) {
   }
 }
 
+function modalityKind(modalityId: string) {
+  if (modalityId === "equipes") return "equipes";
+  if (modalityId === "duplas") return "duplas";
+  return "solo";
+}
+
+function sortParticipantsForDisplay(order: OrderWithParticipants) {
+  const kind = modalityKind(order.modalityId);
+
+  // Para equipes e duplas, queremos respeitar teamIndex (1..4 / 1..2)
+  if (kind === "equipes" || kind === "duplas") {
+    return [...order.participants].sort(
+      (a, b) => (a.teamIndex ?? 0) - (b.teamIndex ?? 0)
+    );
+  }
+
+  // Para solo: manter como veio (normalmente já está ok)
+  return order.participants;
+}
+
+function groupBibNumber(participants: OrderWithParticipants["participants"]) {
+  // Para duplas/equipes, todos devem compartilhar o mesmo bibNumber.
+  // Pegamos o primeiro que existir.
+  const first = participants.find((p) => p.bibNumber != null);
+  return first?.bibNumber ?? null;
+}
+
 export default async function AdminInscricoesPage() {
   const orders: OrderWithParticipants[] = await prisma.order.findMany({
-  orderBy: { createdAt: "desc" },
-  include: { participants: { include: { extras: true } } },
-});
-
+    orderBy: { createdAt: "desc" },
+    include: { participants: { include: { extras: true } } },
+  });
 
   const totalInscricoes = orders.length;
   const pagos = orders.filter((o) => o.status === "PAID").length;
   const pendentes = orders.filter((o) => o.status === "PENDING").length;
   const falhos = orders.filter((o) => o.status === "FAILED").length;
+
   const totalArrecadado = orders
     .filter((o) => o.status === "PAID")
     .reduce((sum, o) => sum + (o.totalAmount ?? 0), 0);
@@ -138,7 +166,8 @@ export default async function AdminInscricoesPage() {
               {formatCurrency(totalArrecadado)}
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              Soma apenas dos pedidos com status <span className="font-semibold">Pago</span>.
+              Soma apenas dos pedidos com status{" "}
+              <span className="font-semibold">Pago</span>.
             </p>
           </div>
 
@@ -148,8 +177,8 @@ export default async function AdminInscricoesPage() {
             </p>
             <p className="mt-2">
               Use o botão <span className="font-semibold">Baixar CSV</span> para
-              gerar uma planilha com todos os inscritos, incluindo extras,
-              e entregue para a equipe de credenciamento no dia da prova.
+              gerar uma planilha com todos os inscritos, incluindo extras, e
+              entregue para a equipe de credenciamento no dia da prova.
             </p>
           </div>
         </section>
@@ -166,9 +195,7 @@ export default async function AdminInscricoesPage() {
           </div>
 
           {orders.length === 0 ? (
-            <p className="text-sm text-zinc-400">
-              Ainda não há inscrições registradas.
-            </p>
+            <p className="text-sm text-zinc-400">Ainda não há inscrições registradas.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-xs text-zinc-300">
@@ -183,11 +210,31 @@ export default async function AdminInscricoesPage() {
                     <th className="px-3 py-2">Participantes & extras</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {orders.map((order) => {
                     const total = formatCurrency(order.totalAmount);
                     const createdAt = formatDate(order.createdAt);
-                    const mainParticipant = order.participants[0];
+                    const modality = getModalityById(order.modalityId);
+
+                    const kind = modalityKind(order.modalityId);
+                    const participantsSorted = sortParticipantsForDisplay(order);
+
+                    const groupNumber = groupBibNumber(participantsSorted);
+
+                    const groupTitle =
+                      kind === "equipes"
+                        ? `Equipe #${groupNumber ?? "—"}`
+                        : kind === "duplas"
+                        ? `Dupla #${groupNumber ?? "—"}`
+                        : null;
+
+                    const groupHint =
+                      kind === "equipes"
+                        ? "Aviso: esta modalidade exige pelo menos 1 mulher na equipe."
+                        : kind === "duplas"
+                        ? "Dupla: os 2 atletas correm vinculados ao mesmo número."
+                        : null;
 
                     return (
                       <tr
@@ -199,6 +246,7 @@ export default async function AdminInscricoesPage() {
                             {order.id}
                           </p>
                         </td>
+
                         <td className="px-3 py-3">
                           <span
                             className={`inline-flex rounded-full border px-2 py-1 text-[10px] ${statusClasses(
@@ -208,29 +256,45 @@ export default async function AdminInscricoesPage() {
                             {statusLabel(order.status)}
                           </span>
                         </td>
+
                         <td className="px-3 py-3">
-                          <p className="text-xs text-zinc-200">
+                          <p className="text-xs font-semibold text-zinc-100">
+                            {modality?.name ?? order.modalityId}
+                          </p>
+                          <p className="text-[11px] text-zinc-500">
                             {order.modalityId}
                           </p>
                         </td>
+
                         <td className="px-3 py-3">
-                          <p className="text-xs text-zinc-200">
-                            {order.tickets}
-                          </p>
+                          <p className="text-xs text-zinc-200">{order.tickets}</p>
                         </td>
+
                         <td className="px-3 py-3">
                           <p className="text-xs font-semibold text-zinc-100">
                             {total}
                           </p>
                         </td>
+
                         <td className="px-3 py-3">
-                          <p className="text-[11px] text-zinc-400">
-                            {createdAt}
-                          </p>
+                          <p className="text-[11px] text-zinc-400">{createdAt}</p>
                         </td>
+
                         <td className="px-3 py-3">
                           <div className="space-y-2">
-                            {order.participants.map((p) => (
+                            {(kind === "equipes" || kind === "duplas") && (
+                              <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-2 text-[11px] text-orange-200">
+                                <p className="font-semibold">
+                                  {groupTitle} · {participantsSorted.length}{" "}
+                                  {kind === "equipes" ? "integrantes" : "atletas"}
+                                </p>
+                                {groupHint && (
+                                  <p className="text-orange-200/80">{groupHint}</p>
+                                )}
+                              </div>
+                            )}
+
+                            {participantsSorted.map((p) => (
                               <div
                                 key={p.id}
                                 className="rounded-xl border border-white/10 bg-black/40 p-2"
@@ -238,11 +302,23 @@ export default async function AdminInscricoesPage() {
                                 <p className="text-xs font-semibold text-zinc-100">
                                   {p.fullName}
                                 </p>
+
+                                {/* ✅ Número do atleta / do grupo */}
                                 <p className="text-[11px] text-zinc-400">
-                                  CPF:{" "}
+                                  Nº:{" "}
                                   <span className="font-mono">
-                                    {p.cpf}
+                                    {p.bibNumber ?? "—"}
                                   </span>
+                                  {(kind === "equipes" || kind === "duplas") &&
+                                    p.teamIndex != null && (
+                                      <span className="ml-2">
+                                        · Integrante {p.teamIndex}
+                                      </span>
+                                    )}
+                                </p>
+
+                                <p className="text-[11px] text-zinc-400">
+                                  CPF: <span className="font-mono">{p.cpf}</span>
                                 </p>
                                 <p className="text-[11px] text-zinc-400">
                                   E-mail: {p.email}
@@ -250,6 +326,7 @@ export default async function AdminInscricoesPage() {
                                 <p className="text-[11px] text-zinc-400">
                                   Telefone: {p.phone}
                                 </p>
+
                                 {p.extras.length > 0 ? (
                                   <p className="mt-1 text-[11px] text-zinc-300">
                                     Extras:{" "}
@@ -270,7 +347,7 @@ export default async function AdminInscricoesPage() {
                               </div>
                             ))}
 
-                            {!mainParticipant && (
+                            {order.participants.length === 0 && (
                               <p className="text-[11px] text-zinc-500">
                                 Nenhum participante cadastrado.
                               </p>
@@ -311,16 +388,12 @@ function ResumoCard({
       : "border-white/10 bg-black/70";
 
   return (
-    <div
-      className={`rounded-3xl border p-4 text-xs text-zinc-300 ${colorClasses}`}
-    >
+    <div className={`rounded-3xl border p-4 text-xs text-zinc-300 ${colorClasses}`}>
       <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
         {title}
       </p>
       <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-      {subtitle && (
-        <p className="mt-1 text-[11px] text-zinc-500">{subtitle}</p>
-      )}
+      {subtitle && <p className="mt-1 text-[11px] text-zinc-500">{subtitle}</p>}
     </div>
   );
 }

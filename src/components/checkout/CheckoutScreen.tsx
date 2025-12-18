@@ -44,7 +44,7 @@ function formatCurrency(cents: number): string {
 }
 
 const STRIPE_FEE_PERCENT = 0.0399; // 3,99%
-const STRIPE_FEE_FIXED = 39;       // R$ 0,39 em centavos
+const STRIPE_FEE_FIXED = 39; // R$ 0,39 em centavos
 
 function calculateFee(amountCents: number) {
   if (amountCents <= 0) {
@@ -79,8 +79,7 @@ function formatPhone(value: string): string {
 
   if (digits.length === 0) return "";
   if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 7)
-    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
 
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
@@ -90,8 +89,7 @@ function formatDate(value: string): string {
   const digits = onlyDigits(value).slice(0, 8);
 
   if (digits.length <= 2) return digits;
-  if (digits.length <= 4)
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
@@ -115,6 +113,13 @@ function isValidEmail(value: string): boolean {
 
 const DEFAULT_TSHIRT_SIZES = ["PP", "P", "M", "G", "GG"];
 
+// ✅ regra centralizada (duplas/equipes)
+function getParticipantsPerTicket(modalityId: ModalityId) {
+  if (modalityId === "duplas") return 2;
+  if (modalityId === "equipes") return 4; // ✅ NOVO
+  return 1;
+}
+
 export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [modality, setModality] = useState<Modality | null>(initialModality);
@@ -131,15 +136,14 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     }
   }, [modality, initialModality]);
 
+  // ✅ participantes por ticket (duplas/equipes)
   const participantsCount = useMemo(() => {
     if (!modality) return 0;
-    if (modality.id === "duplas") {
-      return tickets * 2;
-    }
-    return tickets;
+    const perTicket = getParticipantsPerTicket(modality.id as ModalityId);
+    return tickets * perTicket;
   }, [modality, tickets]);
 
-      const { ticketsTotal, extrasTotal, grandTotal, feeAmount, grandTotalWithFee } =
+  const { ticketsTotal, extrasTotal, grandTotal, feeAmount, grandTotalWithFee } =
     useMemo(() => {
       if (!modality) {
         return {
@@ -267,102 +271,116 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   };
 
   const canGoToStep2 = tickets > 0 && modality;
-  const canGoToStep3 = participants.length > 0 && participants.every((p) => {
-  return (
-    p.fullName.trim().length > 3 &&
-    isValidCPF(p.cpf) &&
-    isValidDate(p.birthDate) &&
-    isValidPhone(p.phone) &&
-    isValidEmail(p.email)
-  );
-});
+
+  const canGoToStep3 =
+    participants.length > 0 &&
+    participants.every((p) => {
+      return (
+        p.fullName.trim().length > 3 &&
+        isValidCPF(p.cpf) &&
+        isValidDate(p.birthDate) &&
+        isValidPhone(p.phone) &&
+        isValidEmail(p.email)
+      );
+    });
 
   const canFinish = termsAccepted;
 
-    const handleFinish = async () => {
-  if (!modality) return;
-  if (!termsAccepted) return;
+  const handleFinish = async () => {
+    if (!modality) return;
+    if (!termsAccepted) return;
 
-  setIsSubmitting(true);
-  setSubmitError(null);
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-  try {
-    const payload = {
-      modalityId: modality.id as ModalityId,
-      tickets,
-      participants: participants.map((p) => ({
-        fullName: p.fullName,
-        cpf: p.cpf,
-        birthDate: p.birthDate,
-        phone: p.phone,
-        email: p.email,
-        city: p.city,
-        state: p.state,
-        tshirtSize: p.tshirtSize,
-        emergencyName: p.emergencyName,
-        emergencyPhone: p.emergencyPhone,
-        healthInfo: p.healthInfo,
-        extras: p.extras,
-      })),
-      termsAccepted,
-    };
+    try {
+      const payload = {
+        modalityId: modality.id as ModalityId,
+        tickets,
+        participants: participants.map((p) => ({
+          fullName: p.fullName,
+          cpf: p.cpf,
+          birthDate: p.birthDate,
+          phone: p.phone,
+          email: p.email,
+          city: p.city,
+          state: p.state,
+          tshirtSize: p.tshirtSize,
+          emergencyName: p.emergencyName,
+          emergencyPhone: p.emergencyPhone,
+          healthInfo: p.healthInfo,
+          extras: p.extras,
+        })),
+        termsAccepted,
+      };
 
-    const res = await fetch("/api/checkout/start-mp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+      const res = await fetch("/api/checkout/start-mp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      throw new Error(data?.error || "Erro ao salvar inscrição.");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Erro ao salvar inscrição.");
+      }
+
+      const data: { orderId: string; checkoutUrl?: string } = await res.json();
+
+      setCreatedOrderId(data.orderId);
+
+      if (data.checkoutUrl) {
+        // ✅ Redireciona para o Mercado Pago
+        window.location.href = data.checkoutUrl;
+        return;
+      } else {
+        setSubmitError(
+          "Inscrição registrada, mas não foi possível abrir o pagamento. Entre em contato com a organização."
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
+      setSubmitError(err.message || "Erro inesperado ao finalizar.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const data: { orderId: string; checkoutUrl?: string } = await res.json();
-
-    setCreatedOrderId(data.orderId);
-
-    if (data.checkoutUrl) {
-      // 🔁 Redireciona para o Stripe
-      window.location.href = data.checkoutUrl;
-      return;
-    } else {
-      // fallback: caso por algum motivo não venha URL
-      setSubmitError(
-        "Inscrição registrada, mas não foi possível abrir o pagamento. Entre em contato com a organização."
-      );
-    }
-  } catch (err: any) {
-    console.error(err);
-    setSubmitError(err.message || "Erro inesperado ao finalizar.");
-  } finally {
-    setIsSubmitting(false);
-  }
   };
 
+  const isTeamMode = (modality.id as ModalityId) === "equipes"; // ✅
+
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/60 px-5 py-6 md:px-8 md:py-8">
+    // ✅ responsivo melhor: padding menor no mobile + max-w + centralizado
+    <div className="mx-auto w-full max-w-4xl rounded-3xl border border-white/10 bg-black/60 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
       {/* Cabeçalho */}
-      <div className="flex flex-col gap-1 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="heading-adventure text-2xl text-white md:text-3xl">
-          Checkout Titans Race
-        </h1>
-        <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+      <div className="flex flex-col gap-2 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h1 className="heading-adventure text-2xl text-white md:text-3xl">
+            Checkout Titans Race
+          </h1>
+          {/* ✅ aviso para equipes (sem campo de sexo) */}
+          {isTeamMode && (
+            <p className="mt-2 text-[12px] text-orange-200/90">
+              Aviso: a equipe deve conter <span className="font-semibold">pelo menos 1 mulher</span>.
+            </p>
+          )}
+        </div>
+
+        <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500 md:text-xs">
           {modality.name} · {tickets} {modality.ticketLabel}
         </p>
       </div>
 
       {/* Steps */}
-      <div className="mt-6 flex flex-wrap gap-2 text-[11px] text-zinc-400">
+      <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-zinc-400">
         <StepBadge label="Modalidade & ingressos" active={step === 1} number={1} />
         <StepBadge label="Dados dos participantes" active={step === 2} number={2} />
         <StepBadge label="Extras & termos" active={step === 3} number={3} />
       </div>
 
       {/* Conteúdo dos steps */}
-      <div className="mt-8 space-y-8">
+      <div className="mt-6 space-y-7">
         {step === 1 && (
           <Step1ModalityTickets
             modality={modality}
@@ -390,51 +408,53 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         )}
       </div>
 
-                 {/* Resumo financeiro */}
-      <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-200 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
-            Resumo financeiro
-          </p>
-          <p className="mt-1 text-sm text-zinc-200">
-            {tickets} {modality.ticketLabel}
-          </p>
-          <p className="mt-1 text-[11px] text-zinc-500">
-            Os valores abaixo já consideram todos os participantes e extras
-            selecionados.
-          </p>
-        </div>
+      {/* Resumo financeiro */}
+      <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-200">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
+              Resumo financeiro
+            </p>
+            <p className="mt-1 text-sm text-zinc-200">
+              {tickets} {modality.ticketLabel}
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Os valores abaixo já consideram todos os participantes e extras selecionados.
+            </p>
+          </div>
 
-        <div className="flex flex-col gap-1 text-right md:text-left">
-          <p className="text-sm">
-            Subtotal inscrição:{" "}
-            <span className="font-semibold text-white">
-              {formatCurrency(grandTotal)}
-            </span>
-          </p>
-          <p className="text-sm">
-            Extras:{" "}
-            <span className="font-semibold text-white">
-              {formatCurrency(extrasTotal)}
-            </span>
-          </p>
-          <p className="text-sm">
-            Taxa da plataforma de pagamento:{" "}
-            <span className="font-semibold text-white">
-              {formatCurrency(feeAmount)}
-            </span>
-          </p>
-          <p className="text-sm">
-            Total com taxas:{" "}
-            <span className="font-semibold text-orange-400">
-              {formatCurrency(grandTotalWithFee)}
-            </span>
-          </p>
+          {/* ✅ no mobile: alinhamento à esquerda */}
+          <div className="flex flex-col gap-1 text-left md:text-left">
+            <p className="text-sm">
+              Subtotal inscrição:{" "}
+              <span className="font-semibold text-white">
+                {formatCurrency(grandTotal)}
+              </span>
+            </p>
+            <p className="text-sm">
+              Extras:{" "}
+              <span className="font-semibold text-white">
+                {formatCurrency(extrasTotal)}
+              </span>
+            </p>
+            <p className="text-sm">
+              Taxa da plataforma de pagamento:{" "}
+              <span className="font-semibold text-white">
+                {formatCurrency(feeAmount)}
+              </span>
+            </p>
+            <p className="text-sm">
+              Total com taxas:{" "}
+              <span className="font-semibold text-orange-400">
+                {formatCurrency(grandTotalWithFee)}
+              </span>
+            </p>
+          </div>
         </div>
       </div>
 
-            {/* Navegação + mensagens */}
-      <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-5 text-[11px] md:flex-row md:items-center md:justify-between">
+      {/* Navegação + mensagens */}
+      <div className="mt-7 flex flex-col gap-4 border-t border-white/10 pt-5 text-[11px] md:flex-row md:items-center md:justify-between">
         {/* Mensagens de status */}
         <div className="flex flex-col gap-2 text-[11px] text-zinc-400 md:w-1/2">
           {submitError && (
@@ -446,68 +466,59 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           {createdOrderId && (
             <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-200">
               Inscrição registrada com sucesso! Número do pedido:{" "}
-              <span className="font-semibold">{createdOrderId}</span>.
-              Você receberá todas as informações do evento no e-mail informado.
+              <span className="font-semibold">{createdOrderId}</span>. Você
+              receberá todas as informações do evento no e-mail informado.
             </p>
           )}
         </div>
 
-        {/* Botões de navegação */}
-        <div className="flex flex-col items-stretch gap-2 md:w-auto md:flex-row md:items-center">
-          {/* 🔙 Botão para voltar ao início da landing */}
+        {/* Botões */}
+        {/* ✅ no mobile: botões em coluna e ocupando largura inteira */}
+        <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
           <a
             href="/#inicio"
-            className="rounded-full border border-white/20 px-4 py-2 text-center font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5"
+            className="w-full rounded-full border border-white/20 px-4 py-2 text-center font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5 md:w-auto"
           >
             Voltar para o início
           </a>
 
-          {/* Botões de passo / finalizar */}
+          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:justify-end md:gap-3">
+            {step > 1 && (
+              <button
+                onClick={() => setStep((s) => (s - 1) as typeof step)}
+                className="w-full rounded-full border border-white/20 px-4 py-2 font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5 md:w-auto"
+              >
+                Voltar
+              </button>
+            )}
 
-          {submitError && (
-          <div className="mb-3 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-[11px] text-red-100">
-            {submitError}
-          </div>
-        )}
-        
-        <div className="flex justify-end gap-3">
-          {step > 1 && (
-            <button
-              onClick={() => setStep((s) => (s - 1) as typeof step)}
-              className="rounded-full border border-white/20 px-4 py-2 font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5"
-            >
-              Voltar
-            </button>
-          )}
-
-          {step < 3 && (
-            <button
-              onClick={() => {
-                if (step === 1 && canGoToStep2) setStep(2);
-                if (step === 2 && canGoToStep3) setStep(3);
-              }}
+            {step < 3 && (
+              <button
+                onClick={() => {
+                  if (step === 1 && canGoToStep2) setStep(2);
+                  if (step === 2 && canGoToStep3) setStep(3);
+                }}
                 disabled={
-                  (step === 1 && !canGoToStep2) ||
-                  (step === 2 && !canGoToStep3)
+                  (step === 1 && !canGoToStep2) || (step === 2 && !canGoToStep3)
                 }
-              className="rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Próximo
-            </button>
-          )}
+                className="w-full rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+              >
+                Próximo
+              </button>
+            )}
 
-          {step === 3 && (
-            <button
-              onClick={handleFinish}
+            {step === 3 && (
+              <button
+                onClick={handleFinish}
                 disabled={!canFinish || isSubmitting}
-              className="rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
-            >
+                className="w-full rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
+              >
                 {isSubmitting ? "Enviando..." : "Finalizar inscrição"}
-            </button>
-          )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
@@ -571,9 +582,9 @@ function Step1ModalityTickets({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid gap-6 md:grid-cols-[1.6fr_1fr]"
+      className="grid gap-4 md:grid-cols-[1.6fr_1fr]"
     >
-      <div>
+      <div className="min-w-0">
         <h2 className="heading-adventure text-xl text-white md:text-2xl">
           {modality.name}
         </h2>
@@ -601,8 +612,14 @@ function Step1ModalityTickets({
             +
           </button>
         </div>
+
+        {/* ✅ texto adaptativo */}
         <p className="mt-3 text-[11px] text-zinc-500">
-          Para duplas: cada ingresso corresponde a uma dupla (2 participantes).
+          {modality.id === "duplas"
+            ? "Para duplas: cada ingresso corresponde a 2 participantes."
+            : modality.id === "equipes"
+            ? "Para equipes: cada ingresso corresponde a 4 participantes."
+            : "Quantidade de ingressos para esta modalidade."}
         </p>
       </div>
     </motion.div>
@@ -618,30 +635,51 @@ function Step2Participants({
   participants: ParticipantForm[];
   onChange: (index: number, field: keyof ParticipantForm, value: string) => void;
 }) {
+  const isTeamMode = (modality.id as ModalityId) === "equipes"; // ✅
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-5"
     >
       <h2 className="heading-adventure text-xl text-white md:text-2xl">
         Dados dos participantes
       </h2>
+
       <p className="text-sm text-zinc-300">
-        Preencha os dados de cada participante. Em duplas, cada inscrito deve
-        ter seus dados completos para identificação, kit e número de peito.
+        Preencha os dados de cada participante.
+        {modality.id === "duplas" &&
+          " Em duplas, cada ingresso corresponde a 2 participantes."}
+        {isTeamMode &&
+          " Em equipes, cada ingresso corresponde a 4 participantes."}
       </p>
 
-      <div className="space-y-4">
-        {participants.map((participant, index) => (
-          <div
-            key={index}
-            className="rounded-2xl border border-white/10 bg-black/70 p-4 text-sm text-zinc-200"
-          >
-            <p className="mb-3 text-xs uppercase tracking-[0.2em] text-zinc-500">
-              Participante {index + 1} · {modality.name}
-            </p>
+      {/* ✅ aviso extra para equipes */}
+      {isTeamMode && (
+        <div className="rounded-2xl border border-orange-500/25 bg-orange-500/10 p-3 text-xs text-orange-100">
+          Atenção: a equipe deve conter <span className="font-semibold">pelo menos 1 mulher</span>.
+          A verificação é por declaração do responsável no ato da inscrição.
+        </div>
+      )}
 
+      <div className="space-y-4">
+        {participants.map((participant, index) => {
+          const isTeamMode = (modality.id as ModalityId) === "equipes";
+          const teamSize = 4;
+
+          const teamNumber = isTeamMode ? Math.floor(index / teamSize) + 1 : null;
+          const memberNumber = isTeamMode ? (index % teamSize) + 1 : index + 1;
+
+          return (
+            <div key={index} className="...">
+              <p className="mb-3 text-xs uppercase tracking-[0.2em] text-zinc-500">
+                {isTeamMode
+                  ? `Equipe ${teamNumber} · Integrante ${memberNumber}/${teamSize}`
+                  : `Participante ${index + 1} · ${modality.name}`}
+              </p>
+
+            {/* ✅ mobile-first: 1 coluna no celular, 2 no md */}
             <div className="grid gap-3 md:grid-cols-2">
               <Input
                 label="Nome completo"
@@ -677,12 +715,20 @@ function Step2Participants({
                 type="email"
               />
               <Input
-                label="Cidade / UF"
+                label="Cidade"
                 value={participant.city}
                 onChange={(v) => onChange(index, "city", v)}
               />
+              <Input
+                label="UF"
+                value={participant.state}
+                onChange={(v) => onChange(index, "state", v.toUpperCase().slice(0, 2))}
+                maxLength={2}
+              />
+
             </div>
 
+            {/* ✅ 1 coluna no mobile, 3 no md */}
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               <Select
                 label="Tamanho da camiseta"
@@ -716,7 +762,8 @@ function Step2Participants({
               />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -761,7 +808,8 @@ function Step3ExtrasAndTerms({
               Participante {index + 1} · {participant.fullName || "Nome não preenchido"}
             </p>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            {/* ✅ mobile: 2 colunas; md: 3 colunas */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
               {EXTRAS.map((extra) => {
                 const isSelected = participant.extras.some(
                   (e) => e.type === extra.id
@@ -784,7 +832,7 @@ function Step3ExtrasAndTerms({
                         }
                         className="mt-1 h-3.5 w-3.5 rounded border border-white/20 bg-black"
                       />
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-semibold text-zinc-100">
                           {extra.name}
                         </p>
@@ -823,17 +871,17 @@ function Step3ExtrasAndTerms({
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-300">
-       <p className="text-[11px] text-zinc-400">
+        <p className="text-[11px] text-zinc-400">
           Antes de finalizar, é necessário concordar com o regulamento e o termo
           de responsabilidade da prova. Você pode acessar os documentos nos links abaixo:
         </p>
 
-        <div className="mt-2 flex flex-wrap gap-3 text-[11px]">
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 text-[11px]">
           <a
             href="/docs/regulamento.pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
+            className="w-fit rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
           >
             Ver regulamento (PDF)
           </a>
@@ -842,7 +890,7 @@ function Step3ExtrasAndTerms({
             href="/docs/termo-responsabilidade.pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
+            className="w-fit rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
           >
             Ver termo de responsabilidade (PDF)
           </a>
@@ -889,12 +937,12 @@ function Input({
       <label className="text-zinc-400">{label}</label>
       <input
         type={type}
-        value={value}
+        value={value ?? ""}
         placeholder={placeholder}
         maxLength={maxLength}
         inputMode={inputMode}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
+        className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
       />
     </div>
   );
@@ -917,7 +965,7 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
+        className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
       >
         {options.map((opt) => (
           <option key={opt}>{opt}</option>

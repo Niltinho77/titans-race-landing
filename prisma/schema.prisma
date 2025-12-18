@@ -51,6 +51,8 @@ model Participant {
   healthInfo     String?
   order          Order              @relation(fields: [orderId], references: [id])
   extras         ParticipantExtra[]
+  bibNumber Int?
+  teamIndex Int? // só faz sentido pra "equipes" (e opcionalmente "duplas" se quiser)
 }
 
 model ParticipantExtra {
@@ -60,4 +62,10 @@ model ParticipantExtra {
   size          String?
   quantity      Int
   participant   Participant @relation(fields: [participantId], references: [id])
+}
+
+model BibCounter {
+  id         String   @id // ex: "kids", "diversao", "competicao", "duplas", "equipes"
+  nextNumber Int
+  updatedAt  DateTime @updatedAt
 }
