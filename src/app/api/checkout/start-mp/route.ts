@@ -54,6 +54,7 @@ function getParticipantsPerTicket(modalityId: ModalityId) {
  *
  * Requer: tabela BibCounter com id = modalityId e nextNumber inicial.
  */
+
 async function reserveBibNumbers(
   tx: Prisma.TransactionClient,
   modalityId: string,
@@ -71,31 +72,26 @@ async function reserveBibNumbers(
 
   const startAt = startMap[modalityId] ?? 1000;
 
-  const rows = await tx.$queryRaw<{ nextNumber: number }[]>`
-    WITH upsert AS (
-      INSERT INTO "BibCounter" ("id", "nextNumber", "updatedAt")
-      VALUES (${modalityId}, ${startAt}, NOW())
-      ON CONFLICT ("id") DO NOTHING
-      RETURNING "nextNumber"
-    ),
-    updated AS (
-      UPDATE "BibCounter"
-      SET "nextNumber" = "nextNumber" + ${qty},
-          "updatedAt" = NOW()
-      WHERE "id" = ${modalityId}
-      RETURNING "nextNumber"
-    )
-    SELECT "nextNumber" FROM updated;
-  `;
+  // 1) garante que existe o contador
+  await tx.bibCounter.upsert({
+    where: { id: modalityId },
+    create: { id: modalityId, nextNumber: startAt },
+    update: {}, // não altera se já existe
+  });
 
-  if (!rows?.length) {
-    throw new Error(`Falha ao reservar numeração para modalidade: ${modalityId}`);
-  }
+  // 2) incrementa de forma atômica e pega o novo nextNumber
+  const updated = await tx.bibCounter.update({
+    where: { id: modalityId },
+    data: { nextNumber: { increment: qty } },
+    select: { nextNumber: true },
+  });
 
-  const newNext = rows[0].nextNumber;
+  const newNext = updated.nextNumber;
   const start = newNext - qty;
+
   return Array.from({ length: qty }, (_, i) => start + i);
 }
+
 
 
 
