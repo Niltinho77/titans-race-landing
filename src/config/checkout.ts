@@ -23,7 +23,7 @@ export const MODALITIES: Modality[] = [
     name: "Kids",
     description:
       "Percurso adaptado para crianças, com obstáculos seguros e monitorados.",
-    basePrice: 100, // R$ 100,00
+    basePrice: 10000, // R$ 100,00
     ticketLabel: "ingressos Kids",
   },
   {
@@ -31,7 +31,7 @@ export const MODALITIES: Modality[] = [
     name: "Duplas",
     description:
       "Inscrição para dupla. Cada ingresso de dupla equivale a 2 participantes correndo juntos.",
-    basePrice: 340, // R$ 340,00 (dupla)
+    basePrice: 34000, // R$ 340,00 (dupla)
     ticketLabel: "ingressos de dupla",
   },
 
@@ -41,7 +41,7 @@ export const MODALITIES: Modality[] = [
     name: "Equipes",
     description:
       "Inscrição por equipe. Cada ingresso equivale a 4 participantes. Regra: a equipe deve conter pelo menos 1 mulher.",
-    basePrice: 660, // R$ 660,00 (equipe)
+    basePrice: 66000, // R$ 660,00 (equipe)
     ticketLabel: "inscrições de equipe",
   },
 
@@ -50,7 +50,7 @@ export const MODALITIES: Modality[] = [
     name: "Competição",
     description:
       "Prova cronometrada para quem quer tempo, performance e ranking.",
-    basePrice: 175, // R$ 175,00
+    basePrice: 17500, // R$ 175,00
     ticketLabel: "ingressos Competição",
   },
   {
@@ -58,7 +58,7 @@ export const MODALITIES: Modality[] = [
     name: "Diversão",
     description:
       "Percurso com foco em experiência, lama, superação e boas histórias.",
-    basePrice: 165, // R$ 165,00
+    basePrice: 16500, // R$ 165,00
     ticketLabel: "ingressos Diversão",
   },
 ];

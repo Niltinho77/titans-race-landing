@@ -28,8 +28,8 @@ const tiles: Tile[] = [
     subtitle: "Aventura em versão segura.",
     location: "Inscrições em breve",
     image: "/images/kids.png",
-    disabled: false,
-    href: "/checkout?modality=kids",
+    disabled: true,
+    //href: "/checkout?modality=kids",
     className: "md:col-span-2 md:row-span-2",
   },
   {
@@ -38,8 +38,8 @@ const tiles: Tile[] = [
     subtitle: "Um puxa o outro.",
     location: "Inscrições em breve",
     image: "/images/duplas.png",
-    disabled: false,
-    href: "/checkout?modality=duplas",
+    disabled: true,
+    //href: "/checkout?modality=duplas",
     className: "md:col-span-2 md:row-span-1",
   },
   {
@@ -48,8 +48,8 @@ const tiles: Tile[] = [
     subtitle: "Para quem quer tempo.",
     location: "Inscrições em breve",
     image: "/images/competicao.png",
-    disabled: false,
-    href: "/checkout?modality=competicao",
+    disabled: true,
+    //href: "/checkout?modality=competicao",
     className: "md:col-span-1 md:row-span-2",
   },
   {
@@ -58,8 +58,8 @@ const tiles: Tile[] = [
     subtitle: "Lama, risada e histórias.",
     location: "Inscrições em breve",
     image: "/images/diversao.png",
-    disabled: false,
-    href: "/checkout?modality=diversao",
+    disabled: true,
+    //href: "/checkout?modality=diversao",
     className: "md:col-span-1 md:row-span-2",
   },
   {
@@ -68,8 +68,8 @@ const tiles: Tile[] = [
     subtitle: "4 pessoas. Um objetivo.",
     location: "Inscrições abertas",
     image: "/images/equipes.png",
-    disabled: false,  
-    href: "/checkout?modality=equipes",
+    disabled: true,  
+    //href: "/checkout?modality=equipes",
 
   },
   {
