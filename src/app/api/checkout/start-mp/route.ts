@@ -61,7 +61,6 @@ async function reserveBibNumbers(
 ): Promise<number[]> {
   if (qty <= 0) return [];
 
-  // faixa inicial por modalidade (ajuste como quiser)
   const startMap: Record<string, number> = {
     kids: 0,
     diversao: 100,
@@ -70,18 +69,19 @@ async function reserveBibNumbers(
     equipes: 900,
   };
 
-  const startAt = startMap[modalityId] ?? 1000; // fallback
+  const startAt = startMap[modalityId] ?? 1000;
 
   const rows = await tx.$queryRaw<{ nextNumber: number }[]>`
     WITH upsert AS (
-      INSERT INTO "BibCounter" ("id", "nextNumber")
-      VALUES (${modalityId}, ${startAt})
+      INSERT INTO "BibCounter" ("id", "nextNumber", "updatedAt")
+      VALUES (${modalityId}, ${startAt}, NOW())
       ON CONFLICT ("id") DO NOTHING
       RETURNING "nextNumber"
     ),
     updated AS (
       UPDATE "BibCounter"
-      SET "nextNumber" = "nextNumber" + ${qty}
+      SET "nextNumber" = "nextNumber" + ${qty},
+          "updatedAt" = NOW()
       WHERE "id" = ${modalityId}
       RETURNING "nextNumber"
     )
@@ -96,6 +96,7 @@ async function reserveBibNumbers(
   const start = newNext - qty;
   return Array.from({ length: qty }, (_, i) => start + i);
 }
+
 
 
 export async function POST(req: NextRequest) {
