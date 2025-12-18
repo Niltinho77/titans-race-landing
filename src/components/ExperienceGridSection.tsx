@@ -68,8 +68,8 @@ const tiles: Tile[] = [
     subtitle: "4 pessoas. Um objetivo.",
     location: "Inscrições abertas",
     image: "/images/equipes.png",
-    disabled: true,  
-    //href: "/checkout?modality=equipes",
+    disabled: false,  
+    href: "/checkout?modality=equipes",
 
   },
   {
