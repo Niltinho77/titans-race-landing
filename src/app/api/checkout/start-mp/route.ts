@@ -258,7 +258,7 @@ export async function POST(req: NextRequest) {
 
         back_urls: {
           success: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
-          pending: `${siteUrl}/checkout/pendente?orderId=${order.id}`,
+          pending: `${siteUrl}/checkout/pendente`,
           failure: `${siteUrl}/checkout/falha?orderId=${order.id}`,
 
           },
