@@ -13,19 +13,25 @@ model Order {
   tickets               Int
   status                String        @default("PENDING")
   termsAccepted         Boolean       @default(false)
-// valores em centavos
+
+  // valores em centavos
   totalAmount           Int?          // valor líquido (sem taxa)
   ticketsAmount         Int?          // só ingressos
   extrasAmount          Int?          // só extras
   feeAmount             Int?          // taxa da plataforma
   totalAmountWithFee    Int?          // valor cobrado do atleta (com taxa)
 
-   // ✅ Mercado Pago
+  // ✅ Cupom / desconto
+  couponCode            String?
+  discountAmount        Int?          // em centavos (valor descontado)
+  discountedTotalAmount Int?          // total líquido após desconto (antes da taxa)
+  coupon                Coupon?       @relation(fields: [couponCode], references: [code])
+
+  // ✅ Mercado Pago
   mpPreferenceId        String?  @unique
   mpPaymentId           String?
   mpPaymentStatus       String?
 
-  // ✅ Para evitar e-mail duplicado
   confirmationEmailSentAt DateTime?
 
   createdAt             DateTime      @default(now())
@@ -68,4 +74,36 @@ model BibCounter {
   id         String   @id // ex: "kids", "diversao", "competicao", "duplas", "equipes"
   nextNumber Int
   updatedAt  DateTime @updatedAt
+}
+
+
+enum CouponType {
+  PERCENT   // ex: 10%
+  FIXED     // ex: R$ 20,00 (2000 centavos)
+}
+
+model Coupon {
+  code        String     @id // ex: "NATAL10"
+  type        CouponType
+  amount      Int        // PERCENT: 10 (10%) | FIXED: 2000 (R$ 20,00)
+  active      Boolean    @default(true)
+
+  // janela de validade (opcional)
+  startsAt    DateTime?
+  expiresAt   DateTime?
+
+  // limites (opcional)
+  maxUses     Int?       // limite global
+  usedCount   Int        @default(0)
+
+  // regra opcional para evitar cupom em valores muito baixos
+  minSubtotal Int?       // em centavos (antes do desconto)
+
+  // opcional: restringir por modalidade
+  modalityId  String?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  orders      Order[]
 }

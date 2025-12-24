@@ -6,10 +6,7 @@ import { mpPayment } from "@/lib/mercadopago";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { getModalityById } from "@/config/checkout";
 
-
 export const runtime = "nodejs";
-
-
 
 // -------------------- Signature helpers --------------------
 function parseSignatureHeader(signature: string | null) {
@@ -56,7 +53,7 @@ function verifyMpSignature(params: {
   if (!parsed) return false;
   if (!xRequestId) return false;
 
-  // manifest (modelo prático usado nos exemplos do MP):
+  // manifest:
   // `id:${id};request-id:${requestId};ts:${ts};`
   const manifest = `id:${resourceId};request-id:${xRequestId};ts:${parsed.ts};`;
 
@@ -70,7 +67,6 @@ function verifyMpSignature(params: {
 
 // -------------------- Status mapping --------------------
 function mapMpToOrderStatus(mpStatus?: string) {
-  
   switch (mpStatus) {
     case "approved":
       return "PAID";
@@ -154,14 +150,13 @@ export async function POST(req: NextRequest) {
     const xRequestId = req.headers.get("x-request-id");
 
     const valid = verifyMpSignature({
-      resourceId, // assinatura é do ID notificado (resource)
+      resourceId,
       xRequestId,
       xSignature,
       secret: mpSecret,
     });
 
     if (!valid) {
-      // se você ativou secret, essa proteção faz sentido
       return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
     }
 
@@ -174,9 +169,8 @@ export async function POST(req: NextRequest) {
       (typeof topic === "string" && topic.includes("merchant_order")) ||
       (typeof topic === "string" && topic.includes("order"));
 
-
     if (isMerchantOrder) {
-  paymentId = await resolvePaymentIdFromMerchantOrder(resourceId);
+      paymentId = await resolvePaymentIdFromMerchantOrder(resourceId);
 
       // se ainda não existe payment no merchant order, ACK e espera próximo webhook
       if (!paymentId) {
@@ -186,13 +180,11 @@ export async function POST(req: NextRequest) {
       paymentId = resourceId;
     }
 
-
     // busca o pagamento (fonte da verdade)
     let payment: any;
     try {
       payment = await mpPayment.get({ id: paymentId });
     } catch (e: any) {
-      // ✅ isso acontece no "teste do painel" (id fake) e em alguns cenários de notificação
       console.warn("MP payment.get falhou (ignorado)", {
         paymentId,
         status: e?.status,
@@ -212,53 +204,83 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
+    const orderId = String(externalRef);
     const newOrderStatus = mapMpToOrderStatus(mpStatus);
 
-    const updatedOrder = await prisma.order.update({
-  where: { id: String(externalRef) },
-  data: {
-    status: newOrderStatus,
-    mpPaymentId: String(payment.id),
-    mpPaymentStatus: mpStatus ?? null,
-  },
-});
+    // ✅ 1) Atualiza status de forma idempotente
+    // - Se já estava PAID, não faz nada (evita duplicar cupom/email)
+    // - Se está virando PAID agora, a gente trata abaixo
+    const statusUpdate = await prisma.order.updateMany({
+      where: {
+        id: orderId,
+        // ✅ só atualiza se ainda não virou PAID (idempotência)
+        ...(newOrderStatus === "PAID" ? { status: { not: "PAID" } } : {}),
+      },
+      data: {
+        status: newOrderStatus,
+        mpPaymentId: String(payment.id),
+        mpPaymentStatus: mpStatus ?? null,
+      },
+    });
 
-// ✅ Se aprovou, envia e-mail 1 vez só
-if (newOrderStatus === "PAID") {
-  const order = await prisma.order.findUnique({
-    where: { id: String(externalRef) },
-    include: { participants: true },
-  });
+    const changed = statusUpdate.count > 0;
 
-  if (order && !order.confirmationEmailSentAt) {
-    const main = order.participants[0];
-    const modality = getModalityById(order.modalityId);
-
-    try {
-      await sendOrderConfirmationEmail({
-        to: main?.email ?? "",
-        participantName: main?.fullName ?? "Participante",
-        orderId: order.id,
-        modalityName: modality?.name ?? order.modalityId,
-        totalAmount: order.totalAmountWithFee ?? order.totalAmount ?? 0,
-      });
-
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { confirmationEmailSentAt: new Date() },
-      });
-
-      console.log("E-mail de confirmação enviado:", order.id, main?.email);
-    } catch (e) {
-      console.error("Falha ao enviar e-mail Resend:", e);
-      // não retorna erro; pagamento já foi processado
+    // Se não mudou nada (ex.: webhook repetido), só ACK
+    if (!changed) {
+      return NextResponse.json({ ok: true }, { status: 200 });
     }
-  }
-}
 
-return NextResponse.json({ ok: true }, { status: 200 });
+    // ✅ 2) Se aprovou AGORA, incrementa cupom 1 vez e envia email 1 vez
+    if (newOrderStatus === "PAID") {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { participants: true, coupon: true },
+      });
 
+      if (order?.couponCode) {
+        try {
+          // ✅ incrementa 1 vez (não trava o webhook se falhar)
+          await prisma.coupon.update({
+            where: { code: order.couponCode },
+            data: { usedCount: { increment: 1 } },
+          });
+        } catch (e) {
+          console.error("Falha ao incrementar usedCount do cupom:", {
+            orderId,
+            couponCode: order.couponCode,
+            error: e,
+          });
+        }
+      }
 
+      // ✅ e-mail 1 vez só
+      if (order && !order.confirmationEmailSentAt) {
+        const main = order.participants[0];
+        const modality = getModalityById(order.modalityId);
+
+        try {
+          await sendOrderConfirmationEmail({
+            to: main?.email ?? "",
+            participantName: main?.fullName ?? "Participante",
+            orderId: order.id,
+            modalityName: modality?.name ?? order.modalityId,
+            totalAmount: order.totalAmountWithFee ?? order.totalAmount ?? 0,
+          });
+
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { confirmationEmailSentAt: new Date() },
+          });
+
+          console.log("E-mail de confirmação enviado:", order.id, main?.email);
+        } catch (e) {
+          console.error("Falha ao enviar e-mail Resend:", e);
+          // não retorna erro; pagamento já foi processado
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
     console.error("Erro webhook Mercado Pago:", err);
     // ✅ não derruba o webhook

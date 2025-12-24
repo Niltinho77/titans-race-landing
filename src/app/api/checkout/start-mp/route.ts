@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, CouponType } from "@prisma/client";
 import { EXTRAS, getModalityById, ExtraType, ModalityId } from "@/config/checkout";
 import { mpPreference } from "@/lib/mercadopago";
 
@@ -28,9 +28,10 @@ type CheckoutPayload = {
   tickets: number;
   participants: ParticipantPayload[];
   termsAccepted: boolean;
+  couponCode?: string | null; // ✅ novo
 };
 
-// ✅ sua taxa “da plataforma” pode continuar igual
+// ✅ taxa
 const FEE_PERCENT = 0.0399;
 const FEE_FIXED = 39; // centavos
 
@@ -48,13 +49,77 @@ function getParticipantsPerTicket(modalityId: ModalityId) {
   return 1;
 }
 
+function normalizeCode(code: unknown) {
+  if (typeof code !== "string") return null;
+  const normalized = code.trim().toUpperCase();
+  return normalized.length ? normalized : null;
+}
+
+function isDateInWindow(now: Date, startsAt?: Date | null, expiresAt?: Date | null) {
+  if (startsAt && now < startsAt) return false;
+  if (expiresAt && now > expiresAt) return false;
+  return true;
+}
+
+async function validateAndComputeCoupon(params: {
+  tx: Prisma.TransactionClient;
+  code: string | null;
+  modalityId: string;
+  subtotal: number; // centavos
+}) {
+  const { tx, code, modalityId, subtotal } = params;
+
+  if (!code) {
+    return { coupon: null as any, discountAmount: 0 };
+  }
+
+  const coupon = await tx.coupon.findUnique({
+    where: { code },
+  });
+
+  if (!coupon || !coupon.active) {
+    return { error: "Cupom inválido." as const };
+  }
+
+  const now = new Date();
+
+  if (!isDateInWindow(now, coupon.startsAt, coupon.expiresAt)) {
+    return { error: "Cupom fora do período de validade." as const };
+  }
+
+  if (coupon.modalityId && coupon.modalityId !== modalityId) {
+    return { error: "Cupom não é válido para esta modalidade." as const };
+  }
+
+  if (typeof coupon.minSubtotal === "number" && subtotal < coupon.minSubtotal) {
+    return { error: "Subtotal abaixo do mínimo para este cupom." as const };
+  }
+
+  // ⚠️ Percentual somente (mas deixei FIXED protegido caso exista no enum)
+  let discountAmount = 0;
+
+  if (coupon.type === CouponType.PERCENT) {
+    const pct = Math.max(0, Math.min(100, coupon.amount)); // 0..100
+    discountAmount = Math.round((subtotal * pct) / 100);
+  } else {
+    // Se tu realmente vai usar só percent, dá até pra retornar erro aqui:
+    // return { error: "Cupom inválido (tipo não suportado)." as const };
+    discountAmount = Math.max(0, coupon.amount);
+  }
+
+  discountAmount = Math.min(discountAmount, subtotal);
+
+  // ✅ maxUses (limite global)
+  if (typeof coupon.maxUses === "number" && coupon.usedCount >= coupon.maxUses) {
+    return { error: "Cupom atingiu o limite de usos." as const };
+  }
+
+  return { coupon, discountAmount };
+}
+
 /**
  * Reserva N números sequenciais para uma modalidade (atômico no Postgres).
- * Retorna um array [start..start+qty-1].
- *
- * Requer: tabela BibCounter com id = modalityId e nextNumber inicial.
  */
-
 async function reserveBibNumbers(
   tx: Prisma.TransactionClient,
   modalityId: string,
@@ -72,14 +137,12 @@ async function reserveBibNumbers(
 
   const startAt = startMap[modalityId] ?? 1000;
 
-  // 1) garante que existe o contador
   await tx.bibCounter.upsert({
     where: { id: modalityId },
     create: { id: modalityId, nextNumber: startAt },
-    update: {}, // não altera se já existe
+    update: {},
   });
 
-  // 2) incrementa de forma atômica e pega o novo nextNumber
   const updated = await tx.bibCounter.update({
     where: { id: modalityId },
     data: { nextNumber: { increment: qty } },
@@ -91,9 +154,6 @@ async function reserveBibNumbers(
 
   return Array.from({ length: qty }, (_, i) => start + i);
 }
-
-
-
 
 export async function POST(req: NextRequest) {
   try {
@@ -135,6 +195,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ totais brutos
     const ticketsAmount = modality.basePrice * body.tickets;
 
     const extrasAmount = body.participants.reduce((total, participant) => {
@@ -147,26 +208,43 @@ export async function POST(req: NextRequest) {
       return total + extrasSum;
     }, 0);
 
-    const totalAmount = ticketsAmount + extrasAmount;
+    const subtotal = ticketsAmount + extrasAmount;
 
-    if (totalAmount <= 0) {
+    if (subtotal <= 0) {
       return NextResponse.json(
         { error: "Valor total zero. Defina preços antes de habilitar pagamento." },
         { status: 400 }
       );
     }
 
-    const { totalWithFee, feeAmount } = applyFee(totalAmount);
-
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
     const notificationUrl =
-     process.env.MP_WEBHOOK_URL ?? `${siteUrl}/api/mercadopago/webhook`;
+      process.env.MP_WEBHOOK_URL ?? `${siteUrl}/api/mercadopago/webhook`;
 
-    // ✅ Criação do pedido + reserva de bibs numa transação (evita duplicidade)
+    const normalizedCoupon = normalizeCode(body.couponCode);
+
+    // ✅ Criação do pedido + bibs + validação cupom numa transação
     const order = await prisma.$transaction(async (tx) => {
-      // ✅ QUANTOS BIBS RESERVAR?
-      // - duplas/equipes: 1 bib por grupo => qty = tickets
-      // - demais: 1 bib por participante => qty = participants.length
+      // ✅ valida cupom em "fonte de verdade"
+      const couponResult = await validateAndComputeCoupon({
+        tx,
+        code: normalizedCoupon,
+        modalityId: modality.id,
+        subtotal,
+      });
+
+      if ("error" in couponResult) {
+        throw new Error(couponResult.error);
+      }
+
+      const coupon = couponResult.coupon; // Coupon | null
+      const discountAmount = couponResult.discountAmount; // centavos
+      const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
+
+      // ✅ taxa sobre total líquido
+      const { totalWithFee, feeAmount } = applyFee(discountedTotalAmount);
+
+      // ✅ bibs
       const needGroupBib = modalityId === "duplas" || modalityId === "equipes";
       const bibQty = needGroupBib ? body.tickets : body.participants.length;
 
@@ -179,29 +257,26 @@ export async function POST(req: NextRequest) {
           status: "PENDING",
           termsAccepted: body.termsAccepted,
 
+          // ✅ valores
           ticketsAmount,
           extrasAmount,
-          totalAmount,
+
+          // totalAmount: valor líquido final (após desconto)
+          totalAmount: discountedTotalAmount,
+
+          discountAmount: discountAmount || null,
+          discountedTotalAmount: discountedTotalAmount || null,
+
+          couponCode: coupon?.code ?? null, // ✅ relacionamento com Coupon
+
           feeAmount,
           totalAmountWithFee: totalWithFee,
 
           participants: {
             create: body.participants.map((p, idx) => {
-              // ✅ groupIndex:
-              // - duplas: cada 2 pessoas = 1 grupo
-              // - equipes: cada 4 pessoas = 1 grupo
-              // - demais: 1 pessoa = 1 grupo
               const groupIndex = Math.floor(idx / perTicket);
-
-              // ✅ bibNumber:
-              // - duplas/equipes: bib por grupo => bibs[groupIndex]
-              // - demais: bib por participante => bibs[idx]
               const bibNumber = needGroupBib ? bibs[groupIndex] : bibs[idx];
 
-              // ✅ teamIndex (posição dentro do grupo):
-              // - duplas: 1..2
-              // - equipes: 1..4
-              // - demais: null
               const teamIndex =
                 modalityId === "duplas" || modalityId === "equipes"
                   ? (idx % perTicket) + 1
@@ -220,7 +295,6 @@ export async function POST(req: NextRequest) {
                 emergencyPhone: p.emergencyPhone ?? null,
                 healthInfo: p.healthInfo ?? null,
 
-                // ✅ campos novos no schema
                 bibNumber,
                 teamIndex,
 
@@ -237,10 +311,17 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return created;
+      // ✅ Retorna também os valores calculados pra montar o MP
+      return {
+        order: created,
+        totalWithFee,
+        discountAmount,
+        discountedTotalAmount,
+        couponCode: coupon?.code ?? null,
+      };
     });
 
-    // ✅ Criar preferência do Mercado Pago
+    // ✅ Criar preferência MP (valor final com taxa já considerando desconto)
     const preference = await mpPreference.create({
       body: {
         items: [
@@ -249,34 +330,56 @@ export async function POST(req: NextRequest) {
             title: `Titans Race – ${modality.name}`,
             quantity: 1,
             currency_id: "BRL",
-            unit_price: Number((totalWithFee / 100).toFixed(2)),
+            unit_price: Number((order.totalWithFee / 100).toFixed(2)),
           },
         ],
 
-        external_reference: order.id,
+        external_reference: order.order.id,
         notification_url: notificationUrl,
 
         back_urls: {
-          success: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
+          success: `${siteUrl}/checkout/sucesso?orderId=${order.order.id}`,
           pending: `${siteUrl}/checkout/pendente`,
-          failure: `${siteUrl}/checkout/falha?orderId=${order.id}`,
+          failure: `${siteUrl}/checkout/falha?orderId=${order.order.id}`,
+        },
 
-          },
         auto_return: "approved",
-
         statement_descriptor: "TITANS RACE",
-        metadata: { orderId: order.id, modalityId: modality.id },
+
+        metadata: {
+          orderId: order.order.id,
+          modalityId: modality.id,
+          couponCode: order.couponCode,
+          discountAmount: order.discountAmount,
+          discountedTotalAmount: order.discountedTotalAmount,
+        },
       },
     });
 
     await prisma.order.update({
-      where: { id: order.id },
+      where: { id: order.order.id },
       data: { mpPreferenceId: preference.id },
     });
 
-    return NextResponse.json({ orderId: order.id, checkoutUrl: preference.init_point }, { status: 201 });
-  } catch (err) {
+    return NextResponse.json(
+      { orderId: order.order.id, checkoutUrl: preference.init_point },
+      { status: 201 }
+    );
+  } catch (err: any) {
     console.error("Erro em /api/checkout/start-mp:", err);
+
+    // ✅ se for erro controlado (cupom inválido etc.)
+    const msg = typeof err?.message === "string" ? err.message : "Erro ao iniciar checkout.";
+    if (
+      msg.includes("Cupom") ||
+      msg.includes("Subtotal") ||
+      msg.includes("modalidade") ||
+      msg.includes("validade") ||
+      msg.includes("limite")
+    ) {
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
     return NextResponse.json({ error: "Erro ao iniciar checkout." }, { status: 500 });
   }
 }
