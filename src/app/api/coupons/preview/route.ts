@@ -24,7 +24,7 @@ type Coupon = {
 // ✅ exemplos (ajuste como quiser)
 const COUPONS: Coupon[] = [
   {
-    code: "NATAL10",
+    code: "PRESENTEDENATAL",
     type: "percent",
     value: 10,
     active: true,
