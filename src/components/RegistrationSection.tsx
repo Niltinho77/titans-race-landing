@@ -2,8 +2,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Lock } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Lock, CheckCircle2 } from "lucide-react";
+
+type LotStatus = "ACTIVE" | "CLOSED" | "LOCKED";
 
 type Lot = {
   id: string;
@@ -11,6 +12,8 @@ type Lot = {
   image: string;
   imageAlt?: string;
   note?: string;
+  status: LotStatus;
+  badge?: string; // ex: "Aberto", "Encerrado", "Em breve"
 };
 
 const lots: Lot[] = [
@@ -19,14 +22,18 @@ const lots: Lot[] = [
     name: "Lote Promocional",
     image: "/images/lote-promocional.png",
     imageAlt: "Lote promocional de lançamento – Titans Race",
-    note: "Lote de lançamento com vagas limitadas.",
+    note: "Encerrado. Obrigado a todos que garantiram no lançamento.",
+    status: "CLOSED",
+    badge: "Encerrado",
   },
   {
     id: "lote1",
     name: "1º Lote",
     image: "/images/lote1.png",
     imageAlt: "Atletas correndo na Titans Race – 1º Lote",
-    note: "Disponível após o encerramento do lote promocional.",
+    note: "Inscrições abertas no 1º lote. Garanta sua vaga agora.",
+    status: "ACTIVE",
+    badge: "Aberto",
   },
   {
     id: "lote2",
@@ -34,6 +41,8 @@ const lots: Lot[] = [
     image: "/images/lote2.png",
     imageAlt: "Representação visual do 2º Lote",
     note: "Entra em vigor após encerramento do 1º lote.",
+    status: "LOCKED",
+    badge: "Em breve",
   },
   {
     id: "loteFinal",
@@ -41,51 +50,22 @@ const lots: Lot[] = [
     image: "/images/lote-final.png",
     imageAlt: "Representação visual do Lote Final",
     note: "Última oportunidade de inscrição.",
+    status: "LOCKED",
+    badge: "Em breve",
   },
 ];
 
-const PROMO_LIMIT = 150;
+// ✅ Agora o lote ativo é o 1º Lote
+const ACTIVE_LOT_ID: Lot["id"] = "lote1";
 
-// ✅ Abertura: Sexta, 19/12 às 07:00 (America/Sao_Paulo)
-// Dica: usar offset -03:00 deixa explícito o fuso
-const OPEN_AT_ISO = "2025-12-19T07:00:00-03:00";
-
-// Formata um “restante” simples (hh:mm:ss)
-function formatCountdown(ms: number) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return { days, hours: pad(hours), minutes: pad(minutes), seconds: pad(seconds) };
-}
+// Ajuste para onde você quer levar o usuário:
+// - Pode ser "/inscricao"
+// - Ou "#checkout"
+// - Ou "/checkout?lote=lote1"
+const checkoutHref = `/checkout?lote=${ACTIVE_LOT_ID}`;
 
 export function RegistrationSection() {
-  const loteAtivo = lots[0];
-
-  const openAt = useMemo(() => new Date(OPEN_AT_ISO), []);
-  const [now, setNow] = useState<Date>(() => new Date());
-
-  // (Opcional) Se você tiver um endpoint real de vagas, dá pra trocar isso por dados do back-end.
-  // Por enquanto, exibimos apenas o limite.
-  const remainingSpots = PROMO_LIMIT;
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 250);
-    return () => clearInterval(t);
-  }, []);
-
-  const isOpen = now.getTime() >= openAt.getTime();
-  const msLeft = openAt.getTime() - now.getTime();
-  const cd = formatCountdown(msLeft);
-
-  // Ajuste para onde você quer levar o usuário quando abrir:
-  // - Pode ser "/inscricao"
-  // - Ou "#checkout"
-  // - Ou "/checkout?lote=lotePromocional"
-  const checkoutHref = "/checkout?lote=lotePromocional";
+  const loteAtivo = lots.find((l) => l.id === ACTIVE_LOT_ID) ?? lots[1];
 
   return (
     <section
@@ -110,10 +90,11 @@ export function RegistrationSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          A abertura oficial das inscrições será em{" "}
-          <span className="font-semibold text-white">19/12 às 07:00</span>.
-          O Lote Promocional tem{" "}
-          <span className="font-semibold text-white">{PROMO_LIMIT} vagas</span>.
+          O <span className="font-semibold text-white">Lote Promocional</span> foi{" "}
+          <span className="font-semibold text-white">encerrado</span>.
+          Agora estamos no{" "}
+          <span className="font-semibold text-white">1º Lote</span> — inscrições
+          abertas.
         </motion.p>
 
         {/* CTA */}
@@ -124,30 +105,18 @@ export function RegistrationSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.15 }}
         >
-          {isOpen ? (
-            <a
-              href={checkoutHref}
-              className="inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
-              title="Ir para inscrição"
-            >
-              Inscreva-se agora
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-white/15 bg-black/40 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300 opacity-80"
-              title="Abertura em 19/12 às 07:00"
-            >
-              <Lock className="h-3.5 w-3.5" />
-              Abre em {cd.days}d {cd.hours}:{cd.minutes}:{cd.seconds}
-            </button>
-          )}
+          <a
+            href={checkoutHref}
+            className="inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
+            title="Ir para inscrição"
+          >
+            Inscreva-se no 1º lote
+          </a>
         </motion.div>
 
         {/* GRID PRINCIPAL */}
         <div className="mt-14 grid gap-4 md:grid-cols-[1.3fr_1fr]">
-          {/* CARD PRINCIPAL – LOTE PROMOCIONAL */}
+          {/* CARD PRINCIPAL – 1º LOTE (ATIVO) */}
           <motion.div
             className="group relative flex h-80 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-black p-6 shadow-[0_20px_60px_rgba(0,0,0,0.9)] md:h-full"
             initial={{ opacity: 0, scale: 0.97, y: 10 }}
@@ -170,19 +139,12 @@ export function RegistrationSection() {
 
             <div className="relative z-10 flex items-center justify-between text-[11px] text-zinc-200">
               <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-300">
-                Lote de lançamento
+                Lote atual
               </span>
 
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] text-zinc-200 backdrop-blur-[1px]">
-                <span className="font-semibold">{remainingSpots}</span>
-                vagas
-                {!isOpen && (
-                  <>
-                    <span className="opacity-60">•</span>
-                    <Lock className="h-3.5 w-3.5 opacity-80" />
-                    Em breve
-                  </>
-                )}
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span className="font-semibold">Aberto</span>
               </span>
             </div>
 
@@ -192,18 +154,8 @@ export function RegistrationSection() {
               </p>
 
               <p className="mt-4 text-sm text-zinc-200">
-                {isOpen ? (
-                  <>
-                    Inscrições <span className="font-semibold text-white">abertas</span>
-                  </>
-                ) : (
-                  <>
-                    Abre em{" "}
-                    <span className="font-semibold text-white">
-                      {cd.days}d {cd.hours}:{cd.minutes}:{cd.seconds}
-                    </span>
-                  </>
-                )}
+                Inscrições <span className="font-semibold text-white">abertas</span>{" "}
+                agora.
               </p>
 
               {loteAtivo.note && (
@@ -212,29 +164,17 @@ export function RegistrationSection() {
 
               {/* Botão dentro do card */}
               <div className="mt-6">
-                {isOpen ? (
-                  <a
-                    href={checkoutHref}
-                    className="inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
-                  >
-                    Garantir vaga
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-white/15 bg-black/40 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300 opacity-80"
-                    title="Abertura em 19/12 às 07:00"
-                  >
-                    <Lock className="h-3.5 w-3.5" />
-                    Inscrições em breve
-                  </button>
-                )}
+                <a
+                  href={checkoutHref}
+                  className="inline-flex items-center rounded-full bg-orange-500 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
+                >
+                  Garantir vaga
+                </a>
               </div>
             </div>
           </motion.div>
 
-          {/* LOTES FUTUROS */}
+          {/* COLUNA DIREITA – LOTE PROMOCIONAL (ENCERRADO) + PRÓXIMOS (BLOQUEADOS) */}
           <motion.div
             className="flex h-80 flex-col gap-4 md:h-full"
             initial={{ opacity: 0, scale: 0.97, y: 10 }}
@@ -242,45 +182,75 @@ export function RegistrationSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            {lots.slice(1).map((lot, index) => (
-              <motion.div
-                key={lot.id}
-                className="group relative flex flex-1 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-black p-5 text-sm text-zinc-200"
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.15 + index * 0.08 }}
-              >
-                <img
-                  src={lot.image}
-                  alt={lot.imageAlt ?? lot.name}
-                  className="absolute inset-0 h-full w-full object-cover opacity-45 grayscale"
-                />
-                <div className="absolute inset-0 bg-black/60" />
+            {lots
+              .filter((l) => l.id !== ACTIVE_LOT_ID)
+              .map((lot, index) => {
+                const isClosed = lot.status === "CLOSED";
+                const isLocked = lot.status === "LOCKED";
 
-                <div className="relative z-10 flex items-center justify-between text-[11px] text-zinc-300">
-                  <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-400">
-                    Próximo lote
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
-                    <Lock className="h-3.5 w-3.5" />
-                    Em breve
-                  </span>
-                </div>
+                return (
+                  <motion.div
+                    key={lot.id}
+                    className="group relative flex flex-1 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-black p-5 text-sm text-zinc-200"
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: 0.15 + index * 0.08 }}
+                  >
+                    <img
+                      src={lot.image}
+                      alt={lot.imageAlt ?? lot.name}
+                      className="absolute inset-0 h-full w-full object-cover opacity-45 grayscale"
+                    />
+                    <div className="absolute inset-0 bg-black/65" />
 
-                <div className="relative z-10 mt-4">
-                  <p className="heading-adventure text-2xl text-white md:text-3xl">
-                    {lot.name}
-                  </p>
+                    <div className="relative z-10 flex items-center justify-between text-[11px] text-zinc-300">
+                      <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-400">
+                        {isClosed ? "Lote anterior" : "Próximo lote"}
+                      </span>
 
-                  <p className="mt-3 text-xs text-zinc-300">Inscrições em breve</p>
+                      {isClosed ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-zinc-400">
+                          <Lock className="h-3.5 w-3.5" />
+                          Encerrado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-zinc-500">
+                          <Lock className="h-3.5 w-3.5" />
+                          Em breve
+                        </span>
+                      )}
+                    </div>
 
-                  {lot.note && (
-                    <p className="mt-1 text-[11px] text-zinc-400">{lot.note}</p>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                    <div className="relative z-10 mt-4">
+                      <p className="heading-adventure text-2xl text-white md:text-3xl">
+                        {lot.name}
+                      </p>
+
+                      <p className="mt-3 text-xs text-zinc-300">
+                        {isClosed ? "Este lote já encerrou." : "Inscrições em breve."}
+                      </p>
+
+                      {lot.note && (
+                        <p className="mt-1 text-[11px] text-zinc-400">{lot.note}</p>
+                      )}
+
+                      {/* Pequeno detalhe visual para diferenciar fechado x bloqueado */}
+                      {isClosed && (
+                        <p className="mt-3 text-[11px] text-zinc-500">
+                          Você ainda pode garantir no <span className="text-zinc-200">1º Lote</span>.
+                        </p>
+                      )}
+
+                      {isLocked && (
+                        <p className="mt-3 text-[11px] text-zinc-500">
+                          Fique ligado: este lote abre após o encerramento do lote atual.
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
           </motion.div>
         </div>
       </div>
