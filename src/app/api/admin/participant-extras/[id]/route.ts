@@ -1,12 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await prisma.participantExtra.delete({ where: { id: params.id } });
+    const { id } = await params;
+
+    await prisma.participantExtra.delete({ where: { id } });
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e) {
     console.error("DELETE extra error:", e);
