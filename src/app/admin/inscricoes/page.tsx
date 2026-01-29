@@ -391,6 +391,12 @@ export default async function AdminInscricoesPage() {
                                               <p className="text-sm font-semibold text-zinc-100">
                                                 {p.fullName}
                                               </p>
+                                              <Link
+                                                href={`/admin/inscricoes/participante/${p.id}`}
+                                                className="mt-2 inline-flex w-fit rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-100 hover:bg-white/5"
+                                              >
+                                                Editar
+                                              </Link>
 
                                               <div className="flex flex-wrap gap-2 text-[11px] text-zinc-400">
                                                 {memberLabel && (
