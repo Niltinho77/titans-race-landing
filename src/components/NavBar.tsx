@@ -2,23 +2,45 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
-const links = [
-  { href: "#inscricoes", label: "Modalidades" },
-  { href: "#local", label: "Local" },
-  { href: "#inscricoes", label: "Inscrições" },
-  { href: "#patrocinadores", label: "Patrocinadores" },
-  { href: "#contato", label: "Contato" },
-];
+type NavItem = {
+  href: string;
+  label: string;
+  kind: "hash" | "page";
+  highlight?: boolean;
+};
 
 export function NavBar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  const onHome = pathname === "/";
+
+  const links: NavItem[] = useMemo(() => {
+    // Se estiver na HOME: usa âncoras (#...)
+    // Se estiver em outra página (ex: /sorteio): manda pra HOME + âncora
+    const H = (hash: string) => (onHome ? hash : `/${hash}`);
+
+    return [
+      { href: "/sorteio", label: "Sorteio", kind: "page" },
+      { href: H("#inscricoes"), label: "Modalidades", kind: "hash" },
+      { href: H("#local"), label: "Local", kind: "hash" },
+      { href: H("#inscricoes"), label: "Inscrições", kind: "hash" },
+      { href: H("#patrocinadores"), label: "Patrocinadores", kind: "hash" },
+      { href: H("#contato"), label: "Contato", kind: "hash" },
+    ];
+  }, [onHome]);
+
+  const ctaHref = onHome ? "#inscricoes" : "/#inscricoes";
 
   const toggle = () => setOpen((prev) => !prev);
   const close = () => setOpen(false);
+
+  const isActivePage = (href: string) => pathname === href;
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
@@ -29,11 +51,9 @@ export function NavBar() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Link href="#inicio" className="flex items-center gap-3" onClick={close}>
+          <Link href={onHome ? "#inicio" : "/#inicio"} className="flex items-center gap-3" onClick={close}>
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/60 shadow-[0_0_12px_rgba(0,0,0,0.6)]">
-              <span className="font-semibold text-xs tracking-wide text-zinc-200">
-                TR
-              </span>
+              <span className="text-xs font-semibold tracking-wide text-zinc-200">TR</span>
             </div>
 
             <span className="heading-adventure text-lg text-white drop-shadow md:text-xl">
@@ -44,21 +64,48 @@ export function NavBar() {
 
         {/* LINKS DESKTOP */}
         <nav className="hidden items-center gap-6 text-xs font-medium text-zinc-300 md:flex">
-          {links.map((link) => (
-            <motion.a
-              key={link.href}
-              href={link.href}
-              className="relative uppercase tracking-[0.22em] text-[10px] transition-colors hover:text-orange-400"
-              whileHover={{ scale: 1.05 }}
-            >
-              {link.label}
-            </motion.a>
-          ))}
+          {links.map((link) => {
+            const active = link.kind === "page" && isActivePage(link.href);
+
+            // Página (Next Link) vs Âncora (a)
+            if (link.kind === "page") {
+              return (
+                <motion.div key={link.href} whileHover={{ scale: 1.05 }}>
+                  <Link
+                    href={link.href}
+                    onClick={close}
+                    className={[
+                      "relative uppercase tracking-[0.22em] text-[10px] transition-colors",
+                      active ? "text-orange-400" : "hover:text-orange-400",
+                    ].join(" ")}
+                  >
+                    {link.label}
+                    {active && (
+                      <span className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full bg-orange-400/80" />
+                    )}
+                  </Link>
+                </motion.div>
+              );
+            }
+
+            return (
+              <motion.a
+                key={link.href}
+                href={link.href}
+                onClick={close}
+                className="relative uppercase tracking-[0.22em] text-[10px] transition-colors hover:text-orange-400"
+                whileHover={{ scale: 1.05 }}
+              >
+                {link.label}
+              </motion.a>
+            );
+          })}
         </nav>
 
         {/* CTA DESKTOP */}
         <motion.a
-          href="#inscricoes"
+          href={ctaHref}
+          onClick={close}
           className="hidden items-center rounded-full bg-orange-500 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400 active:scale-95 md:flex"
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -72,7 +119,7 @@ export function NavBar() {
           type="button"
           onClick={toggle}
           className="inline-flex items-center justify-center rounded-full border border-white/15 bg-black/60 p-2 text-zinc-200 shadow-md transition hover:bg-black/80 md:hidden"
-          aria-label="Abrir menu"
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -89,19 +136,39 @@ export function NavBar() {
             className="border-t border-white/10 bg-black/95 md:hidden"
           >
             <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4">
-              {links.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={close}
-                  className="rounded-xl px-3 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-100 transition hover:bg-white/5"
-                >
-                  {link.label}
-                </a>
-              ))}
+              {links.map((link) => {
+                const active = link.kind === "page" && isActivePage(link.href);
+
+                if (link.kind === "page") {
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={close}
+                      className={[
+                        "rounded-xl px-3 py-3 text-[11px] font-medium uppercase tracking-[0.18em] transition",
+                        active ? "bg-white/10 text-orange-300" : "text-zinc-100 hover:bg-white/5",
+                      ].join(" ")}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    onClick={close}
+                    className="rounded-xl px-3 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-100 transition hover:bg-white/5"
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
 
               <a
-                href="#inscricoes"
+                href={ctaHref}
                 onClick={close}
                 className="mt-2 w-full rounded-full bg-orange-500 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
               >
