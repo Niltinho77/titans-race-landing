@@ -399,49 +399,78 @@ export default function SorteioPublico() {
                       style={mosaicStyle}
                     >
                       {gridImages.map((src, idx) => {
-                        const isActive = idx === activeIndex;
+  const isActive = idx === activeIndex;
 
-                        return (
-                          <motion.div
-                            key={src}
-                            className={[
-                              "relative overflow-hidden rounded-xl border bg-black/20",
-                              "border-white/10",
-                              isActive ? "border-[#ff5c0c]" : "",
-                            ].join(" ")}
-                            animate={
-                              isActive
-                                ? {
-                                    boxShadow: "0 0 0 3px rgba(255,92,12,0.22)",
-                                  }
-                                : { boxShadow: "0 0 0 0 rgba(0,0,0,0)" }
-                            }
-                            transition={{ duration: 0.08 }}
-                          >
-                            {/* miniatura quadrada pra caber muita coisa */}
-                            <img
-                              src={src}
-                              alt="Participante"
-                              className="h-full w-full object-cover"
-                            />
+  return (
+    <motion.div
+      key={src}
+      className={[
+        "relative overflow-hidden rounded-xl border bg-black/20",
+        "border-white/10",
+      ].join(" ")}
+      animate={
+        isActive
+          ? {
+              transform: "scale(1.03)",
+              boxShadow:
+                "0 0 0 4px rgba(255,92,12,0.95), 0 0 40px rgba(255,92,12,0.55), 0 0 90px rgba(255,92,12,0.22)",
+              borderColor: "rgba(255,92,12,0.95)",
+            }
+          : {
+              transform: "scale(1)",
+              boxShadow: "0 0 0 0 rgba(0,0,0,0)",
+              borderColor: "rgba(255,255,255,0.10)",
+            }
+      }
+      transition={{ duration: 0.09 }}
+    >
+      <img src={src} alt="Participante" className="h-full w-full object-cover" />
 
-                            {/* Flash de vitória ao parar */}
-                            <AnimatePresence>
-                              {isActive && winnerFlash && (
-                                <motion.div
-                                  className="pointer-events-none absolute inset-0"
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  exit={{ opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <div className="absolute inset-0 bg-[#ff5c0c]/20" />
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </motion.div>
-                        );
-                      })}
+      {/* ✅ Overlay para destacar MUITO o selecionado */}
+      <AnimatePresence>
+        {isActive && (
+          <motion.div
+            className="pointer-events-none absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.08 }}
+          >
+            {/* camada laranja leve */}
+            <div className="absolute inset-0 bg-[#ff5c0c]/18" />
+
+            {/* vinheta sutil pra “puxar” o olho */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,92,12,0.25),rgba(0,0,0,0)_62%)]" />
+
+            {/* ✅ Borda interna extra (mais “seletor”) */}
+            <div className="absolute inset-0 rounded-xl border-[3px] border-[#ff5c0c]" />
+
+            {/* ✅ Badge de canto (super claro no celular) */}
+            <div className="absolute left-1 top-1 rounded-md bg-[#ff5c0c] px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-black shadow-lg">
+              seleção
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Flash de vitória ao parar (mantém) */}
+      <AnimatePresence>
+        {isActive && winnerFlash && (
+          <motion.div
+            className="pointer-events-none absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="absolute inset-0 bg-[#ff5c0c]/28" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+})}
+
                     </div>
                   </div>
                 </div>
