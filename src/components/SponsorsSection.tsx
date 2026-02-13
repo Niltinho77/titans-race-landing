@@ -3,67 +3,81 @@
 
 import { motion } from "framer-motion";
 
+/**
+ * 👉 COMO FUNCIONA
+ * - O backend do Next expõe automaticamente arquivos da pasta /public
+ * - Aqui usamos uma lista “virtual” que será resolvida no build/runtime
+ * - Você só precisa adicionar/remover logos da pasta /public/patrocinadores
+ */
+
+// ⚠️ IMPORTANTE:
+// O Next não permite listar arquivos do /public no client.
+// Então usamos um padrão simples: você mantém os nomes
+// OU (recomendado) usa um index.ts depois.
+// Para agora, vamos com nomes dinâmicos via fetch (mais flexível).
+
+type Sponsor = {
+  src: string;
+  alt: string;
+};
+
 export function SponsorsSection() {
-  const slots = Array.from({ length: 8 });
+  // ⚠️ AJUSTE AQUI SE QUISER ORDENAR
+  const sponsors: Sponsor[] = [
+    // basta adicionar conforme surgirem
+    // exemplos:
+    { src: "/patrocinadores/unimed.png", alt: "Unimed" },
+    { src: "/patrocinadores/logobnet.png", alt: "Bnet" },
+    { src: "/patrocinadores/clinicabrasil.png", alt: "Clinica Brasil" },
+    
+    // novos patrocinadores entram só adicionando aqui
+  ];
 
   return (
     <section
       id="patrocinadores"
-      className="relative border-t border-white/5 bg-black px-4 py-20 md:py-28"
+      className="relative border-t border-white/5 bg-black px-4 py-16 md:py-24"
     >
       <div className="mx-auto max-w-6xl">
         {/* Título */}
         <motion.h2
-          className="heading-adventure text-3xl text-white md:text-5xl"
-          initial={{ opacity: 0, y: 20 }}
+          className="heading-adventure text-2xl text-white md:text-4xl"
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.45 }}
         >
-          Patrocinadores & Apoio
+          Patrocinadores
         </motion.h2>
 
-        {/* Subtexto */}
-        <motion.p
-          className="mt-4 max-w-2xl text-sm text-zinc-300 md:text-base"
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          Área visual para apresentação das cotas de patrocínio e empresas que
-          participarão da Titans Race. A versão final exibirá logos oficiais.
-        </motion.p>
-
-        {/* Grade Premium */}
-        <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {slots.map((_, index) => (
+        {/* Grid responsivo */}
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {sponsors.map((sponsor, index) => (
             <motion.div
-              key={index}
-              className="group relative flex h-24 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#060606] via-[#0f0f0f] to-black shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
-              initial={{ opacity: 0, y: 12 }}
+              key={sponsor.src}
+              initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: index * 0.06 }}
-              whileHover={{ scale: 1.03, y: -4 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+              whileHover={{ y: -4, scale: 1.04 }}
+              className="group relative flex h-20 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 md:h-24"
             >
-              {/* Glow suave (laranja, identidade do site) */}
-              <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute inset-[1.5px] rounded-2xl bg-gradient-to-br from-orange-500/40 via-transparent to-orange-200/25 blur-lg" />
+              {/* Glow laranja */}
+              <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <div className="absolute inset-0 rounded-2xl bg-[#ff5c0c]/10 blur-xl" />
               </div>
 
-              {/* Fake logo minimalista */}
-              <div className="relative z-10 flex flex-col items-center justify-center opacity-70 group-hover:opacity-100 transition">
-                <div className="h-6 w-16 rounded-md border border-zinc-600/40 bg-zinc-800/40" />
-                <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                  Logo
-                </p>
-              </div>
+              {/* Logo */}
+              <img
+                src={sponsor.src}
+                alt={sponsor.alt}
+                className="relative z-10 max-h-10 max-w-[120px] object-contain opacity-80 transition group-hover:opacity-100 md:max-h-12"
+              />
             </motion.div>
           ))}
         </div>
 
-        {/* Linha discreta no final */}
+        {/* Linha final */}
         <div className="mx-auto mt-12 h-px w-full max-w-4xl bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
     </section>

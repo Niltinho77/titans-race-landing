@@ -14,6 +14,7 @@ export default function HomePage() {
       <NavBar />
       <Hero />
       <ExperienceGridSection />
+      <SponsorsSection/>
       <LocationSection />
       <RegistrationSection /> 
       <ContactSection />
