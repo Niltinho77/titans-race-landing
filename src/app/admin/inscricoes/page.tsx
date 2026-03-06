@@ -317,6 +317,12 @@ export default async function AdminInscricoesPage() {
                                     Total: <span className="font-semibold text-zinc-100">{total}</span>
                                   </span>
 
+                                  {order.couponCode && (
+                                    <span className="text-[11px] text-zinc-500">
+                                      Cupom: <span className="font-mono text-zinc-200">{order.couponCode}</span>
+                                    </span>
+                                  )}
+
                                   {(kind === "equipes" || kind === "duplas") && (
                                     <span className="text-[11px] text-zinc-500">
                                       Nº do grupo: <span className="font-mono text-zinc-200">{groupNumber ?? "—"}</span>
