@@ -2,7 +2,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
 
 type Tile = {
   id: string;
@@ -14,42 +13,12 @@ type Tile = {
   className?: string;
 };
 
-// =========================================================
-// CONFIG DE ABERTURA / BLOQUEIO (MANUAL)
-// ---------------------------------------------------------
-// 1) Abertura automática:
-//    OPEN_AT_ISO define a data/hora que os botões serão liberados automaticamente.
-// 2) Bloqueio manual (pra você controlar as 150 vagas):
-//    Quando quiser FECHAR tudo (ex: esgotou o lote), troque:
-//      MANUAL_BLOCK = false  ->  true
-//    Isso bloqueia TODAS as modalidades, mesmo após o horário.
-//    (O tile "contato" continua ativo.)
-// =========================================================
-const OPEN_AT_ISO = "2025-12-19T07:00:00-03:00";
-const MANUAL_BLOCK = false; // <-- quando esgotar, mude para true
-
-function formatCountdown(ms: number) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return {
-    days,
-    hours: pad(hours),
-    minutes: pad(minutes),
-    seconds: pad(seconds),
-  };
-}
-
 const tilesBase: Tile[] = [
   {
     id: "kids",
     title: "KIDS",
     subtitle: "Aventura em versão segura.",
-    location: "Inscrições em breve",
+    location: "Inscrições encerradas",
     image: "/images/kids.png",
     href: "/checkout?modality=kids",
     className: "md:col-span-2 md:row-span-2",
@@ -58,7 +27,7 @@ const tilesBase: Tile[] = [
     id: "duplas",
     title: "DUPLAS",
     subtitle: "Um puxa o outro.",
-    location: "Inscrições em breve",
+    location: "Inscrições encerradas",
     image: "/images/duplas.png",
     href: "/checkout?modality=duplas",
     className: "md:col-span-2 md:row-span-1",
@@ -67,7 +36,7 @@ const tilesBase: Tile[] = [
     id: "competicao",
     title: "COMPETIÇÃO",
     subtitle: "Para quem quer tempo.",
-    location: "Inscrições em breve",
+    location: "Inscrições encerradas",
     image: "/images/competicao.png",
     href: "/checkout?modality=competicao",
     className: "md:col-span-1 md:row-span-2",
@@ -76,7 +45,7 @@ const tilesBase: Tile[] = [
     id: "diversao",
     title: "DIVERSÃO",
     subtitle: "Lama, risada e histórias.",
-    location: "Inscrições em breve",
+    location: "Inscrições encerradas",
     image: "/images/diversao.png",
     href: "/checkout?modality=diversao",
     className: "md:col-span-1 md:row-span-2",
@@ -85,7 +54,7 @@ const tilesBase: Tile[] = [
     id: "equipes",
     title: "EQUIPES",
     subtitle: "4 pessoas. Um objetivo.",
-    location: "Inscrições em breve",
+    location: "Inscrições encerradas",
     image: "/images/equipes.png",
     href: "/checkout?modality=equipes",
   },
@@ -100,32 +69,7 @@ const tilesBase: Tile[] = [
 ];
 
 export function ExperienceGridSection() {
-  const openAt = useMemo(() => new Date(OPEN_AT_ISO), []);
-  const [now, setNow] = useState<Date>(() => new Date());
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 250);
-    return () => clearInterval(t);
-  }, []);
-
-  const timeReached = now.getTime() >= openAt.getTime();
-  const isOpen = timeReached && !MANUAL_BLOCK;
-
-  const msLeft = openAt.getTime() - now.getTime();
-  const cd = formatCountdown(msLeft);
-
-  // Enquanto não abrir: somente "contato" fica ativo.
-  // Depois de abrir: todas modalidades ficam ativas, EXCETO se MANUAL_BLOCK = true.
-  const isTileEnabled = (tile: Tile) => {
-    if (tile.id === "contato") return true;
-    return isOpen;
-  };
-
-  // Texto do contador (remove "0d" quando days = 0)
-  const countdownText =
-    cd.days > 0
-      ? `${cd.days}d ${cd.hours}:${cd.minutes}:${cd.seconds}`
-      : `${cd.hours}:${cd.minutes}:${cd.seconds}`;
+  const isTileEnabled = (tile: Tile) => tile.id === "contato";
 
   return (
     <section
@@ -138,7 +82,9 @@ export function ExperienceGridSection() {
           <span className="tracking-[0.28em] uppercase text-slate-400">
             modalidades & experiências
           </span>
-          <span className="text-slate-500">clique em uma opção para saber mais</span>
+          <span className="text-slate-500">
+            inscrições encerradas no momento
+          </span>
         </div>
 
         {/* GRID */}
@@ -153,7 +99,7 @@ export function ExperienceGridSection() {
                   group relative flex overflow-hidden rounded-3xl
                   border border-slate-700/60 bg-black/60
                   shadow-[0_18px_50px_rgba(0,0,0,0.9)]
-                  ${enabled ? "" : "cursor-not-allowed opacity-90"}
+                  ${enabled ? "" : "cursor-not-allowed opacity-90 grayscale-[0.15]"}
                   ${tile.className ?? ""}
                 `}
                 initial={{ opacity: 0, scale: 0.96, y: 10 }}
@@ -166,7 +112,7 @@ export function ExperienceGridSection() {
                     : undefined
                 }
               >
-                {/* Link somente se estiver ativo */}
+                {/* Link apenas para contato */}
                 {tile.href && enabled && (
                   <a
                     href={tile.href}
@@ -175,34 +121,21 @@ export function ExperienceGridSection() {
                   />
                 )}
 
-                {/* Overlay com contador responsivo */}
-                {!enabled && tile.id !== "contato" && (
-                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-[1px] p-4">
-                    <div className="w-full max-w-[520px] rounded-3xl border border-orange-500/25 bg-black/40 px-4 py-4 text-center sm:px-6 sm:py-5">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-orange-300/90">
-                        abre em
+                {/* Overlay de inscrições encerradas */}
+                {!enabled && (
+                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/55 backdrop-blur-[2px] p-4">
+                    <div className="w-full max-w-[520px] rounded-3xl border border-red-500/25 bg-black/50 px-4 py-4 text-center sm:px-6 sm:py-5">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-red-300/90">
+                        status
                       </p>
 
-                      {/* Texto do contador adaptável */}
-                      <p
-                        className={`
-                          mt-2 text-white heading-adventure
-                          text-2xl sm:text-3xl md:text-4xl
-                        `}
-                      >
-                        <span className="font-mono">{countdownText}</span>
+                      <p className="mt-2 heading-adventure text-2xl text-white sm:text-3xl md:text-4xl">
+                        INSCRIÇÕES ENCERRADAS
                       </p>
 
                       <p className="mt-2 text-[11px] text-slate-200/90">
-                        Abertura oficial: 19/12 às 07:00
+                        Esta modalidade não está mais disponível.
                       </p>
-
-                      {/* Dica visual se estiver bloqueado manualmente */}
-                      {MANUAL_BLOCK && timeReached && (
-                        <p className="mt-2 text-[11px] text-orange-200/90">
-                          Inscrições temporariamente indisponíveis.
-                        </p>
-                      )}
                     </div>
                   </div>
                 )}
@@ -226,6 +159,7 @@ export function ExperienceGridSection() {
                   <p className="text-[10px] uppercase tracking-[0.28em] text-orange-400 drop-shadow">
                     {tile.subtitle}
                   </p>
+
                   <h3 className="mt-1 heading-adventure text-2xl text-slate-50 drop-shadow sm:text-3xl">
                     {tile.title}
                   </h3>
@@ -233,9 +167,7 @@ export function ExperienceGridSection() {
                   <p className="mt-1 text-[11px] text-slate-200/90">
                     {tile.id === "contato"
                       ? tile.location
-                      : isOpen
-                      ? "Inscrições abertas"
-                      : "Abertura oficial em breve"}
+                      : "Inscrições encerradas"}
                   </p>
                 </div>
               </motion.div>
