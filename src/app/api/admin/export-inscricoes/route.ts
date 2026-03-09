@@ -10,7 +10,6 @@ function modalityKind(modalityId: string) {
   return "solo" as const;
 }
 
-// Ordem “humana” das modalidades no CSV (ajuste como quiser)
 const modalityOrder: Record<string, number> = {
   kids: 1,
   diversao: 2,
@@ -39,8 +38,17 @@ function extrasToStr(extras: Array<{ type: string; size: string | null; quantity
   return s || "Nenhum";
 }
 
+function formatDateBR(date: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export async function GET() {
-  // ✅ Só pedidos pagos
   const orders = await prisma.order.findMany({
     where: { status: "PAID" },
     include: {
@@ -50,20 +58,16 @@ export async function GET() {
     },
   });
 
-  /**
-   * Vamos “achatar” tudo em linhas e depois ordenar.
-   * Assim dá pra ordenar por modalidade / número / integrante / nome
-   * sem depender do orderBy do Prisma em relações.
-   */
   type Row = {
     modalityId: string;
     kind: "solo" | "duplas" | "equipes";
-    groupNumber: number | null; // bib do grupo (duplas/equipes)
-    bibNumber: number | null; // bib individual (solo) ou bib grupo (duplas/equipes)
+    groupNumber: number | null;
+    bibNumber: number | null;
     memberIndex: number | null;
     participantName: string;
     tshirtSize: string | null;
     extrasStr: string;
+    createdAt: Date;
   };
 
   const flat: Row[] = [];
@@ -71,14 +75,11 @@ export async function GET() {
   for (const order of orders) {
     const kind = modalityKind(order.modalityId);
 
-    // ✅ Para duplas/equipes: todos compartilham o mesmo número (bibNumber).
-    // Pega o primeiro bib não-nulo como número do grupo.
     const groupBib =
       kind === "solo"
         ? null
         : (order.participants.find((p) => p.bibNumber != null)?.bibNumber ?? null);
 
-    // Ordena integrantes 1..N (quando for grupo)
     const participantsSorted =
       kind === "solo"
         ? order.participants
@@ -98,38 +99,44 @@ export async function GET() {
         participantName: p.fullName ?? "",
         tshirtSize: p.tshirtSize ?? "",
         extrasStr: extrasToStr(p.extras as any),
+        createdAt: order.createdAt,
       });
     }
   }
 
-  // ✅ Ordenação final para ficar “visual”
   flat.sort((a, b) => {
-    // 1) modalidade (ordem humana)
     const mr = modalityRank(a.modalityId) - modalityRank(b.modalityId);
     if (mr !== 0) return mr;
 
-    // 2) número (bib)
     const ab = a.bibNumber ?? 0;
     const bb = b.bibNumber ?? 0;
     if (ab !== bb) return ab - bb;
 
-    // 3) integrante (teamIndex)
     const ai = a.memberIndex ?? 0;
     const bi = b.memberIndex ?? 0;
     if (ai !== bi) return ai - bi;
 
-    // 4) nome
     return (a.participantName || "").localeCompare(b.participantName || "", "pt-BR");
   });
 
-  // ✅ Cabeçalho enxuto e útil
-  const header = ["modalidade", "numero", "integrante", "nome", "camisa", "extras"].join(";");
+  const header = [
+    "dataInscricao",
+    "dataInscricaoISO",
+    "modalidade",
+    "numero",
+    "integrante",
+    "nome",
+    "camisa",
+    "extras",
+  ].join(";");
 
   const rows: string[] = [header];
 
   for (const r of flat) {
     rows.push(
       [
+        formatDateBR(r.createdAt),
+        r.createdAt.toISOString(),
         r.modalityId,
         r.bibNumber ?? "",
         r.memberIndex ?? "",
