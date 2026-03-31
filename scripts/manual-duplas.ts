@@ -1,11 +1,11 @@
-// scripts/manual-diversao-marcio.ts
+// scripts/manual-duplas-bianka-daiani.ts
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getModalityById, ModalityId } from "@/config/checkout";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
 // ===================== CONFIG RÁPIDA =====================
-const MODALITY_ID: ModalityId = "diversao";
+const MODALITY_ID: ModalityId = "duplas";
 const TICKETS = 1;
 
 // Desconto: 0% (PIX fora da plataforma, sem taxa)
@@ -25,16 +25,17 @@ function normalizeCPF(cpf: string) {
 }
 
 function normalizePhone(phone: string) {
-  // esperado: 11 dígitos
   return onlyDigits(phone).slice(0, 11);
 }
 
 function normalizeDateBR(input: string) {
-  // aceita "dd/mm/aaaa" e também "dd\mm\aaaa"
-  return (input ?? "").replace(/\\/g, "/").trim();
+  return (input ?? "")
+    .replace(/\\/g, "/")
+    .replace(/\./g, "/")
+    .replace(/,/g, "/")
+    .trim();
 }
 
-// ✅ regra centralizada (duplas/equipes)
 function getParticipantsPerTicket(modalityId: ModalityId) {
   if (modalityId === "duplas") return 2;
   if (modalityId === "equipes") return 4;
@@ -87,19 +88,33 @@ async function main() {
   const perTicket = getParticipantsPerTicket(MODALITY_ID);
   const expectedParticipants = TICKETS * perTicket;
 
-  // ========= PARTICIPANTE (DIVERSÃO - INDIVIDUAL) =========
+  // ========= PARTICIPANTES (DUPLAS) =========
   const participants = [
     {
-      fullName: "Márcio André Oliveira da Silva",
-      cpf: normalizeCPF("919.176.890-04"),
-      birthDate: normalizeDateBR("27/11/1973"),
-      phone: normalizePhone("55 999401305"),
-      email: "mandresil@gmail.com",
+      fullName: "Bianka Danielle Borda de Mello",
+      cpf: normalizeCPF("02978763094"),
+      birthDate: normalizeDateBR("21.03.1994"),
+      phone: normalizePhone("55984592439"),
+      email: "mellobiank@hotmail.com",
+      city: "Uruguaiana",
+      state: "RS",
+      tshirtSize: "Sem_camiseta",
+      emergencyName: "Mãe",
+      emergencyPhone: normalizePhone("55 99687-3933"),
+      healthInfo: null,
+      extras: [],
+    },
+    {
+      fullName: "Daiani Oliveira Cherubim",
+      cpf: normalizeCPF("01507572042"),
+      birthDate: normalizeDateBR("03/08/1985"),
+      phone: normalizePhone("(55)991458602"),
+      email: "daiacherubim@hotmail.com",
       city: null,
       state: "RS",
-      tshirtSize: "GG",
-      emergencyName: "Graciele",
-      emergencyPhone: normalizePhone("55 999571515"),
+      tshirtSize: "Sem_camiseta",
+      emergencyName: "Mateus Albano",
+      emergencyPhone: normalizePhone("(55) 996135797"),
       healthInfo: null,
       extras: [],
     },
@@ -120,7 +135,10 @@ async function main() {
   );
 
   const discountAmount = Math.min(discountTicketsOnly, ticketsAmount);
-  const discountedTotalAmount = Math.max(0, ticketsAmount + extrasAmount - discountAmount);
+  const discountedTotalAmount = Math.max(
+    0,
+    ticketsAmount + extrasAmount - discountAmount
+  );
 
   // PIX fora, sem taxa
   const feeAmount = 0;
@@ -129,8 +147,8 @@ async function main() {
 
   const order = await prisma.$transaction(
     async (tx) => {
-      // ✅ diversao/individual: 1 bib por participante
-      const bibs = await reserveBibNumbers(tx, MODALITY_ID, participants.length);
+      // ✅ duplas: 1 bib por dupla
+      const bibs = await reserveBibNumbers(tx, MODALITY_ID, TICKETS);
 
       const created = await tx.order.create({
         data: {
@@ -154,7 +172,7 @@ async function main() {
           mpPreferenceId: null,
 
           participants: {
-            create: participants.map((p, idx) => ({
+            create: participants.map((p) => ({
               fullName: p.fullName,
               cpf: p.cpf,
               birthDate: p.birthDate,
@@ -167,11 +185,11 @@ async function main() {
               emergencyPhone: p.emergencyPhone,
               healthInfo: p.healthInfo,
 
-              // ✅ bib único por pessoa
-              bibNumber: bibs[idx],
+              // ✅ mesma numeração para a dupla
+              bibNumber: bibs[0],
 
-              // ✅ não é equipe
-              teamIndex: null,
+              // ✅ equipe 1
+              teamIndex: 1,
 
               extras: { create: [] },
             })),
@@ -210,11 +228,10 @@ async function main() {
 
   console.log("✅ Pedido criado e pago:", order.id);
   console.log(
-    "✅ BIB:",
+    "✅ BIBs:",
     order.participants.map((x) => `${x.fullName} => ${x.bibNumber}`).join(" | ")
   );
 }
-
 
 main()
   .catch((e) => {
