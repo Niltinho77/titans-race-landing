@@ -39,6 +39,12 @@ model Order {
   stripeSessionId       String?       @unique
   stripePaymentIntentId String?
   participants          Participant[]
+
+  // PagBank
+  pagbankCheckoutId     String?       @unique
+  pagbankPaymentId      String?
+  pagbankPaymentStatus  String?
+
 }
 
 model Participant {

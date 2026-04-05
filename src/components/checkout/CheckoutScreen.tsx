@@ -404,7 +404,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         couponCode: normalizedCoupon, // ✅ cupom no nível do pedido
       };
 
-      const res = await fetch("/api/checkout/start-mp", {
+      const res = await fetch("/api/checkout/start-pagbank", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
