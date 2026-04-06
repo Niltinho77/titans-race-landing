@@ -2,11 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  EXTRAS,
-  getModalityById,
-  ExtraType,
-} from "@/config/checkout";
+import { EXTRAS, getModalityById, ExtraType } from "@/config/checkout";
 import { createPagbankCheckout } from "@/lib/pagbank";
 
 export const runtime = "nodejs";
@@ -37,6 +33,7 @@ type CheckoutPayload = {
   tickets: number;
   participants: ParticipantPayload[];
   termsAccepted: boolean;
+  couponCode?: string | null;
 };
 
 const FEE_PERCENT = 0.0399;
@@ -54,6 +51,28 @@ function applyFee(amountCents: number) {
     totalWithFee,
     feeAmount: totalWithFee - amountCents,
   };
+}
+
+function onlyDigits(value: string | undefined | null) {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+function getSiteUrl(req: NextRequest) {
+  const envUrl =
+    process.env.SITE_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXTAUTH_URL;
+
+  if (envUrl) {
+    return envUrl.replace(/\/$/, "");
+  }
+
+  const origin = req.headers.get("origin");
+  if (origin) {
+    return origin.replace(/\/$/, "");
+  }
+
+  return "http://localhost:3000";
 }
 
 export async function POST(req: NextRequest) {
@@ -89,6 +108,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (body.participants.length !== body.tickets) {
+      return NextResponse.json(
+        {
+          error:
+            "A quantidade de participantes deve ser igual à quantidade de inscrições.",
+        },
+        { status: 400 }
+      );
+    }
+
+    for (const participant of body.participants) {
+      if (!participant.fullName?.trim() || participant.fullName.trim().length < 3) {
+        return NextResponse.json(
+          { error: "Nome do participante inválido." },
+          { status: 400 }
+        );
+      }
+
+      if (!participant.email?.trim()) {
+        return NextResponse.json(
+          { error: "E-mail do participante inválido." },
+          { status: 400 }
+        );
+      }
+
+      if (!participant.cpf?.trim()) {
+        return NextResponse.json(
+          { error: "CPF do participante inválido." },
+          { status: 400 }
+        );
+      }
+
+      if (!participant.phone?.trim()) {
+        return NextResponse.json(
+          { error: "Telefone do participante inválido." },
+          { status: 400 }
+        );
+      }
+    }
+
     const ticketsAmount = modality.basePrice * body.tickets;
 
     const extrasAmount = body.participants.reduce((total, participant) => {
@@ -118,6 +177,11 @@ export async function POST(req: NextRequest) {
 
     const { totalWithFee, feeAmount } = applyFee(subtotal);
 
+    const normalizedCoupon =
+      typeof body.couponCode === "string" && body.couponCode.trim().length > 0
+        ? body.couponCode.trim().toUpperCase()
+        : null;
+
     const order = await prisma.order.create({
       data: {
         modalityId: modality.id,
@@ -131,19 +195,24 @@ export async function POST(req: NextRequest) {
         feeAmount,
         totalAmountWithFee: totalWithFee,
 
+        // Se já existir esse campo no schema, descomenta:
+        // couponCode: normalizedCoupon,
+
         participants: {
           create: body.participants.map((participant) => ({
-            fullName: participant.fullName,
-            cpf: participant.cpf,
+            fullName: participant.fullName.trim(),
+            cpf: onlyDigits(participant.cpf),
             birthDate: participant.birthDate,
-            phone: participant.phone,
-            email: participant.email,
-            city: participant.city ?? null,
-            state: participant.state ?? null,
+            phone: onlyDigits(participant.phone),
+            email: participant.email.trim().toLowerCase(),
+            city: participant.city?.trim() || null,
+            state: participant.state?.trim() || null,
             tshirtSize: participant.tshirtSize,
-            emergencyName: participant.emergencyName ?? null,
-            emergencyPhone: participant.emergencyPhone ?? null,
-            healthInfo: participant.healthInfo ?? null,
+            emergencyName: participant.emergencyName?.trim() || null,
+            emergencyPhone: participant.emergencyPhone
+              ? onlyDigits(participant.emergencyPhone)
+              : null,
+            healthInfo: participant.healthInfo?.trim() || null,
             extras: {
               create: (participant.extras ?? []).map((extra) => ({
                 type: extra.type,
@@ -157,10 +226,13 @@ export async function POST(req: NextRequest) {
           })),
         },
       },
+      include: {
+        participants: true,
+      },
     });
 
-    const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const payer = order.participants[0];
+    const siteUrl = getSiteUrl(req);
 
     const checkout = await createPagbankCheckout({
       orderId: order.id,
@@ -168,6 +240,7 @@ export async function POST(req: NextRequest) {
       description: `Titans Race – ${modality.name}`,
       redirectUrl: `${siteUrl}/checkout/sucesso?orderId=${order.id}`,
       notificationUrl: `${siteUrl}/api/pagbank/webhook`,
+
     });
 
     await prisma.order.update({
@@ -184,11 +257,14 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("Erro checkout PagBank:", err);
 
     return NextResponse.json(
-      { error: "Erro ao iniciar checkout PagBank." },
+      {
+        error:
+          err?.message || "Erro ao iniciar checkout PagBank.",
+      },
       { status: 500 }
     );
   }

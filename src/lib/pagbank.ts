@@ -1,13 +1,10 @@
 // src/lib/pagbank.ts
+import crypto from "node:crypto";
 
 const PAGBANK_API_BASE =
   process.env.PAGBANK_API_BASE || "https://sandbox.api.pagseguro.com";
 
 const PAGBANK_ACCESS_TOKEN = process.env.PAGBANK_ACCESS_TOKEN;
-
-if (!PAGBANK_ACCESS_TOKEN) {
-  console.warn("PAGBANK_ACCESS_TOKEN não configurado.");
-}
 
 type CreateCheckoutParams = {
   orderId: string;
@@ -42,11 +39,9 @@ export async function createPagbankCheckout({
 
   const payload = {
     reference_id: orderId,
-    expiration_date: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     redirect_url: redirectUrl,
     notification_urls: [notificationUrl],
     payment_notification_urls: [notificationUrl],
-
     items: [
       {
         reference_id: orderId,
@@ -55,22 +50,9 @@ export async function createPagbankCheckout({
         unit_amount: amount,
       },
     ],
-
     payment_methods: [
       { type: "PIX" },
       { type: "CREDIT_CARD" },
-    ],
-
-    payment_methods_configs: [
-      {
-        type: "CREDIT_CARD",
-        config_options: [
-          {
-            option: "INSTALLMENTS_LIMIT",
-            value: "3",
-          },
-        ],
-      },
     ],
   };
 
@@ -80,40 +62,41 @@ export async function createPagbankCheckout({
       Authorization: `Bearer ${PAGBANK_ACCESS_TOKEN}`,
       "Content-Type": "application/json",
       Accept: "application/json",
+      "x-idempotency-key": crypto.randomUUID(),
     },
     body: JSON.stringify(payload),
     cache: "no-store",
   });
 
   const rawText = await response.text();
+  console.log("PagBank raw response:", rawText);
 
-  let data: PagBankCheckoutResponse | Record<string, unknown>;
+  let data: PagBankCheckoutResponse | any;
   try {
     data = JSON.parse(rawText);
   } catch {
-    data = { raw: rawText };
+    throw new Error(`Resposta inválida do PagBank: ${rawText}`);
   }
 
   if (!response.ok) {
     console.error("Erro PagBank /checkouts:", data);
-    throw new Error("Erro ao criar checkout no PagBank.");
+    throw new Error(
+      data?.error_messages?.map((e: any) => e.description).join(" | ") ||
+        "Erro ao criar checkout no PagBank."
+    );
   }
 
-  const checkout = data as PagBankCheckoutResponse;
-
   const payLink =
-    checkout.links?.find((link) => link.rel === "PAY")?.href ||
-    checkout.links?.find((link) => link.rel === "SELF")?.href ||
-    null;
+    data?.links?.find((link: PagBankLink) => link.rel === "PAY")?.href || null;
 
-  if (!checkout.id || !payLink) {
-    console.error("Resposta inválida do PagBank:", checkout);
-    throw new Error("PagBank não retornou checkout válido.");
+  if (!data?.id || !payLink) {
+    console.error("Resposta inválida PagBank:", data);
+    throw new Error("PagBank não retornou link PAY.");
   }
 
   return {
-    id: checkout.id,
+    id: data.id,
     checkoutUrl: payLink,
-    raw: checkout,
+    raw: data,
   };
 }
