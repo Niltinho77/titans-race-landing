@@ -111,7 +111,16 @@ function isValidEmail(value: string): boolean {
   return value.includes("@") && value.includes(".");
 }
 
-const DEFAULT_TSHIRT_SIZES = ["PP", "P", "M", "G", "GG"];
+const DEFAULT_TSHIRT_SIZES = [
+  "Baby Look - PP",
+  "Baby Look - M",
+  "Baby Look - G",
+  "Baby Look - GG",
+  "Infantil 8",
+  "Infantil 10",
+  "Infantil 12",
+  "Infantil 14",
+];
 
 // ✅ regra centralizada (duplas/equipes)
 function getParticipantsPerTicket(modalityId: ModalityId) {
@@ -699,7 +708,7 @@ function createEmptyParticipant(): ParticipantForm {
     email: "",
     city: "",
     state: "",
-    tshirtSize: "M",
+    tshirtSize: "Baby Look - M",
     emergencyName: "",
     emergencyPhone: "",
     healthInfo: "",

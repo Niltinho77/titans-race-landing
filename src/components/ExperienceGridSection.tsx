@@ -19,7 +19,7 @@ const tilesBase: Tile[] = [
     title: "KIDS",
     subtitle: "Os primeiros passos de um Titã.",
     location: "Abertura em breve",
-    image: "/images/kids.png",
+    image: "/images/kids.jpg",
     href: "/checkout?modality=kids",
     className: "md:col-span-2 md:row-span-2",
   },
@@ -28,7 +28,7 @@ const tilesBase: Tile[] = [
     title: "DUPLAS",
     subtitle: "Sozinho é difícil. Juntos é impossível parar.",
     location: "Abertura em breve",
-    image: "/images/duplas.png",
+    image: "/images/duplas.jpg",
     href: "/checkout?modality=duplas",
     className: "md:col-span-2 md:row-span-1",
   },
@@ -37,7 +37,7 @@ const tilesBase: Tile[] = [
     title: "SOLO",
     subtitle: "Você contra você. Sem desculpas.",
     location: "Abertura em breve",
-    image: "/images/competicao.png",
+    image: "/images/competicao.jpg",
     href: "/checkout?modality=competicao",
     className: "md:col-span-1 md:row-span-2",
   },
@@ -46,16 +46,16 @@ const tilesBase: Tile[] = [
     title: "DIVERSÃO",
     subtitle: "Lama, risada e histórias pra contar.",
     location: "Abertura em breve",
-    image: "/images/diversao.png",
+    image: "/images/diversao.jpg",
     href: "/checkout?modality=diversao",
     className: "md:col-span-1 md:row-span-2",
   },
   {
     id: "equipes",
-    title: "EQUIPES",
+    title: "QUARTETOS",
     subtitle: "4 pessoas. Um desafio. Uma conquista.",
     location: "Abertura em breve",
-    image: "/images/equipes.png",
+    image: "/images/equipes.jpg",
     href: "/checkout?modality=equipes",
   },
   {
@@ -69,7 +69,7 @@ const tilesBase: Tile[] = [
 ];
 
 export function ExperienceGridSection() {
-  const ENABLED_TILES = ["competicao"]; // 👈 escolhe qual liberar
+  const ENABLED_TILES = [""]; // 👈 escolhe qual liberar
 
 const isTileEnabled = (tile: Tile) =>
   ENABLED_TILES.includes(tile.id) || tile.id === "contato";

@@ -1,7 +1,5 @@
 // src/config/checkout.ts
 
-// src/config/checkout.ts
-
 export type ModalityId =
   | "kids"
   | "duplas"
@@ -23,7 +21,7 @@ export const MODALITIES: Modality[] = [
     name: "Kids",
     description:
       "Percurso adaptado para crianças, com obstáculos seguros e monitorados.",
-    basePrice: 8000, // R$ 80,00
+    basePrice: 7000, // R$ 80,00
     ticketLabel: "ingressos Kids",
   },
   {
@@ -31,38 +29,37 @@ export const MODALITIES: Modality[] = [
     name: "Duplas",
     description:
       "Inscrição para dupla. Cada ingresso de dupla equivale a 2 participantes correndo juntos.",
-    basePrice: 36000, // R$ 360,00 (dupla)
+    basePrice: 29000, // R$ 360,00 (dupla)
     ticketLabel: "ingressos de dupla",
   },
 
   // ✅ NOVA MODALIDADE
   {
     id: "equipes",
-    name: "Equipes",
+    name: "Quartetos",
     description:
       "Inscrição por equipe. Cada ingresso equivale a 4 participantes. Regra: a equipe deve conter pelo menos 1 mulher.",
-    basePrice: 68000, // R$ 680,00 (equipe)
+    basePrice: 58000, // R$ 680,00 (equipe)
     ticketLabel: "inscrições de equipe",
   },
 
   {
     id: "competicao",
-    name: "Competição",
+    name: "Solo",
     description:
       "Prova cronometrada para quem quer tempo, performance e ranking.",
-    basePrice: 18500, // R$ 185,00
-    ticketLabel: "ingressos Competição",
+    basePrice: 14500, // R$ 185,00
+    ticketLabel: "ingressos Solo",
   },
   {
     id: "diversao",
     name: "Diversão",
     description:
       "Percurso com foco em experiência, lama, superação e boas histórias.",
-    basePrice: 17500, // R$ 175,00
+    basePrice: 14500, // R$ 175,00
     ticketLabel: "ingressos Diversão",
   },
 ];
-
 
 
 
@@ -95,13 +92,13 @@ export const EXTRAS: ExtraConfig[] = [
     sizes: ["P", "M", "G"],
   },
   {
-    id: "meia",
-    name: "Meia personalizada",
-    description: "Conforto e segurança em todo o percurso.",
-    price: 2500,
-    hasSize: true,
-    sizes: ["P", "M", "G"],
-  },
+  id: "meia",
+  name: "Meias 3/4 de compressão",
+  description: "Conforto, compressão e segurança em todo o percurso.",
+  price: 5000,
+  hasSize: true,
+  sizes: ["P", "M", "G"],
+},
 ];
 
 export function getModalityById(id?: string | null): Modality | null {

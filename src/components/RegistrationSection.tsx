@@ -18,7 +18,7 @@ const lots: Lot[] = [
   {
     id: "lotePromocional",
     name: "Promocional",
-    image: "/images/lote2.png",
+    image: "/images/lote-promocional.jpg",
     imageAlt: "Lote Promocional – Titans Race",
     badge: "Próximo a abrir",
     isHighlight: true,
@@ -26,21 +26,21 @@ const lots: Lot[] = [
   {
     id: "lote1",
     name: "2º Lote",
-    image: "/images/lote1.png",
+    image: "/images/lote2.jpg",
     imageAlt: "2º Lote – Titans Race",
     badge: "Em breve",
   },
   {
     id: "lote3",
     name: "3º Lote",
-    image: "/images/lote3.png",
+    image: "/images/lote3.jpg",
     imageAlt: "3º Lote – Titans Race",
     badge: "Em breve",
   },
   {
     id: "loteFinal",
     name: "Lote Final",
-    image: "/images/lote-final.png",
+    image: "/images/lote-final.jpg",
     imageAlt: "Lote Final – Titans Race",
     badge: "Última fase",
   },
