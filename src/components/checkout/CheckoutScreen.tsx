@@ -43,14 +43,15 @@ function formatCurrency(cents: number): string {
   }).format(cents / 100);
 }
 
-const STRIPE_FEE_PERCENT = 0.0399; // 3,99%
-const STRIPE_FEE_FIXED = 39; // R$ 0,39 em centavos
+// taxa repassada ao comprador
+const PAYMENT_FEE_PERCENT = 0.0399; // 3,99%
+const PAYMENT_FEE_FIXED = 39; // R$ 0,39 em centavos
 
 function calculateFee(amountCents: number) {
   if (amountCents <= 0) {
     return { totalWithFee: 0, feeAmount: 0 };
   }
-  const bruto = (amountCents + STRIPE_FEE_FIXED) / (1 - STRIPE_FEE_PERCENT);
+  const bruto = (amountCents + PAYMENT_FEE_FIXED) / (1 - PAYMENT_FEE_PERCENT);
   const totalWithFee = Math.round(bruto);
   const feeAmount = totalWithFee - amountCents;
   return { totalWithFee, feeAmount };
@@ -94,7 +95,6 @@ function formatDate(value: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
-// validações simples pra liberar próximo passo
 function isValidCPF(value: string): boolean {
   return onlyDigits(value).length === 11;
 }
@@ -112,6 +112,11 @@ function isValidEmail(value: string): boolean {
 }
 
 const DEFAULT_TSHIRT_SIZES = [
+  "Camiseta PP",
+  "Camiseta P",
+  "Camiseta M",
+  "Camiseta G",
+  "Camiseta GG",
   "Baby Look - PP",
   "Baby Look - M",
   "Baby Look - G",
@@ -122,7 +127,6 @@ const DEFAULT_TSHIRT_SIZES = [
   "Infantil 14",
 ];
 
-// ✅ regra centralizada (duplas/equipes)
 function getParticipantsPerTicket(modalityId: ModalityId) {
   if (modalityId === "duplas") return 2;
   if (modalityId === "equipes") return 4;
@@ -144,7 +148,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
-  // ✅ cupom
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -157,7 +160,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     }
   }, [modality, initialModality]);
 
-  // ✅ participantes por ticket (duplas/equipes)
   const participantsCount = useMemo(() => {
     if (!modality) return 0;
     const perTicket = getParticipantsPerTicket(modality.id as ModalityId);
@@ -198,12 +200,8 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     }
 
     const subtotal = ticketsTotalCalc + extrasTotalCalc;
-
-    // ✅ desconto aplicado (prévia) — nunca maior que subtotal
     const discount = Math.min(discountAmount || 0, subtotal);
     const subtotalAfterDiscount = Math.max(0, subtotal - discount);
-
-    // ✅ taxa calculada sobre o total líquido após desconto
     const { totalWithFee, feeAmount } = calculateFee(subtotalAfterDiscount);
 
     return {
@@ -222,7 +220,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
 
     setCouponError(null);
 
-    // vazio => apenas remove
     if (!code) {
       setAppliedCoupon(null);
       setDiscountAmount(0);
@@ -239,7 +236,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         body: JSON.stringify({
           code,
           modalityId: modality.id,
-          subtotal: grandTotal, // ingressos + extras (em centavos)
+          subtotal: grandTotal,
         }),
       });
 
@@ -249,7 +246,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         throw new Error(data?.error || "Cupom inválido.");
       }
 
-      // esperado: { code, discountAmount, totalAfterDiscount }
       setAppliedCoupon(String(data.code || code));
       setDiscountAmount(Number(data.discountAmount) || 0);
     } catch (e: any) {
@@ -269,7 +265,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   };
 
   useEffect(() => {
-    // se mudou o carrinho, invalidamos a prévia do cupom (segurança/consistência)
     if (appliedCoupon) {
       setAppliedCoupon(null);
       setDiscountAmount(0);
@@ -410,10 +405,10 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           extras: p.extras,
         })),
         termsAccepted,
-        couponCode: normalizedCoupon, // ✅ cupom no nível do pedido
+        couponCode: normalizedCoupon,
       };
 
-      const res = await fetch("/api/checkout/start-pagbank", {
+      const res = await fetch("/api/checkout/start-asaas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -448,7 +443,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
 
   return (
     <div className="mx-auto w-full max-w-4xl rounded-3xl border border-white/10 bg-black/60 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
-      {/* Cabeçalho */}
       <div className="flex flex-col gap-2 border-b border-white/5 pb-4 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <h1 className="heading-adventure text-2xl text-white md:text-3xl">
@@ -467,14 +461,12 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         </p>
       </div>
 
-      {/* Steps */}
       <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-zinc-400">
         <StepBadge label="Modalidade & ingressos" active={step === 1} number={1} />
         <StepBadge label="Dados dos participantes" active={step === 2} number={2} />
         <StepBadge label="Extras & termos" active={step === 3} number={3} />
       </div>
 
-      {/* Conteúdo dos steps */}
       <div className="mt-6 space-y-7">
         {step === 1 && (
           <Step1ModalityTickets
@@ -502,7 +494,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
               setTermsAccepted={setTermsAccepted}
             />
 
-            {/* ✅ CUPOM */}
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-300">
               <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
                 Cupom de desconto
@@ -563,7 +554,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         )}
       </div>
 
-      {/* Resumo financeiro */}
       <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-200">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -632,7 +622,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         </div>
       </div>
 
-      {/* Navegação + mensagens */}
       <div className="mt-7 flex flex-col gap-4 border-t border-white/10 pt-5 text-[11px] md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2 text-[11px] text-zinc-400 md:w-1/2">
           {submitError && (

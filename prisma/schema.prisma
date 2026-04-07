@@ -8,29 +8,29 @@ datasource db {
 }
 
 model Order {
-  id                    String        @id @default(cuid())
-  modalityId            String
-  tickets               Int
-  status                String        @default("PENDING")
-  termsAccepted         Boolean       @default(false)
+  id            String  @id @default(cuid())
+  modalityId    String
+  tickets       Int
+  status        String  @default("PENDING")
+  termsAccepted Boolean @default(false)
 
   // valores em centavos
-  totalAmount           Int?          // valor líquido (sem taxa)
-  ticketsAmount         Int?          // só ingressos
-  extrasAmount          Int?          // só extras
-  feeAmount             Int?          // taxa da plataforma
-  totalAmountWithFee    Int?          // valor cobrado do atleta (com taxa)
+  totalAmount        Int? // valor líquido (sem taxa)
+  ticketsAmount      Int? // só ingressos
+  extrasAmount       Int? // só extras
+  feeAmount          Int? // taxa da plataforma
+  totalAmountWithFee Int? // valor cobrado do atleta (com taxa)
 
   // ✅ Cupom / desconto
   couponCode            String?
-  discountAmount        Int?          // em centavos (valor descontado)
-  discountedTotalAmount Int?          // total líquido após desconto (antes da taxa)
-  coupon                Coupon?       @relation(fields: [couponCode], references: [code])
+  discountAmount        Int? // em centavos (valor descontado)
+  discountedTotalAmount Int? // total líquido após desconto (antes da taxa)
+  coupon                Coupon? @relation(fields: [couponCode], references: [code])
 
   // ✅ Mercado Pago
-  mpPreferenceId        String?  @unique
-  mpPaymentId           String?
-  mpPaymentStatus       String?
+  mpPreferenceId  String? @unique
+  mpPaymentId     String?
+  mpPaymentStatus String?
 
   confirmationEmailSentAt DateTime?
 
@@ -41,10 +41,16 @@ model Order {
   participants          Participant[]
 
   // PagBank
-  pagbankCheckoutId     String?       @unique
-  pagbankPaymentId      String?
-  pagbankPaymentStatus  String?
+  pagbankCheckoutId    String? @unique
+  pagbankPaymentId     String?
+  pagbankPaymentStatus String?
 
+  // Asaas
+  asaasCheckoutId    String? @unique
+  asaasPaymentId     String?
+  asaasPaymentStatus String?
+  asaasCustomerId    String?
+  asaasInvoiceUrl    String?
 }
 
 model Participant {
@@ -63,8 +69,8 @@ model Participant {
   healthInfo     String?
   order          Order              @relation(fields: [orderId], references: [id])
   extras         ParticipantExtra[]
-  bibNumber Int?
-  teamIndex Int? // só faz sentido pra "equipes" (e opcionalmente "duplas" se quiser)
+  bibNumber      Int?
+  teamIndex      Int? // só faz sentido pra "equipes" (e opcionalmente "duplas" se quiser)
 }
 
 model ParticipantExtra {
@@ -82,34 +88,33 @@ model BibCounter {
   updatedAt  DateTime @updatedAt
 }
 
-
 enum CouponType {
-  PERCENT   // ex: 10%
-  FIXED     // ex: R$ 20,00 (2000 centavos)
+  PERCENT // ex: 10%
+  FIXED // ex: R$ 20,00 (2000 centavos)
 }
 
 model Coupon {
-  code        String     @id // ex: "NATAL10"
-  type        CouponType
-  amount      Int        // PERCENT: 10 (10%) | FIXED: 2000 (R$ 20,00)
-  active      Boolean    @default(true)
+  code   String     @id // ex: "NATAL10"
+  type   CouponType
+  amount Int // PERCENT: 10 (10%) | FIXED: 2000 (R$ 20,00)
+  active Boolean    @default(true)
 
   // janela de validade (opcional)
-  startsAt    DateTime?
-  expiresAt   DateTime?
+  startsAt  DateTime?
+  expiresAt DateTime?
 
   // limites (opcional)
-  maxUses     Int?       // limite global
-  usedCount   Int        @default(0)
+  maxUses   Int? // limite global
+  usedCount Int  @default(0)
 
   // regra opcional para evitar cupom em valores muito baixos
-  minSubtotal Int?       // em centavos (antes do desconto)
+  minSubtotal Int? // em centavos (antes do desconto)
 
   // opcional: restringir por modalidade
-  modalityId  String?
+  modalityId String?
 
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  orders      Order[]
+  orders Order[]
 }
