@@ -32,8 +32,6 @@ model Order {
   mpPaymentId     String?
   mpPaymentStatus String?
 
-  confirmationEmailSentAt DateTime?
-
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   stripeSessionId       String?       @unique
@@ -46,11 +44,12 @@ model Order {
   pagbankPaymentStatus String?
 
   // Asaas
-  asaasCheckoutId    String? @unique
-  asaasPaymentId     String?
-  asaasPaymentStatus String?
-  asaasCustomerId    String?
-  asaasInvoiceUrl    String?
+  asaasCheckoutId         String?   @unique
+  asaasPaymentId          String?
+  asaasPaymentStatus      String?
+  asaasCustomerId         String?
+  asaasInvoiceUrl         String?
+  confirmationEmailSentAt DateTime?
 }
 
 model Participant {

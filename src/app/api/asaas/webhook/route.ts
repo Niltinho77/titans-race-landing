@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmationEmail } from "@/lib/email";
+import { getModalityById } from "@/config/checkout";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +67,16 @@ function getWebhookTokenFromHeader(req: NextRequest) {
   return req.headers.get("asaas-access-token")?.trim() ?? null;
 }
 
+function shouldUpdateOrderStatus(current: string, next: string | null) {
+  if (!next) return false;
+
+  if (current === "PAID" && next === "PENDING") return false;
+  if (current === "REFUNDED") return false;
+  if (current === "PARTIALLY_REFUNDED" && next === "PENDING") return false;
+
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const expectedToken = process.env.ASAAS_WEBHOOK_TOKEN?.trim() ?? null;
@@ -94,30 +106,19 @@ export async function POST(req: NextRequest) {
     const checkout = body.checkout ?? null;
 
     const externalReference =
-      payment?.externalReference ??
-      checkout?.externalReference ??
-      null;
+      payment?.externalReference ?? checkout?.externalReference ?? null;
 
     const checkoutSessionId =
-      payment?.checkoutSession ??
-      checkout?.id ??
-      null;
+      payment?.checkoutSession ?? checkout?.id ?? null;
 
     const asaasPaymentId =
-      payment?.id ??
-      checkout?.id ??
-      null;
+      payment?.id ?? checkout?.id ?? null;
 
     const asaasPaymentStatus =
-      payment?.status ??
-      checkout?.status ??
-      event ??
-      null;
+      payment?.status ?? checkout?.status ?? event ?? null;
 
     const asaasInvoiceUrl =
-      payment?.invoiceUrl ??
-      checkout?.link ??
-      null;
+      payment?.invoiceUrl ?? checkout?.link ?? null;
 
     if (!event) {
       return NextResponse.json(
@@ -130,19 +131,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1) tenta achar pelo externalReference
     let order = externalReference
       ? await prisma.order.findUnique({
           where: { id: externalReference },
-          select: { id: true, status: true, asaasCheckoutId: true },
+          include: {
+            participants: true,
+          },
         })
       : null;
 
-    // 2) fallback: tenta pelo checkoutSession / asaasCheckoutId
     if (!order && checkoutSessionId) {
       order = await prisma.order.findFirst({
         where: { asaasCheckoutId: checkoutSessionId },
-        select: { id: true, status: true, asaasCheckoutId: true },
+        include: {
+          participants: true,
+        },
       });
     }
 
@@ -180,19 +183,69 @@ export async function POST(req: NextRequest) {
       updateData.asaasInvoiceUrl = asaasInvoiceUrl;
     }
 
-    if (mappedStatus) {
-      updateData.status = mappedStatus;
+    if (shouldUpdateOrderStatus(order.status, mappedStatus)) {
+      updateData.status = mappedStatus!;
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: updateData,
+      include: {
+        participants: true,
+      },
+    });
+
+    const becamePaid =
+      updateData.status === "PAID" && order.status !== "PAID";
+
+    const recipients = Array.from(
+  new Map(
+    updatedOrder.participants
+      .filter((p) => p.email && p.email.trim().length > 0)
+      .map((p) => [p.email.trim().toLowerCase(), p])
+  ).values()
+);
+
+const modality = getModalityById(updatedOrder.modalityId);
+
+if (becamePaid && !updatedOrder.confirmationEmailSentAt && recipients.length > 0) {
+  try {
+    for (const participant of recipients) {
+      await sendOrderConfirmationEmail({
+        to: participant.email.trim().toLowerCase(),
+        participantName: participant.fullName,
+        orderId: updatedOrder.id,
+        modalityName: modality?.name ?? updatedOrder.modalityId,
+        totalAmount:
+          updatedOrder.totalAmountWithFee ??
+          updatedOrder.totalAmount ??
+          0,
+      });
     }
 
     await prisma.order.update({
-      where: { id: order.id },
-      data: updateData,
+      where: { id: updatedOrder.id },
+      data: {
+        confirmationEmailSentAt: new Date(),
+      },
     });
 
+    console.log("[ASAAS WEBHOOK] E-mails de confirmação enviados:", {
+      orderId: updatedOrder.id,
+      recipients: recipients.map((p) => p.email),
+    });
+  } catch (emailError) {
+    console.error(
+      "[ASAAS WEBHOOK] Falha ao enviar e-mails de confirmação:",
+      emailError
+    );
+  }
+}  
+    
     console.log("[ASAAS WEBHOOK] Pedido atualizado com sucesso:", {
       eventId,
       event,
-      orderId: order.id,
+      orderId: updatedOrder.id,
       externalReference,
       checkoutSessionId,
       asaasPaymentId,
@@ -203,7 +256,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         received: true,
-        orderId: order.id,
+        orderId: updatedOrder.id,
         eventId,
         event,
         mappedStatus: mappedStatus ?? null,

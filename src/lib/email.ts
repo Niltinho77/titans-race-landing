@@ -36,8 +36,9 @@ export async function sendOrderConfirmationEmail(
   }
 
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    "https://titans-race-landing-production.up.railway.app";
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "https://titansrace.com.br";
 
   const { to, participantName, orderId, modalityName, totalAmount } = params;
 
