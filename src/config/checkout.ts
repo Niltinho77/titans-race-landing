@@ -27,7 +27,7 @@ export const MODALITIES: Modality[] = [
     name: "Duplas",
     description:
       "Inscrição para dupla. Cada ingresso de dupla equivale a 2 participantes correndo juntos.",
-    basePrice: 500, // R$ 290,00 por dupla
+    basePrice: 29000, // R$ 290,00 por dupla
     ticketLabel: "ingressos de dupla",
   },
   {
