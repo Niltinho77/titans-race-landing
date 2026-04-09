@@ -118,6 +118,7 @@ const DEFAULT_TSHIRT_SIZES = [
   "Camiseta G",
   "Camiseta GG",
   "Baby Look - PP",
+  "Baby Look - P",
   "Baby Look - M",
   "Baby Look - G",
   "Baby Look - GG",

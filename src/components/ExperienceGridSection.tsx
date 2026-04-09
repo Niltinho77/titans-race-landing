@@ -64,7 +64,7 @@ const tilesBase: Tile[] = [
     subtitle: "Garanta prioridade na abertura",
     location: "WhatsApp Oficial",
     image: "/images/contato.jpg",
-    href: "https://wa.me/5555992234690?text=Olá!%20Quero%20ser%20avisado%20quando%20abrirem%20as%20inscrições%20da%20Titans%20Race",
+    href: "https://wa.me/5555992234690?text=Olá!%20Gostaria%20de%20mais%20informações",
   },
 ];
 
