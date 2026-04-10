@@ -17,7 +17,7 @@ const tilesBase: Tile[] = [
   {
     id: "kids",
     title: "KIDS",
-    subtitle: "Os primeiros passos de um Titã.",
+    subtitle: "Os primeiros passos de um Titan.",
     location: "",
     image: "/images/kids.jpg",
     href: "/checkout?modality=kids",

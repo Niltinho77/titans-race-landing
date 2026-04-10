@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Lock, AlarmClock, ArrowRight } from "lucide-react";
+import { Lock, AlarmClock, ArrowRight, Flame } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type Lot = {
@@ -10,46 +10,48 @@ type Lot = {
   name: string;
   image: string;
   imageAlt?: string;
-  badge?: string;
-  isHighlight?: boolean;
 };
 
 const lots: Lot[] = [
   {
     id: "lotePromocional",
-    name: "Promocional",
+    name: "Lote Promocional",
     image: "/images/lote-promocional.jpg",
     imageAlt: "Lote Promocional – Titans Race",
-    badge: "Próximo a abrir",
-    isHighlight: true,
   },
   {
-    id: "lote1",
+    id: "lote2",
     name: "2º Lote",
     image: "/images/lote2.jpg",
     imageAlt: "2º Lote – Titans Race",
-    badge: "Em breve",
   },
   {
     id: "lote3",
     name: "3º Lote",
     image: "/images/lote3.jpg",
     imageAlt: "3º Lote – Titans Race",
-    badge: "Em breve",
   },
   {
     id: "loteFinal",
     name: "Lote Final",
     image: "/images/lote-final.jpg",
     imageAlt: "Lote Final – Titans Race",
-    badge: "Última fase",
   },
 ];
 
-const NEXT_LOT_NAME = "Lote Promocional";
-const LOT_OPENS_AT_ISO = "2026-04-10T23:59:59-03:00";
-const TOTAL_VAGAS = 150;
+// ================= CONFIG RÁPIDA =================
+// lote aberto agora
+const CURRENT_OPEN_LOT_ID = "lotePromocional";
+
+// próximo lote que vai abrir
+const NEXT_LOT_NAME = "2º Lote";
+
+// data/hora de abertura do próximo lote
+const NEXT_LOT_OPENS_AT_ISO = "2026-05-01T23:59:59-03:00";
+
+// CTA do lote aberto
 const CTA_HREF = "#inscricoes";
+// ================================================
 
 function formatCountdown(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -68,15 +70,26 @@ function formatCountdown(ms: number) {
   };
 }
 
-function urgencyCopy(days: number) {
-  if (days <= 0) return "ABRINDO";
+function countdownCopy(days: number) {
+  if (days <= 0) return "ABRINDO AGORA";
   if (days === 1) return "ÚLTIMO DIA";
-  if (days <= 3) return "ABERTURA PRÓXIMA";
-  return "CONTAGEM REGRESSIVA";
+  if (days <= 3) return "VIRADA DE LOTE";
+  return "PRÓXIMO LOTE";
+}
+
+function getLotVisualState(lotId: string) {
+  if (lotId === CURRENT_OPEN_LOT_ID) return "open";
+
+  const order = ["lotePromocional", "lote2", "lote3", "loteFinal"];
+  const currentIndex = order.indexOf(CURRENT_OPEN_LOT_ID);
+  const lotIndex = order.indexOf(lotId);
+
+  if (lotIndex < currentIndex) return "closed";
+  return "upcoming";
 }
 
 export function RegistrationSection() {
-  const opensAt = useMemo(() => new Date(LOT_OPENS_AT_ISO), []);
+  const opensAt = useMemo(() => new Date(NEXT_LOT_OPENS_AT_ISO), []);
   const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
@@ -86,8 +99,8 @@ export function RegistrationSection() {
 
   const msLeft = opensAt.getTime() - now.getTime();
   const countdown = formatCountdown(msLeft);
-  const countdownLabel = urgencyCopy(countdown.days);
   const hasOpened = msLeft <= 0;
+  const countdownLabel = countdownCopy(countdown.days);
 
   return (
     <section
@@ -108,13 +121,13 @@ export function RegistrationSection() {
             </p>
 
             <h2 className="mt-3 heading-adventure text-3xl text-white md:text-5xl">
-              Cada lote é uma decisão
+              O lote promocional está aberto
             </h2>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">
-              As vagas para a Titans Race são limitadas e divididas em fases. Quem entra
-              antes garante sua vaga com mais vantagem. Quem deixa para depois disputa as
-              últimas oportunidades.
+              Este é o momento de garantir sua vaga com mais vantagem. O lote
+              promocional já está liberado, e quando o próximo lote abrir, os
+              valores mudam. Quem decide antes entra mais forte.
             </p>
           </div>
 
@@ -122,20 +135,27 @@ export function RegistrationSection() {
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black">
                 <AlarmClock className="h-3.5 w-3.5" />
-                {countdownLabel}
+                {hasOpened ? "LOTE VIRANDO" : countdownLabel}
               </span>
 
               <span className="font-mono text-lg font-extrabold text-white">
-                {countdown.days}d {countdown.hours}:{countdown.minutes}:{countdown.seconds}
+                {countdown.days}d {countdown.hours}:{countdown.minutes}:
+                {countdown.seconds}
               </span>
             </div>
+
+            
           </div>
         </motion.div>
+
+        
 
         {/* Cards dos lotes */}
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {lots.map((lot, index) => {
-            const isHighlight = !!lot.isHighlight;
+            const state = getLotVisualState(lot.id);
+            const isOpen = state === "open";
+            const isUpcoming = state === "upcoming";
 
             return (
               <motion.div
@@ -145,7 +165,7 @@ export function RegistrationSection() {
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.45, delay: index * 0.06 }}
                 className={`group relative overflow-hidden rounded-3xl border ${
-                  isHighlight
+                  isOpen
                     ? "border-orange-500/40 shadow-[0_18px_50px_rgba(249,115,22,0.14)]"
                     : "border-white/10"
                 } bg-black`}
@@ -158,7 +178,7 @@ export function RegistrationSection() {
                   />
                   <div
                     className={`absolute inset-0 ${
-                      isHighlight
+                      isOpen
                         ? "bg-gradient-to-t from-black/92 via-black/70 to-black/35"
                         : "bg-gradient-to-t from-black/95 via-black/80 to-black/55"
                     }`}
@@ -171,16 +191,34 @@ export function RegistrationSection() {
                   <div className="flex items-start justify-between gap-3">
                     <span
                       className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
-                        isHighlight
+                        isOpen
                           ? "bg-orange-500 text-black"
-                          : "border border-white/15 text-zinc-300"
+                          : isUpcoming
+                          ? "border border-white/15 text-zinc-300"
+                          : "border border-zinc-700 text-zinc-500"
                       }`}
                     >
-                      {lot.badge}
+                      {isOpen
+                        ? "Aberto agora"
+                        : isUpcoming
+                        ? "Em breve"
+                        : "Encerrado"}
                     </span>
 
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-400">
-                      fechado
+                    <span
+                      className={`text-[10px] uppercase tracking-[0.22em] ${
+                        isOpen
+                          ? "text-orange-300"
+                          : isUpcoming
+                          ? "text-zinc-400"
+                          : "text-zinc-600"
+                      }`}
+                    >
+                      {isOpen
+                        ? "ativo"
+                        : isUpcoming
+                        ? "próximo"
+                        : "fechado"}
                     </span>
                   </div>
 
@@ -194,18 +232,18 @@ export function RegistrationSection() {
                     </h3>
 
                     <div className="mt-6">
-                      {isHighlight ? (
+                      {isOpen ? (
                         <a
                           href={CTA_HREF}
                           className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-black transition hover:bg-orange-400"
                         >
-                          ver modalidades
+                          inscreva-se agora
                           <ArrowRight className="h-4 w-4" />
                         </a>
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-[11px] uppercase tracking-[0.18em] text-zinc-300">
                           <Lock className="h-4 w-4" />
-                          em breve
+                          {isUpcoming ? "em breve" : "encerrado"}
                         </span>
                       )}
                     </div>
@@ -215,8 +253,6 @@ export function RegistrationSection() {
             );
           })}
         </div>
-
-        
       </div>
     </section>
   );
