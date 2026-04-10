@@ -1,16 +1,18 @@
-// scripts/manual-competicao-2.ts
+// scripts/manual-duplas-yanna-luciane.ts
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getModalityById, ModalityId } from "@/config/checkout";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
 // ===================== CONFIG RÁPIDA =====================
-const MODALITY_ID: ModalityId = "competicao";
+const MODALITY_ID: ModalityId = "duplas";
 const TICKETS = 1;
 
-// Desconto: 0% (PIX fora da plataforma, sem taxa)
+// Desconto: 0% (pagamento manual / fora da plataforma)
 const DISCOUNT_PERCENT_TICKETS_ONLY = 0;
 
+// Se quiser vincular a um cupom existente no banco, informe aqui.
+// Caso contrário, deixe null.
 const COUPON_CODE: string | null = null;
 // =========================================================
 
@@ -42,6 +44,7 @@ function getParticipantsPerTicket(modalityId: ModalityId) {
 
 /**
  * Reserva N números sequenciais para uma modalidade (transação).
+ * Retorna um array [start..start+qty-1].
  */
 async function reserveBibNumbers(
   tx: Prisma.TransactionClient,
@@ -80,7 +83,7 @@ async function reserveBibNumbers(
 
 async function main() {
   const modality = getModalityById(MODALITY_ID);
-  if (!modality) throw new Error("Modalidade inválida.");
+  if (!modality) throw new Error("Modalidade inválida no config/checkout.");
 
   const perTicket = getParticipantsPerTicket(MODALITY_ID);
   const expectedParticipants = TICKETS * perTicket;
@@ -88,19 +91,33 @@ async function main() {
   // ========= PARTICIPANTES =========
   const participants = [
     {
-      fullName: "Jonatas salles muller",
-      cpf: normalizeCPF("00355918030"),
-      birthDate: normalizeDateBR("22/01/1982"),
-      phone: normalizePhone("(55)996645492"),
-      email: "Jonatasmuller25@gmai.com",
-      city: "Alegrete",
+      fullName: "Yanna Basso Andrigheto",
+      cpf: normalizeCPF("019805660-54"),
+      birthDate: normalizeDateBR("23/11/1988"),
+      phone: normalizePhone("055991176721"),
+      email: "yanna.slg@gmail.com",
+      city: null,
       state: "RS",
-      tshirtSize: "G",
-      emergencyName: null,
-      emergencyPhone: normalizePhone("(55)996236812"),
+      tshirtSize: "M",
+      emergencyName: "Contato de emergência",
+      emergencyPhone: normalizePhone("55981159151"),
       healthInfo: null,
       extras: [],
-    }
+    },
+    {
+      fullName: "Luciane Machado dos Santos Santos",
+      cpf: normalizeCPF("02434182054"),
+      birthDate: normalizeDateBR("21/09/1991"),
+      phone: normalizePhone("55999210610"),
+      email: "lucysg2109@gmail.com",
+      city: null,
+      state: "RS",
+      tshirtSize: "P",
+      emergencyName: null,
+      emergencyPhone: null,
+      healthInfo: null,
+      extras: [],
+    },
   ];
 
   if (participants.length !== expectedParticipants) {
@@ -123,18 +140,15 @@ async function main() {
     ticketsAmount + extrasAmount - discountAmount
   );
 
+  // pagamento manual, sem taxa
   const feeAmount = 0;
   const totalAmount = ticketsAmount + extrasAmount;
   const totalAmountWithFee = discountedTotalAmount;
 
   const order = await prisma.$transaction(
     async (tx) => {
-
-      const bibs = await reserveBibNumbers(
-        tx,
-        MODALITY_ID,
-        participants.length
-      );
+      // duplas: 1 bib por dupla
+      const bibs = await reserveBibNumbers(tx, MODALITY_ID, TICKETS);
 
       const created = await tx.order.create({
         data: {
@@ -153,12 +167,13 @@ async function main() {
 
           couponCode: COUPON_CODE,
 
-          mpPaymentStatus: "manual_pix",
-          mpPaymentId: "manual_pix",
+          // marca como pagamento manual
+          mpPaymentStatus: "manual",
+          mpPaymentId: "manual",
           mpPreferenceId: null,
 
           participants: {
-            create: participants.map((p, idx) => ({
+            create: participants.map((p) => ({
               fullName: p.fullName,
               cpf: p.cpf,
               birthDate: p.birthDate,
@@ -171,8 +186,11 @@ async function main() {
               emergencyPhone: p.emergencyPhone,
               healthInfo: p.healthInfo,
 
-              bibNumber: bibs[idx],
-              teamIndex: null,
+              // mesma numeração para a dupla
+              bibNumber: bibs[0],
+
+              // mesma dupla
+              teamIndex: 1,
 
               extras: { create: [] },
             })),
@@ -214,7 +232,9 @@ async function main() {
   console.log("✅ Pedido criado e pago:", order.id);
   console.log(
     "✅ BIBs:",
-    order.participants.map((x) => `${x.fullName} => ${x.bibNumber}`).join(" | ")
+    order.participants
+      .map((x) => `${x.fullName} => ${x.bibNumber}`)
+      .join(" | ")
   );
 }
 
