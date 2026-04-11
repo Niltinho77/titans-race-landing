@@ -69,7 +69,7 @@ const tilesBase: Tile[] = [
 ];
 
 export function ExperienceGridSection() {
-  const ENABLED_TILES = ["competicao", "duplas", "equipes", "diversao", "kids" ]; // 👈 escolhe qual liberar
+  const ENABLED_TILES = [""]; // 👈 escolhe qual liberar
 
 const isTileEnabled = (tile: Tile) =>
   ENABLED_TILES.includes(tile.id) || tile.id === "contato";
@@ -141,7 +141,7 @@ const isTileEnabled = (tile: Tile) =>
                       </p>
 
                       <p className="mx-auto mt-2 max-w-[28ch] text-[10px] leading-relaxed text-slate-200/90 sm:text-[11px] md:text-xs">
-                        A próxima chance de viver a Titans Race começa em breve.
+                        O próximo lote começa em breve.
                       </p>
                     </div>
                   </div>
