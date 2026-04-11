@@ -137,7 +137,7 @@ const isTileEnabled = (tile: Tile) =>
                       </p>
 
                       <p className="mt-2 heading-adventure text-lg leading-tight text-white xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl">
-                        INSCRIÇÕES EM BREVE
+                        LOTE ESGOTADO
                       </p>
 
                       <p className="mx-auto mt-2 max-w-[28ch] text-[10px] leading-relaxed text-slate-200/90 sm:text-[11px] md:text-xs">
