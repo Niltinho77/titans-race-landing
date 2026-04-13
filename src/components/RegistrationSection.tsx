@@ -45,7 +45,7 @@ const NEXT_OPEN_LOT_ID = "lote2";
 const NEXT_LOT_NAME = "2º Lote";
 
 // contador para 7 dias
-const NEXT_LOT_OPENS_AT_ISO = "2026-04-18T23:59:59-03:00";
+const NEXT_LOT_OPENS_AT_ISO = "2026-04-15T23:59:59-03:00";
 // ================================================
 
 function formatCountdown(ms: number) {
