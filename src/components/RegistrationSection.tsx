@@ -74,7 +74,7 @@ function countdownCopy(days: number) {
 
 function getLotVisualState(lotId: string) {
   if (lotId === SOLD_OUT_LOT_ID) return "soldout";
-  if (lotId === NEXT_OPEN_LOT_ID) return "next";
+  if (lotId === NEXT_OPEN_LOT_ID) return "open";
   return "locked";
 }
 
@@ -148,7 +148,8 @@ export function RegistrationSection() {
           {lots.map((lot, index) => {
             const state = getLotVisualState(lot.id);
             const isSoldOut = state === "soldout";
-            const isNext = state === "next";
+            const isOpen = state === "open";
+            const isNext = false; // mantido para compatibilidade de estilos
 
             return (
               <motion.div
@@ -158,7 +159,7 @@ export function RegistrationSection() {
                 viewport={{ once: true, amount: 0.25 }}
                 transition={{ duration: 0.45, delay: index * 0.06 }}
                 className={`group relative overflow-hidden rounded-3xl border ${
-                  isNext
+                  isOpen
                     ? "border-orange-500/40 shadow-[0_18px_50px_rgba(249,115,22,0.14)]"
                     : isSoldOut
                     ? "border-red-500/30"
@@ -173,7 +174,7 @@ export function RegistrationSection() {
                   />
                   <div
                     className={`absolute inset-0 ${
-                      isNext
+                      isOpen
                         ? "bg-gradient-to-t from-black/92 via-black/70 to-black/35"
                         : "bg-gradient-to-t from-black/95 via-black/80 to-black/55"
                     }`}
@@ -188,15 +189,15 @@ export function RegistrationSection() {
                       className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${
                         isSoldOut
                           ? "bg-red-500 text-white"
-                          : isNext
+                          : isOpen
                           ? "bg-orange-500 text-black"
                           : "border border-white/15 text-zinc-300"
                       }`}
                     >
                       {isSoldOut
                         ? "Esgotado"
-                        : isNext
-                        ? "Abre em breve"
+                        : isOpen
+                        ? "Aberto agora"
                         : "Bloqueado"}
                     </span>
 
@@ -204,15 +205,15 @@ export function RegistrationSection() {
                       className={`text-[10px] uppercase tracking-[0.22em] ${
                         isSoldOut
                           ? "text-red-300"
-                          : isNext
+                          : isOpen
                           ? "text-orange-300"
                           : "text-zinc-500"
                       }`}
                     >
                       {isSoldOut
                         ? "encerrado"
-                        : isNext
-                        ? "próximo"
+                        : isOpen
+                        ? "aberto"
                         : "fechado"}
                     </span>
                   </div>
@@ -232,10 +233,10 @@ export function RegistrationSection() {
                           <Lock className="h-4 w-4" />
                           lote esgotado
                         </span>
-                      ) : isNext ? (
-                        <span className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 px-5 py-3 text-[11px] uppercase tracking-[0.18em] text-orange-200">
-                          <AlarmClock className="h-4 w-4" />
-                          abre em 7 dias
+                      ) : isOpen ? (
+                        <span className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-5 py-3 text-[11px] uppercase tracking-[0.18em] text-orange-200">
+                          <Flame className="h-4 w-4" />
+                          inscrições abertas
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-[11px] uppercase tracking-[0.18em] text-zinc-300">
