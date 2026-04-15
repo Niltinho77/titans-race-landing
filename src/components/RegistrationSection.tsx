@@ -110,19 +110,19 @@ export function RegistrationSection() {
             </p>
 
             <h2 className="mt-3 heading-adventure text-3xl text-white md:text-5xl">
-              Lote promocional esgotado
+              2º Lote aberto
             </h2>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">
-              O lote promocional já encerrou. Agora a contagem regressiva está
-              correndo para a abertura do{" "}
-              <span className="font-semibold text-white">{NEXT_LOT_NAME}</span>.
-              Quando o próximo lote abrir, as inscrições voltam a ficar
-              disponíveis.
+              O lote promocional encerrou. O{" "}
+              <span className="font-semibold text-white">{NEXT_LOT_NAME}</span>{" "}
+              está aberto agora — vagas limitadas. Garanta a sua antes que
+              esgotem.
             </p>
           </div>
 
-          <div className="w-full max-w-md rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-orange-500/10 to-transparent p-4">
+          {/* Countdown temporariamente desabilitado — 2º lote aberto */}
+          {/* <div className="w-full max-w-md rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-orange-500/10 to-transparent p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black">
                 <AlarmClock className="h-3.5 w-3.5" />
@@ -139,7 +139,7 @@ export function RegistrationSection() {
               Contagem para abertura do{" "}
               <span className="font-semibold text-white">{NEXT_LOT_NAME}</span>.
             </p>
-          </div>
+          </div> */}
         </motion.div>
 
         

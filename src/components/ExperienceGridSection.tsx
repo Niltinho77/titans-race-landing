@@ -69,7 +69,7 @@ const tilesBase: Tile[] = [
 ];
 
 export function ExperienceGridSection() {
-  const ENABLED_TILES = [""]; // 👈 escolhe qual liberar
+  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // 2º lote aberto
 
 const isTileEnabled = (tile: Tile) =>
   ENABLED_TILES.includes(tile.id) || tile.id === "contato";
@@ -86,7 +86,7 @@ const isTileEnabled = (tile: Tile) =>
             modalidades & experiências
           </span>
           <span className="text-slate-500">
-            prepare-se • inscrições em breve
+            escolha sua modalidade • inscrições abertas
           </span>
         </div>
 
