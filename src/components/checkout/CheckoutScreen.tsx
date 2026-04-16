@@ -149,6 +149,8 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
+  const [showErrors, setShowErrors] = useState(false);
+
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -482,6 +484,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
             modality={modality}
             participants={participants}
             onChange={handleParticipantChange}
+            showErrors={showErrors}
           />
         )}
 
@@ -493,6 +496,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
               onChangeSize={handleExtraSizeChange}
               termsAccepted={termsAccepted}
               setTermsAccepted={setTermsAccepted}
+              showErrors={showErrors}
             />
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-300">
@@ -661,12 +665,11 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
             {step < 3 && (
               <button
                 onClick={() => {
-                  if (step === 1 && canGoToStep2) setStep(2);
-                  if (step === 2 && canGoToStep3) setStep(3);
+                  if (step === 1 && canGoToStep2) { setStep(2); setShowErrors(false); }
+                  else if (step === 2 && canGoToStep3) { setStep(3); setShowErrors(false); }
+                  else { setShowErrors(true); }
                 }}
-                disabled={
-                  (step === 1 && !canGoToStep2) || (step === 2 && !canGoToStep3)
-                }
+                disabled={step === 1 && !canGoToStep2}
                 className="w-full rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
               >
                 Próximo
@@ -675,8 +678,11 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
 
             {step === 3 && (
               <button
-                onClick={handleFinish}
-                disabled={!canFinish || isSubmitting || couponLoading}
+                onClick={() => {
+                  if (!canFinish) { setShowErrors(true); return; }
+                  handleFinish();
+                }}
+                disabled={isSubmitting || couponLoading}
                 className="w-full rounded-full bg-orange-500 px-5 py-2 font-semibold uppercase tracking-[0.18em] text-black shadow-md transition enabled:hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
               >
                 {isSubmitting ? "Enviando..." : "Finalizar inscrição"}
@@ -795,10 +801,12 @@ function Step2Participants({
   modality,
   participants,
   onChange,
+  showErrors,
 }: {
   modality: Modality;
   participants: ParticipantForm[];
   onChange: (index: number, field: keyof ParticipantForm, value: string) => void;
+  showErrors: boolean;
 }) {
   const isTeamMode = (modality.id as ModalityId) === "equipes";
 
@@ -850,6 +858,7 @@ function Step2Participants({
                   label="Nome completo"
                   value={participant.fullName}
                   onChange={(v) => onChange(index, "fullName", v)}
+                  error={showErrors && participant.fullName.trim().length <= 3}
                 />
                 <Input
                   label="CPF"
@@ -857,6 +866,7 @@ function Step2Participants({
                   onChange={(v) => onChange(index, "cpf", formatCPF(v))}
                   maxLength={14}
                   inputMode="numeric"
+                  error={showErrors && !isValidCPF(participant.cpf)}
                 />
                 <Input
                   label="Data de nascimento"
@@ -865,6 +875,7 @@ function Step2Participants({
                   onChange={(v) => onChange(index, "birthDate", formatDate(v))}
                   maxLength={10}
                   inputMode="numeric"
+                  error={showErrors && !isValidDate(participant.birthDate)}
                 />
                 <Input
                   label="Telefone / WhatsApp"
@@ -872,12 +883,14 @@ function Step2Participants({
                   onChange={(v) => onChange(index, "phone", formatPhone(v))}
                   maxLength={15}
                   inputMode="tel"
+                  error={showErrors && !isValidPhone(participant.phone)}
                 />
                 <Input
                   label="E-mail"
                   value={participant.email}
                   onChange={(v) => onChange(index, "email", v)}
                   type="email"
+                  error={showErrors && !isValidEmail(participant.email)}
                 />
                 <Input
                   label="Cidade"
@@ -942,6 +955,7 @@ function Step3ExtrasAndTerms({
   onChangeSize,
   termsAccepted,
   setTermsAccepted,
+  showErrors,
 }: {
   participants: ParticipantForm[];
   onToggleExtra: (
@@ -952,6 +966,7 @@ function Step3ExtrasAndTerms({
   onChangeSize: (participantIndex: number, extraType: ExtraType, size: string) => void;
   termsAccepted: boolean;
   setTermsAccepted: (v: boolean) => void;
+  showErrors: boolean;
 }) {
   return (
     <motion.div
@@ -1074,7 +1089,9 @@ function Step3ExtrasAndTerms({
             type="checkbox"
             checked={termsAccepted}
             onChange={(e) => setTermsAccepted(e.target.checked)}
-            className="mt-0.5 h-3.5 w-3.5 rounded border border-white/20 bg-black"
+            className={`mt-0.5 h-3.5 w-3.5 rounded border bg-black ${
+              showErrors && !termsAccepted ? "border-red-500" : "border-white/20"
+            }`}
           />
           <label htmlFor="terms" className="text-[11px] leading-relaxed">
             Declaro que li e aceito o regulamento e o termo de responsabilidade
@@ -1095,6 +1112,7 @@ function Input({
   type = "text",
   maxLength,
   inputMode,
+  error,
 }: {
   label: string;
   value: string;
@@ -1103,6 +1121,7 @@ function Input({
   type?: string;
   maxLength?: number;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  error?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1 text-xs">
@@ -1114,7 +1133,9 @@ function Input({
         maxLength={maxLength}
         inputMode={inputMode}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
+        className={`w-full rounded-xl border bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500 ${
+          error ? "border-red-500" : "border-white/10"
+        }`}
       />
     </div>
   );
