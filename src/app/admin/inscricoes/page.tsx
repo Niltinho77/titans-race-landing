@@ -138,6 +138,13 @@ export default async function AdminInscricoesPage() {
   const pendentes = orders.filter((o) => o.status === "PENDING").length;
   const falhos = orders.filter((o) => o.status === "FAILED").length;
 
+  const atletasPagos = orders
+    .filter((o) => o.status === "PAID")
+    .reduce((sum, o) => sum + o.participants.length, 0);
+  const atletasPendentes = orders
+    .filter((o) => o.status === "PENDING")
+    .reduce((sum, o) => sum + o.participants.length, 0);
+
   const totalArrecadado = orders
     .filter((o) => o.status === "PAID")
     .reduce((sum, o) => sum + (o.totalAmount ?? 0), 0);
@@ -187,11 +194,26 @@ export default async function AdminInscricoesPage() {
         </header>
 
         {/* Top summary */}
-        <section className="grid gap-4 md:grid-cols-4">
-          <ResumoCard title="Total de pedidos" value={String(totalInscricoes)} subtitle="Todos os pedidos registrados" />
-          <ResumoCard title="Pagos" value={String(pagos)} subtitle="Pagamento confirmado" color="emerald" />
-          <ResumoCard title="Pendentes" value={String(pendentes)} subtitle="Aguardando confirmação" color="yellow" />
-          <ResumoCard title="Falhos" value={String(falhos)} subtitle="Erro / cancelado" color="red" />
+        <section className="grid gap-4 md:grid-cols-3">
+          <ResumoCard
+            title="Atletas inscritos"
+            value={String(atletasPagos)}
+            subtitle={`Soma dos participantes em pedidos pagos${
+              atletasPendentes > 0 ? ` · ${atletasPendentes} pendentes` : ""
+            }`}
+            color="emerald"
+          />
+          <ResumoCard
+            title="Pedidos pagos"
+            value={String(pagos)}
+            subtitle={`${totalInscricoes} pedidos no total`}
+          />
+          <ResumoCard
+            title="Pendentes / Falhos"
+            value={`${pendentes} / ${falhos}`}
+            subtitle="Aguardando confirmação · Erro/cancelado"
+            color="yellow"
+          />
         </section>
 
         <section className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
@@ -230,6 +252,10 @@ export default async function AdminInscricoesPage() {
               const pendingCount = modalityOrders.filter((o) => o.status === "PENDING").length;
               const failedCount = modalityOrders.filter((o) => o.status === "FAILED").length;
 
+              const athletesPaid = modalityOrders
+                .filter((o) => o.status === "PAID")
+                .reduce((sum, o) => sum + o.participants.length, 0);
+
               const paidTotal = modalityOrders
                 .filter((o) => o.status === "PAID")
                 .reduce((sum, o) => sum + (o.totalAmount ?? 0), 0);
@@ -263,6 +289,7 @@ export default async function AdminInscricoesPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
+                        <Pill label={`Atletas: ${athletesPaid}`} tone="success" />
                         <Pill label={`Pedidos: ${modalityOrders.length}`} tone="neutral" />
                         <Pill label={`Pagos: ${paidCount}`} tone="success" />
                         <Pill label={`Pendentes: ${pendingCount}`} tone="warning" />
