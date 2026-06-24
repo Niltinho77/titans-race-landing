@@ -133,10 +133,13 @@ export async function POST(req: Request) {
     const couponCode = normalizeCoupon(body.couponCode);
 
     let discountAmount = 0;
+    let appliedCouponCode: string | null = null;
 
     if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({
-        where: { code: couponCode },
+      const coupon = await prisma.coupon.findFirst({
+        where: {
+          code: { equals: couponCode, mode: "insensitive" },
+        },
       });
 
       if (!coupon || !coupon.active) {
@@ -190,6 +193,7 @@ export async function POST(req: Request) {
       }
 
       discountAmount = Math.min(discountAmount, subtotal);
+      appliedCouponCode = coupon.code;
     }
 
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
@@ -212,7 +216,7 @@ export async function POST(req: Request) {
         feeAmount,
         totalAmountWithFee: totalWithFee,
 
-        couponCode,
+        couponCode: appliedCouponCode,
 
         participants: {
           create: body.participants.map((participant, index) => ({

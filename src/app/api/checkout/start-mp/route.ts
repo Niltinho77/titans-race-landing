@@ -73,8 +73,10 @@ async function validateAndComputeCoupon(params: {
     return { coupon: null as any, discountAmount: 0 };
   }
 
-  const coupon = await tx.coupon.findUnique({
-    where: { code },
+  const coupon = await tx.coupon.findFirst({
+    where: {
+      code: { equals: code, mode: "insensitive" },
+    },
   });
 
   if (!coupon || !coupon.active) {

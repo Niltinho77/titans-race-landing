@@ -47,8 +47,10 @@ export async function POST(req: Request) {
     }
 
     // ✅ Busca no BANCO (fonte da verdade / “single source of truth”)
-    const coupon = await prisma.coupon.findUnique({
-      where: { code },
+    const coupon = await prisma.coupon.findFirst({
+      where: {
+        code: { equals: code, mode: "insensitive" },
+      },
       select: {
         code: true,
         type: true,
