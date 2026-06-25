@@ -26,7 +26,7 @@ export function NavBar() {
     const H = (hash: string) => (onHome ? hash : `/${hash}`);
 
     return [
-      { href: "/sorteio", label: "Sorteio", kind: "page" },
+      { href: "/sorteio", label: "Liga Titans", kind: "page" },
       { href: H("#inscricoes"), label: "Modalidades", kind: "hash" },
       { href: H("#local"), label: "Local", kind: "hash" },
       { href: H("#inscricoes"), label: "Inscrições", kind: "hash" },
