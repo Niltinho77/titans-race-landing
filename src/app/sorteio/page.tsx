@@ -462,11 +462,6 @@ function LeagueHeader({
           Treinou, postou e marcou a Titans? Você já está no jogo.
         </p>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <LeagueStat label="Treinou" value="+1 ponto" />
-          <LeagueStat label="Postou story" value="Conta na semana" />
-          <LeagueStat label="Marcou a Titans" value="Participa" />
-        </div>
       </motion.div>
 
       <motion.div
@@ -542,17 +537,6 @@ function LeagueHeader({
         )}
       </motion.div>
     </header>
-  );
-}
-
-function LeagueStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/35 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-1 text-lg font-black text-white">{value}</p>
-    </div>
   );
 }
 
@@ -861,7 +845,7 @@ function SimpleParticipantProgress({
         <EmptyLeagueState text="Sem pontos registrados ainda." />
       ) : (
         <>
-          <div className="mt-4 grid gap-2 sm:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {LEVELS.map((level) => {
               return (
                 <div
