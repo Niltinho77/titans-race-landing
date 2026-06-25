@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1075.0",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.555.0",
     "mercadopago": "^2.11.0",

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
-import { readState, writeState, nowIso } from "@/lib/drawStore";
+import { nowIso, writeState } from "@/lib/drawStore";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function assertAdmin(req: Request) {
   const url = new URL(req.url);
   const key = url.searchParams.get("key") || "";
   const secret = process.env.ADMIN_DRAW_KEY || "";
 
-  if (!secret) throw new Error("ADMIN_DRAW_KEY não configurada no ambiente.");
+  if (!secret) throw new Error("ADMIN_DRAW_KEY nao configurada no ambiente.");
   if (key !== secret) throw new Error("Acesso negado.");
 }
 
@@ -22,10 +23,11 @@ export async function POST(req: Request) {
       updatedAt: nowIso(),
     };
 
-    writeState(next);
+    await writeState(next);
 
     return NextResponse.json({ ok: true, state: next });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Erro" }, { status: 401 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro";
+    return NextResponse.json({ error: message }, { status: 401 });
   }
 }

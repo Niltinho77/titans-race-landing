@@ -12,6 +12,7 @@ type DrawState = {
 
 type StateResp = {
   state: DrawState;
+  imageFiles: string[];
   images: string[];
   winnerUrl: string | null;
 };
@@ -50,6 +51,8 @@ export default function SorteioAdmin() {
   const [mode, setMode] = useState<"add" | "subtract" | "set">("add");
   const [busy, setBusy] = useState(false);
   const [pointsBusy, setPointsBusy] = useState(false);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [msg, setMsg] = useState("");
 
   const key =
@@ -122,12 +125,113 @@ export default function SorteioAdmin() {
       const json = await response.json();
       if (!response.ok) throw new Error(json?.error || "Erro ao resetar");
       await fetchState();
-      setMsg("Semana resetada. Atualize as imagens em public/sorteio/semana/ e sorteie novamente.");
+      setMsg("Semana resetada. Envie as imagens da semana e sorteie novamente.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro";
       setMsg(message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function uploadImages(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!key) {
+      setMsg("Falta a chave na URL: /sorteio/admin?key=SEU_SEGREDO");
+      return;
+    }
+
+    if (!selectedFiles.length) {
+      setMsg("Selecione pelo menos uma imagem.");
+      return;
+    }
+
+    setUploadBusy(true);
+    setMsg("");
+
+    try {
+      const formData = new FormData();
+      selectedFiles.forEach((file) => formData.append("files", file));
+
+      const response = await fetch(
+        `/api/draw/images?key=${encodeURIComponent(key)}`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+      const json = await response.json();
+      if (!response.ok) throw new Error(json?.error || "Erro ao enviar imagens");
+
+      setSelectedFiles([]);
+      await fetchState();
+      setMsg("Imagens enviadas. A semana foi resetada para um novo sorteio.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro";
+      setMsg(message);
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
+  async function deleteImage(file: string) {
+    if (!key) {
+      setMsg("Falta a chave na URL: /sorteio/admin?key=SEU_SEGREDO");
+      return;
+    }
+
+    const shouldDelete = window.confirm("Excluir esta imagem do sorteio?");
+    if (!shouldDelete) return;
+
+    setUploadBusy(true);
+    setMsg("");
+
+    try {
+      const response = await fetch(
+        `/api/draw/images?key=${encodeURIComponent(key)}&file=${encodeURIComponent(file)}`,
+        { method: "DELETE" },
+      );
+      const json = await response.json();
+      if (!response.ok) throw new Error(json?.error || "Erro ao excluir imagem");
+
+      await fetchState();
+      setMsg("Imagem excluida. A semana foi resetada para um novo sorteio.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro";
+      setMsg(message);
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
+  async function clearImages() {
+    if (!key) {
+      setMsg("Falta a chave na URL: /sorteio/admin?key=SEU_SEGREDO");
+      return;
+    }
+
+    const shouldClear = window.confirm("Excluir todas as imagens da semana?");
+    if (!shouldClear) return;
+
+    setUploadBusy(true);
+    setMsg("");
+
+    try {
+      const response = await fetch(
+        `/api/draw/images?key=${encodeURIComponent(key)}&all=1`,
+        { method: "DELETE" },
+      );
+      const json = await response.json();
+      if (!response.ok) throw new Error(json?.error || "Erro ao limpar imagens");
+
+      await fetchState();
+      setMsg("Imagens da semana excluidas.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro";
+      setMsg(message);
+    } finally {
+      setUploadBusy(false);
     }
   }
 
@@ -280,7 +384,7 @@ export default function SorteioAdmin() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <h2 className="text-lg font-black">Sorteio semanal</h2>
             <p className="mt-1 text-sm text-white/60">
-              Continua usando as imagens de public/sorteio/semana.
+              Envie as imagens pelo celular, confira a lista e rode o sorteio.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-3">
@@ -320,6 +424,54 @@ export default function SorteioAdmin() {
               </div>
             )}
           </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black">Fotos da semana</h2>
+              <p className="mt-1 text-sm text-white/60">
+                Selecione varias imagens da galeria do celular.
+              </p>
+            </div>
+            {data && data.images.length > 0 && (
+              <button
+                type="button"
+                onClick={clearImages}
+                disabled={uploadBusy}
+                className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-100 disabled:opacity-50"
+              >
+                Limpar semana
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={uploadImages} className="mt-4 grid gap-3">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              onChange={(event) =>
+                setSelectedFiles(Array.from(event.currentTarget.files ?? []))
+              }
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-[#ff5c0c] file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-black"
+            />
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-white/50">
+                {selectedFiles.length
+                  ? `${selectedFiles.length} imagem(ns) selecionada(s)`
+                  : "Nenhuma imagem selecionada"}
+              </p>
+              <button
+                type="submit"
+                disabled={uploadBusy || selectedFiles.length === 0}
+                className="rounded-xl bg-[#ff5c0c] px-4 py-2 font-bold text-black disabled:opacity-50"
+              >
+                {uploadBusy ? "Enviando..." : "Enviar fotos"}
+              </button>
+            </div>
+          </form>
         </section>
 
         {msg && (
@@ -367,7 +519,7 @@ export default function SorteioAdmin() {
           <section className="mt-6">
             <h2 className="text-lg font-black">Imagens do sorteio semanal</h2>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-              {data.images.map((src) => (
+              {data.images.map((src, index) => (
                 <div
                   key={src}
                   className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5"
@@ -381,6 +533,16 @@ export default function SorteioAdmin() {
                       className="object-cover"
                     />
                   </div>
+                  {data.imageFiles?.[index] && (
+                    <button
+                      type="button"
+                      onClick={() => deleteImage(data.imageFiles[index])}
+                      disabled={uploadBusy}
+                      className="absolute right-2 top-2 rounded-lg border border-red-500/30 bg-black/75 px-3 py-1 text-xs font-bold text-red-100 backdrop-blur disabled:opacity-50"
+                    >
+                      Excluir
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
