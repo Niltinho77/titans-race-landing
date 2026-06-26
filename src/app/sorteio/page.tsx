@@ -1086,6 +1086,7 @@ function WinnerCard({ winnerUrl }: { winnerUrl: string }) {
             fill
             sizes="(min-width: 768px) 448px, 90vw"
             className="object-cover"
+            unoptimized
           />
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
@@ -1147,6 +1148,7 @@ function DrawMosaic({
                   fill
                   sizes="(min-width: 768px) 14vw, 18vw"
                   className="object-cover"
+                  unoptimized
                 />
 
                 <AnimatePresence>

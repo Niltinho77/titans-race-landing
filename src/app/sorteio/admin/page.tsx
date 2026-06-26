@@ -35,12 +35,76 @@ const LEVELS = [
   { name: "Titan", min: 60, max: null },
 ];
 
+const MAX_UPLOAD_WIDTH = 1440;
+const MAX_UPLOAD_HEIGHT = 1920;
+const UPLOAD_QUALITY = 0.82;
+
 function getLevel(points: number) {
   return (
     [...LEVELS]
       .reverse()
       .find((level) => points >= level.min) ?? LEVELS[0]
   );
+}
+
+function normalizeInstagramInput(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return "";
+  return normalized.startsWith("@") ? normalized : `@${normalized}`;
+}
+
+async function fileToImage(file: File) {
+  const url = URL.createObjectURL(file);
+
+  try {
+    const image = document.createElement("img");
+    image.decoding = "async";
+    image.src = url;
+    await image.decode();
+    return image;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function prepareUploadImage(file: File) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error(`${file.name} nao e uma imagem.`);
+  }
+
+  if (file.type === "image/gif") {
+    return file;
+  }
+
+  const image = await fileToImage(file);
+  const scale = Math.min(
+    1,
+    MAX_UPLOAD_WIDTH / image.naturalWidth,
+    MAX_UPLOAD_HEIGHT / image.naturalHeight,
+  );
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error(`Nao foi possivel preparar ${file.name}.`);
+
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", UPLOAD_QUALITY);
+  });
+
+  if (!blob) throw new Error(`Nao foi possivel compactar ${file.name}.`);
+
+  const safeName = file.name.replace(/\.[^.]+$/, "") || "foto";
+  return new File([blob], `${safeName}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
 }
 
 export default function SorteioAdmin() {
@@ -64,6 +128,24 @@ export default function SorteioAdmin() {
     () => [...participants].sort((a, b) => b.points - a.points),
     [participants],
   );
+  const selectedInstagram = normalizeInstagramInput(instagram);
+  const exactParticipant = useMemo(
+    () =>
+      participants.find(
+        (participant) => participant.instagram === selectedInstagram,
+      ) ?? null,
+    [participants, selectedInstagram],
+  );
+  const instagramSuggestions = useMemo(() => {
+    const query = selectedInstagram.replace(/^@/, "");
+    if (!query) return ranking.slice(0, 6);
+
+    return ranking
+      .filter((participant) =>
+        participant.instagram.replace(/^@/, "").includes(query),
+      )
+      .slice(0, 6);
+  }, [ranking, selectedInstagram]);
 
   async function fetchState() {
     const response = await fetch("/api/draw/state", { cache: "no-store" });
@@ -152,7 +234,10 @@ export default function SorteioAdmin() {
 
     try {
       const formData = new FormData();
-      selectedFiles.forEach((file) => formData.append("files", file));
+      const preparedFiles = await Promise.all(
+        selectedFiles.map((file) => prepareUploadImage(file)),
+      );
+      preparedFiles.forEach((file) => formData.append("files", file));
 
       const response = await fetch(
         `/api/draw/images?key=${encodeURIComponent(key)}`,
@@ -166,7 +251,7 @@ export default function SorteioAdmin() {
 
       setSelectedFiles([]);
       await fetchState();
-      setMsg("Imagens enviadas. A semana foi resetada para um novo sorteio.");
+      setMsg("Imagens enviadas e otimizadas. A semana foi resetada para um novo sorteio.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro";
       setMsg(message);
@@ -246,13 +331,24 @@ export default function SorteioAdmin() {
     setPointsBusy(true);
     setMsg("");
     try {
+      const normalizedInstagram = normalizeInstagramInput(instagram);
+      if (
+        normalizedInstagram &&
+        !exactParticipant &&
+        !window.confirm(
+          `${normalizedInstagram} ainda nao esta no ranking. Criar esse participante?`,
+        )
+      ) {
+        return;
+      }
+
       const response = await fetch(
         `/api/league/participants?key=${encodeURIComponent(key)}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            instagram,
+            instagram: normalizedInstagram,
             points,
             mode,
           }),
@@ -335,9 +431,45 @@ export default function SorteioAdmin() {
                 <input
                   value={instagram}
                   onChange={(event) => setInstagram(event.target.value)}
+                  list="league-participants"
                   placeholder="@atleta"
                   className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-orange-500"
                 />
+                <datalist id="league-participants">
+                  {participants.map((participant) => (
+                    <option
+                      key={participant.id}
+                      value={participant.instagram}
+                    />
+                  ))}
+                </datalist>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {instagramSuggestions.map((participant) => (
+                    <button
+                      key={participant.id}
+                      type="button"
+                      onClick={() => setInstagram(participant.instagram)}
+                      className={[
+                        "rounded-full border px-3 py-1 text-xs font-bold transition",
+                        participant.instagram === selectedInstagram
+                          ? "border-orange-400 bg-orange-500/20 text-orange-100"
+                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10",
+                      ].join(" ")}
+                    >
+                      {participant.instagram} · {participant.points} pts
+                    </button>
+                  ))}
+                </div>
+                {selectedInstagram && exactParticipant && (
+                  <p className="mt-2 text-xs font-semibold text-emerald-300">
+                    Selecionado: {exactParticipant.instagram} ({exactParticipant.points} pts)
+                  </p>
+                )}
+                {selectedInstagram && !exactParticipant && (
+                  <p className="mt-2 text-xs font-semibold text-orange-200">
+                    Instagram novo. Ao salvar, confirme antes de criar.
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
@@ -449,7 +581,7 @@ export default function SorteioAdmin() {
           <form onSubmit={uploadImages} className="mt-4 grid gap-3">
             <input
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept="image/*"
               multiple
               onChange={(event) =>
                 setSelectedFiles(Array.from(event.currentTarget.files ?? []))
@@ -462,6 +594,9 @@ export default function SorteioAdmin() {
                 {selectedFiles.length
                   ? `${selectedFiles.length} imagem(ns) selecionada(s)`
                   : "Nenhuma imagem selecionada"}
+                {selectedFiles.length > 0
+                  ? " - as fotos serao reduzidas antes do envio"
+                  : ""}
               </p>
               <button
                 type="submit"
@@ -531,6 +666,7 @@ export default function SorteioAdmin() {
                       fill
                       sizes="(min-width: 768px) 25vw, 50vw"
                       className="object-cover"
+                      unoptimized
                     />
                   </div>
                   {data.imageFiles?.[index] && (
