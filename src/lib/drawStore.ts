@@ -321,10 +321,6 @@ export function nowIso() {
 }
 
 export function publicUrlFor(file: string) {
-  if (!isBucketStorageEnabled() && !file.includes("/")) {
-    return `/sorteio/semana/${encodeURIComponent(file)}`;
-  }
-
   return `/api/draw/image?key=${encodeURIComponent(file)}`;
 }
 
