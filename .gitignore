@@ -43,3 +43,6 @@ next-env.d.ts
 /src/generated/prisma
 
 data/draw-state.json
+
+# weekly draw uploads are operational data, not source assets
+public/sorteio/semana/
