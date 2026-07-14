@@ -4,6 +4,7 @@ import {
   deleteWeeklyWinner,
   readState,
   readWeeklyWinners,
+  saveUploadedWeeklyWinner,
   winnerUrlFor,
 } from "@/lib/drawStore";
 
@@ -36,6 +37,25 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     assertAdmin(req);
+
+    const contentType = req.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await req.formData();
+      const week = String(formData.get("week") || "");
+      const file = formData.get("file");
+
+      if (!(file instanceof File)) {
+        return NextResponse.json(
+          { error: "Selecione a foto vencedora." },
+          { status: 400 },
+        );
+      }
+
+      await saveUploadedWeeklyWinner(week, file);
+
+      return NextResponse.json({ ok: true, ...(await winnersResponse()) });
+    }
 
     const body = (await req.json()) as {
       week?: string;

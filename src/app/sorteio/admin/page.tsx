@@ -65,6 +65,16 @@ function normalizeInstagramInput(value: string) {
   return normalized.startsWith("@") ? normalized : `@${normalized}`;
 }
 
+function nextWinnerWeekLabel(winners: WeeklyWinner[]) {
+  const highestWeek = winners.reduce((highest, winner) => {
+    const match = winner.week.match(/semana\s*(\d+)/i);
+    if (!match) return highest;
+    return Math.max(highest, Number(match[1]) || 0);
+  }, 0);
+
+  return `Semana ${highestWeek + 1}`;
+}
+
 async function fileToImage(file: File) {
   const url = URL.createObjectURL(file);
 
@@ -131,6 +141,8 @@ export default function SorteioAdmin() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [weeklyWinners, setWeeklyWinners] = useState<WeeklyWinner[]>([]);
   const [winnerWeek, setWinnerWeek] = useState("");
+  const [selectedWinnerFile, setSelectedWinnerFile] = useState<File | null>(null);
+  const [winnerFileInputKey, setWinnerFileInputKey] = useState(0);
   const [winnerBusy, setWinnerBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -179,7 +191,9 @@ export default function SorteioAdmin() {
   async function fetchWeeklyWinners() {
     const response = await fetch("/api/league/winners", { cache: "no-store" });
     const json = (await response.json()) as WeeklyWinnersResp;
-    setWeeklyWinners(json.winners ?? []);
+    const nextWinners = json.winners ?? [];
+    setWeeklyWinners(nextWinners);
+    setWinnerWeek((current) => current || nextWinnerWeekLabel(nextWinners));
   }
 
   useEffect(() => {
@@ -387,25 +401,43 @@ export default function SorteioAdmin() {
       return;
     }
 
-    if (!data?.state.winnerFile) {
-      setMsg("Sorteie um vencedor antes de adicionar ao historico.");
+    if (!selectedWinnerFile && !data?.state.winnerFile) {
+      setMsg("Selecione uma foto ou sorteie um vencedor antes de salvar.");
       return;
     }
 
+    const currentWinnerFile = data?.state.winnerFile ?? null;
     setWinnerBusy(true);
     setMsg("");
 
     try {
+      const preparedWinnerFile = selectedWinnerFile
+        ? await prepareUploadImage(selectedWinnerFile)
+        : null;
+      const requestBody = preparedWinnerFile
+        ? (() => {
+            const formData = new FormData();
+            formData.append("week", winnerWeek);
+            formData.append("file", preparedWinnerFile);
+            return formData;
+          })()
+        : JSON.stringify({
+            week: winnerWeek,
+            sourceFile: currentWinnerFile,
+          });
+
       const response = await fetch(
         `/api/league/winners?key=${encodeURIComponent(key)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            week: winnerWeek,
-            sourceFile: data.state.winnerFile,
-          }),
-        },
+        preparedWinnerFile
+          ? {
+              method: "POST",
+              body: requestBody,
+            }
+          : {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: requestBody,
+            },
       );
       const json = (await response.json()) as WeeklyWinnersResp & {
         error?: string;
@@ -414,8 +446,11 @@ export default function SorteioAdmin() {
         throw new Error(json?.error || "Erro ao salvar vencedor");
       }
 
-      setWeeklyWinners(json.winners ?? []);
-      setWinnerWeek("");
+      const nextWinners = json.winners ?? [];
+      setWeeklyWinners(nextWinners);
+      setWinnerWeek(nextWinnerWeekLabel(nextWinners));
+      setSelectedWinnerFile(null);
+      setWinnerFileInputKey((current) => current + 1);
       setMsg("Vencedor salvo no historico da Liga.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro";
@@ -731,6 +766,7 @@ export default function SorteioAdmin() {
 
           <form onSubmit={uploadImages} className="mt-4 grid gap-3">
             <input
+              key={winnerFileInputKey}
               type="file"
               accept="image/*"
               multiple
@@ -772,7 +808,7 @@ export default function SorteioAdmin() {
 
           <form
             onSubmit={archiveCurrentWinner}
-            className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]"
+            className="mt-4 grid gap-3 lg:grid-cols-[180px_1fr_auto]"
           >
             <input
               value={winnerWeek}
@@ -780,14 +816,30 @@ export default function SorteioAdmin() {
               placeholder="Semana 1"
               className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-orange-500"
             />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) =>
+                setSelectedWinnerFile(event.currentTarget.files?.[0] ?? null)
+              }
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white/80 file:mr-3 file:rounded-lg file:border-0 file:bg-[#ff5c0c] file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-black"
+            />
             <button
               type="submit"
-              disabled={winnerBusy || !data?.state.winnerFile}
+              disabled={winnerBusy || (!selectedWinnerFile && !data?.state.winnerFile)}
               className="rounded-xl bg-[#ff5c0c] px-4 py-2 font-bold text-black disabled:opacity-50"
             >
-              {winnerBusy ? "Salvando..." : "Salvar vencedor atual"}
+              {winnerBusy ? "Salvando..." : "Salvar vencedor"}
             </button>
           </form>
+
+          <p className="mt-2 text-xs text-white/50">
+            {selectedWinnerFile
+              ? `Foto selecionada: ${selectedWinnerFile.name}`
+              : data?.winnerUrl
+                ? "Sem foto selecionada: salva o vencedor atual do sorteio."
+                : "Selecione a foto vencedora da semana."}
+          </p>
 
           {weeklyWinners.length === 0 ? (
             <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-white/60">

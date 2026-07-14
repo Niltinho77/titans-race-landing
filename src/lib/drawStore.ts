@@ -367,8 +367,40 @@ export async function archiveWeeklyWinner(week: string, sourceFile: string) {
   const sourceImage = await readWeekImage(sourceFile);
   if (!sourceImage) throw new Error("Imagem vencedora nao encontrada.");
 
-  const extension = path.extname(sourceFile) || ".jpg";
-  const targetName = safeWinnerFilename(`${cleanedWeek}${extension}`);
+  return saveWeeklyWinnerImage({
+    week: cleanedWeek,
+    body: sourceImage.body,
+    contentType: sourceImage.contentType,
+    originalName: sourceFile,
+  });
+}
+
+export async function saveUploadedWeeklyWinner(week: string, file: File) {
+  const cleanedWeek = week.trim();
+  if (!cleanedWeek) throw new Error("Informe a semana do vencedor.");
+  if (!isImageFile(file)) throw new Error("Selecione uma imagem valida.");
+
+  return saveWeeklyWinnerImage({
+    week: cleanedWeek,
+    body: Buffer.from(await file.arrayBuffer()),
+    contentType: file.type || contentTypeFor(file.name),
+    originalName: file.name,
+  });
+}
+
+async function saveWeeklyWinnerImage({
+  week,
+  body,
+  contentType,
+  originalName,
+}: {
+  week: string;
+  body: Buffer;
+  contentType: string;
+  originalName: string;
+}) {
+  const extension = path.extname(originalName) || ".jpg";
+  const targetName = safeWinnerFilename(`${week}${extension}`);
   const storage = s3();
   const targetFile = storage ? safeWinnerBucketKey(targetName) : targetName;
 
@@ -376,14 +408,14 @@ export async function archiveWeeklyWinner(week: string, sourceFile: string) {
     if (!fs.existsSync(WINNERS_FOLDER)) {
       fs.mkdirSync(WINNERS_FOLDER, { recursive: true });
     }
-    fs.writeFileSync(path.join(WINNERS_FOLDER, targetFile), sourceImage.body);
+    fs.writeFileSync(path.join(WINNERS_FOLDER, targetFile), body);
   } else {
     await storage.client.send(
       new PutObjectCommand({
         Bucket: storage.bucket,
         Key: targetFile,
-        Body: sourceImage.body,
-        ContentType: sourceImage.contentType,
+        Body: body,
+        ContentType: contentType,
       }),
     );
   }
@@ -391,7 +423,7 @@ export async function archiveWeeklyWinner(week: string, sourceFile: string) {
   const winners = await readWeeklyWinners();
   const nextWinner: WeeklyWinner = {
     id: crypto.randomUUID(),
-    week: cleanedWeek,
+    week,
     file: targetFile,
     createdAt: nowIso(),
   };
