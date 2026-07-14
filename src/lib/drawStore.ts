@@ -18,10 +18,26 @@ export type DrawState = {
   updatedAt: string | null;
 };
 
+export type WeeklyWinner = {
+  id: string;
+  week: string;
+  file: string;
+  createdAt: string;
+};
+
 const STATE_PATH = path.join(process.cwd(), "data", "draw-state.json");
+const WINNERS_PATH = path.join(process.cwd(), "data", "weekly-winners.json");
 const WEEK_FOLDER = path.join(process.cwd(), "public", "sorteio", "semana");
+const WINNERS_FOLDER = path.join(
+  process.cwd(),
+  "public",
+  "sorteio",
+  "vencedores",
+);
 const BUCKET_WEEK_PREFIX = "sorteio/semana/";
+const BUCKET_WINNERS_PREFIX = "sorteio/vencedores/";
 const BUCKET_STATE_KEY = "sorteio/draw-state.json";
+const BUCKET_WINNERS_KEY = "sorteio/weekly-winners.json";
 const IMAGE_CONTENT_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -93,6 +109,26 @@ function writeLocalState(next: DrawState) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(next, null, 2), "utf-8");
 }
 
+function ensureWinnersFile() {
+  const dir = path.dirname(WINNERS_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  if (!fs.existsSync(WINNERS_PATH)) {
+    fs.writeFileSync(WINNERS_PATH, JSON.stringify([], null, 2), "utf-8");
+  }
+}
+
+function readLocalWinners(): WeeklyWinner[] {
+  ensureWinnersFile();
+  const raw = fs.readFileSync(WINNERS_PATH, "utf-8");
+  return JSON.parse(raw) as WeeklyWinner[];
+}
+
+function writeLocalWinners(next: WeeklyWinner[]) {
+  ensureWinnersFile();
+  fs.writeFileSync(WINNERS_PATH, JSON.stringify(next, null, 2), "utf-8");
+}
+
 function listLocalWeekImages(): string[] {
   if (!fs.existsSync(WEEK_FOLDER)) return [];
   return fs
@@ -116,6 +152,14 @@ function safeLocalFilename(name: string) {
 
 function safeBucketKey(name: string) {
   return `${BUCKET_WEEK_PREFIX}${safeLocalFilename(name)}`;
+}
+
+function safeWinnerFilename(name: string) {
+  return safeLocalFilename(name);
+}
+
+function safeWinnerBucketKey(name: string) {
+  return `${BUCKET_WINNERS_PREFIX}${safeWinnerFilename(name)}`;
 }
 
 function isImageFile(file: File) {
@@ -180,6 +224,41 @@ export async function writeState(next: DrawState) {
     new PutObjectCommand({
       Bucket: storage.bucket,
       Key: BUCKET_STATE_KEY,
+      Body: JSON.stringify(next, null, 2),
+      ContentType: "application/json",
+    }),
+  );
+}
+
+export async function readWeeklyWinners(): Promise<WeeklyWinner[]> {
+  const storage = s3();
+  if (!storage) return readLocalWinners();
+
+  try {
+    const response = await storage.client.send(
+      new GetObjectCommand({
+        Bucket: storage.bucket,
+        Key: BUCKET_WINNERS_KEY,
+      }),
+    );
+    const raw = (await bodyToBuffer(response.Body)).toString("utf-8");
+    return JSON.parse(raw) as WeeklyWinner[];
+  } catch {
+    return [];
+  }
+}
+
+export async function writeWeeklyWinners(next: WeeklyWinner[]) {
+  const storage = s3();
+  if (!storage) {
+    writeLocalWinners(next);
+    return;
+  }
+
+  await storage.client.send(
+    new PutObjectCommand({
+      Bucket: storage.bucket,
+      Key: BUCKET_WINNERS_KEY,
       Body: JSON.stringify(next, null, 2),
       ContentType: "application/json",
     }),
@@ -275,6 +354,77 @@ export async function deleteAllWeekImages() {
   await Promise.all(files.map((file) => deleteWeekImage(file)));
 }
 
+export async function deleteWeekImagesExcept(keepFile: string) {
+  const files = await listWeekImages();
+  const filesToDelete = files.filter((file) => file !== keepFile);
+  await Promise.all(filesToDelete.map((file) => deleteWeekImage(file)));
+}
+
+export async function archiveWeeklyWinner(week: string, sourceFile: string) {
+  const cleanedWeek = week.trim();
+  if (!cleanedWeek) throw new Error("Informe a semana do vencedor.");
+
+  const sourceImage = await readWeekImage(sourceFile);
+  if (!sourceImage) throw new Error("Imagem vencedora nao encontrada.");
+
+  const extension = path.extname(sourceFile) || ".jpg";
+  const targetName = safeWinnerFilename(`${cleanedWeek}${extension}`);
+  const storage = s3();
+  const targetFile = storage ? safeWinnerBucketKey(targetName) : targetName;
+
+  if (!storage) {
+    if (!fs.existsSync(WINNERS_FOLDER)) {
+      fs.mkdirSync(WINNERS_FOLDER, { recursive: true });
+    }
+    fs.writeFileSync(path.join(WINNERS_FOLDER, targetFile), sourceImage.body);
+  } else {
+    await storage.client.send(
+      new PutObjectCommand({
+        Bucket: storage.bucket,
+        Key: targetFile,
+        Body: sourceImage.body,
+        ContentType: sourceImage.contentType,
+      }),
+    );
+  }
+
+  const winners = await readWeeklyWinners();
+  const nextWinner: WeeklyWinner = {
+    id: crypto.randomUUID(),
+    week: cleanedWeek,
+    file: targetFile,
+    createdAt: nowIso(),
+  };
+
+  await writeWeeklyWinners([nextWinner, ...winners]);
+  return nextWinner;
+}
+
+export async function deleteWeeklyWinner(id: string) {
+  const winners = await readWeeklyWinners();
+  const winner = winners.find((item) => item.id === id);
+  if (!winner) throw new Error("Vencedor nao encontrado.");
+
+  const storage = s3();
+  if (!storage) {
+    const target = path.resolve(WINNERS_FOLDER, winner.file);
+    const root = path.resolve(WINNERS_FOLDER);
+    const relative = path.relative(root, target);
+    if (!relative.startsWith("..") && !path.isAbsolute(relative) && fs.existsSync(target)) {
+      fs.unlinkSync(target);
+    }
+  } else if (winner.file.startsWith(BUCKET_WINNERS_PREFIX)) {
+    await storage.client.send(
+      new DeleteObjectCommand({
+        Bucket: storage.bucket,
+        Key: winner.file,
+      }),
+    );
+  }
+
+  await writeWeeklyWinners(winners.filter((item) => item.id !== id));
+}
+
 export async function readWeekImage(file: string) {
   const storage = s3();
   if (!storage) {
@@ -310,6 +460,41 @@ export async function readWeekImage(file: string) {
   };
 }
 
+export async function readWinnerImage(file: string) {
+  const storage = s3();
+  if (!storage) {
+    const target = path.resolve(WINNERS_FOLDER, file);
+    const root = path.resolve(WINNERS_FOLDER);
+    const relative = path.relative(root, target);
+    if (
+      relative.startsWith("..") ||
+      path.isAbsolute(relative) ||
+      !fs.existsSync(target)
+    ) {
+      return null;
+    }
+
+    return {
+      body: fs.readFileSync(target),
+      contentType: contentTypeFor(file),
+    };
+  }
+
+  if (!file.startsWith(BUCKET_WINNERS_PREFIX)) return null;
+
+  const response = await storage.client.send(
+    new GetObjectCommand({
+      Bucket: storage.bucket,
+      Key: file,
+    }),
+  );
+
+  return {
+    body: await bodyToBuffer(response.Body),
+    contentType: response.ContentType || contentTypeFor(file),
+  };
+}
+
 export function pickWinner(files: string[]): string {
   if (!files.length) throw new Error("Sem imagens no sorteio semanal.");
   const idx = crypto.randomInt(0, files.length);
@@ -322,6 +507,10 @@ export function nowIso() {
 
 export function publicUrlFor(file: string) {
   return `/api/draw/image?key=${encodeURIComponent(file)}`;
+}
+
+export function winnerUrlFor(file: string) {
+  return `/api/league/winners/image?key=${encodeURIComponent(file)}`;
 }
 
 export function displayNameFor(file: string) {

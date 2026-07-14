@@ -28,6 +28,18 @@ type LeagueResp = {
   participants: LeagueParticipant[];
 };
 
+type WeeklyWinner = {
+  id: string;
+  week: string;
+  file: string;
+  url: string;
+  createdAt: string;
+};
+
+type WeeklyWinnersResp = {
+  winners: WeeklyWinner[];
+};
+
 const LEVELS = [
   { name: "Recruta", min: 0, max: 14 },
   { name: "Guerreiro", min: 15, max: 34 },
@@ -117,6 +129,9 @@ export default function SorteioAdmin() {
   const [pointsBusy, setPointsBusy] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [weeklyWinners, setWeeklyWinners] = useState<WeeklyWinner[]>([]);
+  const [winnerWeek, setWinnerWeek] = useState("");
+  const [winnerBusy, setWinnerBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
   const key =
@@ -161,9 +176,16 @@ export default function SorteioAdmin() {
     setParticipants(json.participants ?? []);
   }
 
+  async function fetchWeeklyWinners() {
+    const response = await fetch("/api/league/winners", { cache: "no-store" });
+    const json = (await response.json()) as WeeklyWinnersResp;
+    setWeeklyWinners(json.winners ?? []);
+  }
+
   useEffect(() => {
     fetchState().catch(() => {});
     fetchParticipants().catch(() => {});
+    fetchWeeklyWinners().catch(() => {});
   }, []);
 
   async function start() {
@@ -317,6 +339,123 @@ export default function SorteioAdmin() {
       setMsg(message);
     } finally {
       setUploadBusy(false);
+    }
+  }
+
+  async function clearImagesKeepingWinner() {
+    if (!key) {
+      setMsg("Falta a chave na URL: /sorteio/admin?key=SEU_SEGREDO");
+      return;
+    }
+
+    if (!data?.winnerUrl) {
+      setMsg("Sorteie um vencedor antes de limpar mantendo o destaque.");
+      return;
+    }
+
+    const shouldClear = window.confirm(
+      "Excluir todos os stories da semana e manter apenas o vencedor?",
+    );
+    if (!shouldClear) return;
+
+    setUploadBusy(true);
+    setMsg("");
+
+    try {
+      const response = await fetch(
+        `/api/draw/images?key=${encodeURIComponent(key)}&all=1&keepWinner=1`,
+        { method: "DELETE" },
+      );
+      const json = await response.json();
+      if (!response.ok) throw new Error(json?.error || "Erro ao limpar stories");
+
+      await fetchState();
+      setMsg("Stories da semana excluidos. Apenas o vencedor ficou em destaque.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro";
+      setMsg(message);
+    } finally {
+      setUploadBusy(false);
+    }
+  }
+
+  async function archiveCurrentWinner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!key) {
+      setMsg("Falta a chave na URL: /sorteio/admin?key=SEU_SEGREDO");
+      return;
+    }
+
+    if (!data?.state.winnerFile) {
+      setMsg("Sorteie um vencedor antes de adicionar ao historico.");
+      return;
+    }
+
+    setWinnerBusy(true);
+    setMsg("");
+
+    try {
+      const response = await fetch(
+        `/api/league/winners?key=${encodeURIComponent(key)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            week: winnerWeek,
+            sourceFile: data.state.winnerFile,
+          }),
+        },
+      );
+      const json = (await response.json()) as WeeklyWinnersResp & {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(json?.error || "Erro ao salvar vencedor");
+      }
+
+      setWeeklyWinners(json.winners ?? []);
+      setWinnerWeek("");
+      setMsg("Vencedor salvo no historico da Liga.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro";
+      setMsg(message);
+    } finally {
+      setWinnerBusy(false);
+    }
+  }
+
+  async function deleteArchivedWinner(winner: WeeklyWinner) {
+    if (!key) {
+      setMsg("Falta a chave na URL: /sorteio/admin?key=SEU_SEGREDO");
+      return;
+    }
+
+    const shouldDelete = window.confirm(`Excluir vencedor ${winner.week}?`);
+    if (!shouldDelete) return;
+
+    setWinnerBusy(true);
+    setMsg("");
+
+    try {
+      const response = await fetch(
+        `/api/league/winners?key=${encodeURIComponent(key)}&id=${encodeURIComponent(winner.id)}`,
+        { method: "DELETE" },
+      );
+      const json = (await response.json()) as WeeklyWinnersResp & {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(json?.error || "Erro ao excluir vencedor");
+      }
+
+      setWeeklyWinners(json.winners ?? []);
+      setMsg("Vencedor removido do historico.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro";
+      setMsg(message);
+    } finally {
+      setWinnerBusy(false);
     }
   }
 
@@ -567,14 +706,26 @@ export default function SorteioAdmin() {
               </p>
             </div>
             {data && data.images.length > 0 && (
-              <button
-                type="button"
-                onClick={clearImages}
-                disabled={uploadBusy}
-                className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-100 disabled:opacity-50"
-              >
-                Limpar semana
-              </button>
+              <div className="flex flex-wrap gap-2">
+                {data.winnerUrl && (
+                  <button
+                    type="button"
+                    onClick={clearImagesKeepingWinner}
+                    disabled={uploadBusy}
+                    className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-100 disabled:opacity-50"
+                  >
+                    Limpar stories e manter vencedor
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={clearImages}
+                  disabled={uploadBusy}
+                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-100 disabled:opacity-50"
+                >
+                  Limpar semana
+                </button>
+              </div>
             )}
           </div>
 
@@ -607,6 +758,75 @@ export default function SorteioAdmin() {
               </button>
             </div>
           </form>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-black">Vencedores por semana</h2>
+              <p className="mt-1 text-sm text-white/60">
+                Salve manualmente o vencedor atual no historico separado.
+              </p>
+            </div>
+          </div>
+
+          <form
+            onSubmit={archiveCurrentWinner}
+            className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]"
+          >
+            <input
+              value={winnerWeek}
+              onChange={(event) => setWinnerWeek(event.target.value)}
+              placeholder="Semana 1"
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-orange-500"
+            />
+            <button
+              type="submit"
+              disabled={winnerBusy || !data?.state.winnerFile}
+              className="rounded-xl bg-[#ff5c0c] px-4 py-2 font-bold text-black disabled:opacity-50"
+            >
+              {winnerBusy ? "Salvando..." : "Salvar vencedor atual"}
+            </button>
+          </form>
+
+          {weeklyWinners.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-white/60">
+              Nenhum vencedor salvo ainda.
+            </p>
+          ) : (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {weeklyWinners.map((winner) => (
+                <div
+                  key={winner.id}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-black/30"
+                >
+                  <div className="relative aspect-[9/16] w-full">
+                    <Image
+                      src={winner.url}
+                      alt={winner.week}
+                      fill
+                      sizes="(min-width: 768px) 25vw, 50vw"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 p-3">
+                    <p className="truncate text-sm font-black text-white">
+                      {winner.week}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => deleteArchivedWinner(winner)}
+                      disabled={winnerBusy}
+                      className="rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-bold text-red-100 disabled:opacity-50"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {msg && (

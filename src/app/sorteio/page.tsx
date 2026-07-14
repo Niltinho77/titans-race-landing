@@ -33,6 +33,16 @@ type LeagueResp = {
   participants: LeagueParticipant[];
 };
 
+type WeeklyWinner = {
+  id: string;
+  week: string;
+  url: string;
+};
+
+type WeeklyWinnersResp = {
+  winners: WeeklyWinner[];
+};
+
 type LeagueLevel = {
   name: "Recruta" | "Guerreiro" | "Gladiador" | "Titan";
   min: number;
@@ -231,6 +241,7 @@ function useDrawAudio() {
 export default function SorteioPublico() {
   const [data, setData] = useState<StateResp | null>(null);
   const [leagueParticipants, setLeagueParticipants] = useState<LeagueParticipant[]>([]);
+  const [weeklyWinners, setWeeklyWinners] = useState<WeeklyWinner[]>([]);
   const [leagueLoading, setLeagueLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -252,6 +263,12 @@ export default function SorteioPublico() {
     const json = (await response.json()) as LeagueResp;
     setLeagueParticipants(json.participants ?? []);
     setLeagueLoading(false);
+  }
+
+  async function fetchWeeklyWinners() {
+    const response = await fetch("/api/league/winners", { cache: "no-store" });
+    const json = (await response.json()) as WeeklyWinnersResp;
+    setWeeklyWinners(json.winners ?? []);
   }
 
   async function runAnimation(images: string[], winnerUrl: string) {
@@ -352,6 +369,7 @@ export default function SorteioPublico() {
         await fetchLeagueParticipants().catch(() => {
           if (alive) setLeagueLoading(false);
         });
+        await fetchWeeklyWinners().catch(() => {});
         await sleep(15000);
       }
     }
@@ -399,6 +417,12 @@ export default function SorteioPublico() {
           participants={leagueParticipants}
           isLoading={leagueLoading}
         />
+
+        {showWinnerOnly && winnerUrl && (
+          <WeeklyWinnerHighlight winnerUrl={winnerUrl} />
+        )}
+
+        <WeeklyWinnersArchive winners={weeklyWinners} />
 
         <SimpleRulesCard />
 
@@ -819,6 +843,100 @@ function SimpleRulesCard() {
           </div>
         );
       })}
+    </section>
+  );
+}
+
+function WeeklyWinnerHighlight({ winnerUrl }: { winnerUrl: string }) {
+  return (
+    <section className="overflow-hidden rounded-[1.5rem] border border-emerald-300/25 bg-emerald-400/[0.08] shadow-2xl shadow-emerald-950/25">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="relative min-h-[420px] overflow-hidden bg-black md:min-h-[520px]">
+          <Image
+            src={winnerUrl}
+            alt="Vencedor da semana"
+            fill
+            sizes="(min-width: 1024px) 42vw, 100vw"
+            className="object-cover"
+            unoptimized
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent lg:bg-gradient-to-r" />
+          <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-emerald-300/35 bg-black/65 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-100 backdrop-blur">
+            <Trophy className="h-4 w-4 text-[#ff5c0c]" />
+            Vencedor da semana
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center p-5 md:p-8 lg:p-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-orange-200">
+            Destaque da Liga Titans
+          </p>
+          <h2 className="mt-3 text-4xl font-black uppercase text-white md:text-5xl">
+            Campeao da semana
+          </h2>
+          <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-zinc-300 md:text-lg">
+            O story vencedor fica fixado aqui ate o proximo sorteio semanal.
+          </p>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
+                Status
+              </p>
+              <p className="mt-1 text-xl font-black text-emerald-200">
+                Vencedor definido
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-4">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-500">
+                Premio
+              </p>
+              <p className="mt-1 text-xl font-black text-orange-100">
+                Destaque na Liga
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WeeklyWinnersArchive({ winners }: { winners: WeeklyWinner[] }) {
+  if (!winners.length) return null;
+
+  return (
+    <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 md:p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500/15 text-orange-200">
+          <Crown className="h-5 w-5" />
+        </div>
+        <h2 className="text-2xl font-black text-white">Vencedores</h2>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {winners.map((winner) => (
+          <div
+            key={winner.id}
+            className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]"
+          >
+            <div className="relative aspect-[9/16] w-full bg-black">
+              <Image
+                src={winner.url}
+                alt={winner.week}
+                fill
+                sizes="(min-width: 1024px) 25vw, 50vw"
+                className="object-cover"
+                unoptimized
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-3">
+                <p className="text-lg font-black text-white">{winner.week}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   deleteAllWeekImages,
+  deleteWeekImagesExcept,
   deleteWeekImage,
   listWeekImages,
   nowIso,
   publicUrlFor,
+  readState,
   saveWeekImages,
   writeState,
 } from "@/lib/drawStore";
@@ -72,23 +74,49 @@ export async function DELETE(req: Request) {
     const url = new URL(req.url);
     const file = url.searchParams.get("file");
     const all = url.searchParams.get("all") === "1";
+    const keepWinner = url.searchParams.get("keepWinner") === "1";
+    const currentState = await readState();
 
-    if (all) {
+    if (all && keepWinner) {
+      if (!currentState.winnerFile) {
+        return NextResponse.json(
+          { error: "Nao ha vencedor definido para manter." },
+          { status: 400 },
+        );
+      }
+
+      await deleteWeekImagesExcept(currentState.winnerFile);
+      await writeState({
+        status: "FINISHED",
+        winnerFile: currentState.winnerFile,
+        updatedAt: nowIso(),
+      });
+    } else if (all) {
       await deleteAllWeekImages();
+      await writeState({
+        status: "IDLE",
+        winnerFile: null,
+        updatedAt: nowIso(),
+      });
     } else if (file) {
       await deleteWeekImage(file);
+      await writeState({
+        status:
+          currentState.winnerFile && file !== currentState.winnerFile
+            ? currentState.status
+            : "IDLE",
+        winnerFile:
+          currentState.winnerFile && file !== currentState.winnerFile
+            ? currentState.winnerFile
+            : null,
+        updatedAt: nowIso(),
+      });
     } else {
       return NextResponse.json(
         { error: "Informe a imagem para excluir." },
         { status: 400 },
       );
     }
-
-    await writeState({
-      status: "IDLE",
-      winnerFile: null,
-      updatedAt: nowIso(),
-    });
 
     const files = await listWeekImages();
     return NextResponse.json({ ok: true, ...imagesResponse(files) });
