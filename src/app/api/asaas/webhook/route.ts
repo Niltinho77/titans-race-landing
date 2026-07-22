@@ -198,6 +198,24 @@ export async function POST(req: NextRequest) {
     const becamePaid =
       updateData.status === "PAID" && order.status !== "PAID";
 
+    // O limite do cupom representa pagamentos confirmados, não tentativas de
+    // checkout. Como `becamePaid` só é verdadeiro na transição para PAID, um
+    // webhook repetido não consome o cupom novamente.
+    if (becamePaid && updatedOrder.couponCode) {
+      try {
+        await prisma.coupon.update({
+          where: { code: updatedOrder.couponCode },
+          data: { usedCount: { increment: 1 } },
+        });
+      } catch (couponError) {
+        console.error("[ASAAS WEBHOOK] Falha ao incrementar cupom:", {
+          orderId: updatedOrder.id,
+          couponCode: updatedOrder.couponCode,
+          error: couponError,
+        });
+      }
+    }
+
     const recipients = Array.from(
   new Map(
     updatedOrder.participants
@@ -263,13 +281,16 @@ if (becamePaid && !updatedOrder.confirmationEmailSentAt && recipients.length > 0
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[ASAAS WEBHOOK] Erro interno:", error);
 
     return NextResponse.json(
       {
         received: false,
-        error: error?.message || "Erro interno no webhook Asaas.",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro interno no webhook Asaas.",
       },
       { status: 500 }
     );

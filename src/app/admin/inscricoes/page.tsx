@@ -127,6 +127,15 @@ function pickMainParticipant(order: OrderWithParticipants) {
   return order.participants[0] ?? null;
 }
 
+function isComplimentaryOrder(order: OrderWithParticipants) {
+  return (
+    order.status === "PAID" &&
+    order.asaasPaymentStatus === "COMPLIMENTARY" &&
+    order.couponCode !== null &&
+    order.discountedTotalAmount === 0
+  );
+}
+
 export default async function AdminInscricoesPage() {
   const orders: OrderWithParticipants[] = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
@@ -137,6 +146,11 @@ export default async function AdminInscricoesPage() {
   const pagos = orders.filter((o) => o.status === "PAID").length;
   const pendentes = orders.filter((o) => o.status === "PENDING").length;
   const falhos = orders.filter((o) => o.status === "FAILED").length;
+  const complimentaryOrders = orders.filter(isComplimentaryOrder);
+  const complimentaryAthletes = complimentaryOrders.reduce(
+    (sum, order) => sum + order.participants.length,
+    0
+  );
 
   const atletasPagos = orders
     .filter((o) => o.status === "PAID")
@@ -194,7 +208,7 @@ export default async function AdminInscricoesPage() {
         </header>
 
         {/* Top summary */}
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <ResumoCard
             title="Atletas inscritos"
             value={String(atletasPagos)}
@@ -214,7 +228,60 @@ export default async function AdminInscricoesPage() {
             subtitle="Aguardando confirmação · Erro/cancelado"
             color="yellow"
           />
+          <ResumoCard
+            title="Inscrições gratuitas"
+            value={String(complimentaryAthletes)}
+            subtitle={`${complimentaryOrders.length} pedidos de cortesia`}
+            color="emerald"
+          />
         </section>
+
+        {complimentaryOrders.length > 0 && (
+          <details className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5" open>
+            <summary className="cursor-pointer list-none px-5 py-4">
+              <p className="text-[11px] uppercase tracking-[0.25em] text-emerald-300/70">
+                Cortesias confirmadas
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-white">
+                {complimentaryAthletes} atletas em {complimentaryOrders.length} pedidos gratuitos
+              </h2>
+            </summary>
+
+            <div className="grid gap-3 border-t border-emerald-500/20 px-5 py-4 md:grid-cols-2">
+              {complimentaryOrders.map((order) => {
+                const modality = getModalityById(order.modalityId);
+
+                return (
+                  <div
+                    key={`complimentary-${order.id}`}
+                    className="rounded-2xl border border-white/10 bg-black/40 p-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
+                      <span>{modality?.name ?? order.modalityId}</span>
+                      <span>·</span>
+                      <span>{formatDate(order.createdAt)}</span>
+                      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                        Cupom {order.couponCode}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {order.participants.map((participant) => (
+                        <Link
+                          key={participant.id}
+                          href={`/admin/inscricoes/participante/${participant.id}`}
+                          className="block text-sm font-semibold text-zinc-100 hover:text-orange-300"
+                        >
+                          {participant.fullName}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
 
         <section className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
           <div className="rounded-3xl border border-white/10 bg-black/70 p-4">
@@ -347,6 +414,12 @@ export default async function AdminInscricoesPage() {
                                   {order.couponCode && (
                                     <span className="text-[11px] text-zinc-500">
                                       Cupom: <span className="font-mono text-zinc-200">{order.couponCode}</span>
+                                    </span>
+                                  )}
+
+                                  {isComplimentaryOrder(order) && (
+                                    <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
+                                      Gratuita
                                     </span>
                                   )}
 

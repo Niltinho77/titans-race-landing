@@ -26,6 +26,10 @@ export async function POST(req: Request) {
       typeof body?.subtotal === "number" && Number.isFinite(body.subtotal)
         ? Math.round(body.subtotal)
         : null;
+    const discountBase =
+      typeof body?.discountBase === "number" && Number.isFinite(body.discountBase)
+        ? Math.round(body.discountBase)
+        : subtotal;
 
     if (!code) {
       return NextResponse.json({ error: "Informe um código de cupom." }, { status: 400 });
@@ -35,7 +39,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Modalidade inválida." }, { status: 400 });
     }
 
-    if (subtotal === null || subtotal < 0) {
+    if (
+      subtotal === null ||
+      subtotal < 0 ||
+      discountBase === null ||
+      discountBase < 0 ||
+      discountBase > subtotal
+    ) {
       return NextResponse.json({ error: "Subtotal inválido." }, { status: 400 });
     }
 
@@ -108,10 +118,11 @@ export async function POST(req: Request) {
     } else {
       // PERCENT
       const pct = Math.max(0, Math.min(100, coupon.amount)); // ex: 10 = 10%
-      discountAmount = Math.round((subtotal * pct) / 100);
+      discountAmount = Math.round((discountBase * pct) / 100);
     }
 
-    discountAmount = Math.min(discountAmount, subtotal);
+    // Cupons dão desconto na inscrição; produtos extras continuam cobrados.
+    discountAmount = Math.min(discountAmount, discountBase);
     const totalAfterDiscount = Math.max(0, subtotal - discountAmount);
 
     return NextResponse.json({

@@ -10,6 +10,7 @@ import {
   ModalityId,
 } from "@/config/checkout";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 type ParticipantExtra = {
   type: ExtraType;
@@ -240,6 +241,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           code,
           modalityId: modality.id,
           subtotal: grandTotal,
+          discountBase: ticketsTotal,
         }),
       });
 
@@ -251,10 +253,12 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
 
       setAppliedCoupon(String(data.code || code));
       setDiscountAmount(Number(data.discountAmount) || 0);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setAppliedCoupon(null);
       setDiscountAmount(0);
-      setCouponError(e?.message || "Não foi possível aplicar o cupom.");
+      setCouponError(
+        e instanceof Error ? e.message : "Não foi possível aplicar o cupom."
+      );
     } finally {
       setCouponLoading(false);
     }
@@ -434,9 +438,11 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
       setSubmitError(
         "Inscrição registrada, mas não foi possível abrir o pagamento. Entre em contato com a organização."
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setSubmitError(err.message || "Erro inesperado ao finalizar.");
+      setSubmitError(
+        err instanceof Error ? err.message : "Erro inesperado ao finalizar."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -645,12 +651,12 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         </div>
 
         <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
-          <a
+          <Link
             href="/#inicio"
             className="w-full rounded-full border border-white/20 px-4 py-2 text-center font-medium uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5 md:w-auto"
           >
             Voltar para o início
-          </a>
+          </Link>
 
           <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:justify-end md:gap-3">
             {step > 1 && (

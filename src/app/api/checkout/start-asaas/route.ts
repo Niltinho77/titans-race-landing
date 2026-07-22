@@ -14,6 +14,7 @@ import {
   normalizeCpfCnpj,
   normalizePhone,
 } from "@/lib/asaas";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 type ExtraType = "camisa" | "luva" | "meia";
 
@@ -78,6 +79,8 @@ function getBaseUrl(req: Request) {
 }
 
 export async function POST(req: Request) {
+  let createdOrderId: string | null = null;
+
   try {
     const body = (await req.json()) as CheckoutPayload;
 
@@ -134,6 +137,7 @@ export async function POST(req: Request) {
 
     let discountAmount = 0;
     let appliedCouponCode: string | null = null;
+    let appliedCouponMaxUses: number | null = null;
 
     if (couponCode) {
       const coupon = await prisma.coupon.findFirst({
@@ -187,25 +191,28 @@ export async function POST(req: Request) {
       }
 
       if (coupon.type === "PERCENT") {
-        discountAmount = Math.round(subtotal * (coupon.amount / 100));
+        discountAmount = Math.round(ticketsAmount * (coupon.amount / 100));
       } else {
         discountAmount = coupon.amount;
       }
 
-      discountAmount = Math.min(discountAmount, subtotal);
+      // A cortesia cobre a inscrição, não os produtos extras.
+      discountAmount = Math.min(discountAmount, ticketsAmount);
       appliedCouponCode = coupon.code;
+      appliedCouponMaxUses = coupon.maxUses;
     }
 
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
     const { totalWithFee, feeAmount } = calculateFee(discountedTotalAmount);
+    const isComplimentary =
+      appliedCouponCode !== null && discountedTotalAmount === 0;
 
     const teamMode = body.modalityId === "equipes";
 
-    const order = await prisma.order.create({
-      data: {
-        modalityId: body.modalityId,
+    const orderData = {
+      modalityId: body.modalityId,
         tickets: body.tickets,
-        status: "PENDING",
+        status: isComplimentary ? "PAID" : "PENDING",
         termsAccepted: body.termsAccepted,
 
         ticketsAmount,
@@ -217,6 +224,7 @@ export async function POST(req: Request) {
         totalAmountWithFee: totalWithFee,
 
         couponCode: appliedCouponCode,
+        asaasPaymentStatus: isComplimentary ? "COMPLIMENTARY" : null,
 
         participants: {
           create: body.participants.map((participant, index) => ({
@@ -243,13 +251,78 @@ export async function POST(req: Request) {
             },
           })),
         },
-      },
-      include: {
-        participants: true,
-      },
-    });
+    };
 
-    const responsibleParticipant = body.participants[0];
+    const order = isComplimentary
+      ? await prisma.$transaction(async (tx) => {
+          const claimedCoupon = await tx.coupon.updateMany({
+            where: {
+              code: appliedCouponCode!,
+              active: true,
+              ...(typeof appliedCouponMaxUses === "number"
+                ? { usedCount: { lt: appliedCouponMaxUses } }
+                : {}),
+            },
+            data: { usedCount: { increment: 1 } },
+          });
+
+          if (claimedCoupon.count !== 1) {
+            throw new Error("Cupom esgotado.");
+          }
+
+          return tx.order.create({
+            data: orderData,
+            include: { participants: true },
+          });
+        })
+      : await prisma.order.create({
+          data: orderData,
+          include: { participants: true },
+        });
+
+    createdOrderId = order.id;
+
+    if (isComplimentary) {
+      const recipients = Array.from(
+        new Map(
+          order.participants
+            .filter((participant) => participant.email.trim().length > 0)
+            .map((participant) => [
+              participant.email.trim().toLowerCase(),
+              participant,
+            ])
+        ).values()
+      );
+
+      try {
+        for (const participant of recipients) {
+          await sendOrderConfirmationEmail({
+            to: participant.email.trim().toLowerCase(),
+            participantName: participant.fullName,
+            orderId: order.id,
+            modalityName: modality.name,
+            totalAmount: 0,
+          });
+        }
+
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { confirmationEmailSentAt: new Date() },
+        });
+      } catch (emailError) {
+        console.error(
+          "Falha ao enviar confirmação da inscrição gratuita:",
+          emailError
+        );
+      }
+
+      return NextResponse.json({
+        orderId: order.id,
+        complimentary: true,
+        checkoutUrl: `/checkout/sucesso?orderId=${order.id}`,
+      });
+    }
+
     const baseUrl = getBaseUrl(req);
 
     const checkout = await createAsaasCheckout({
@@ -292,13 +365,39 @@ export async function POST(req: Request) {
       orderId: order.id,
       checkoutUrl: checkout.checkoutUrl,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro ao iniciar checkout Asaas:", error);
+
+    // A inscrição já pode ter sido persistida antes de o Asaas rejeitar o
+    // checkout. Nesse caso, ela não deve continuar aparecendo como pagamento
+    // pendente, pois nenhuma cobrança foi criada no provedor.
+    if (createdOrderId) {
+      try {
+        await prisma.order.updateMany({
+          where: {
+            id: createdOrderId,
+            asaasCheckoutId: null,
+            status: "PENDING",
+          },
+          data: {
+            status: "FAILED",
+            asaasPaymentStatus: "CHECKOUT_CREATE_FAILED",
+          },
+        });
+      } catch (statusError) {
+        console.error(
+          "Falha ao marcar pedido sem checkout como FAILED:",
+          statusError
+        );
+      }
+    }
 
     return NextResponse.json(
       {
         error:
-          error?.message || "Não foi possível iniciar o pagamento com o Asaas.",
+          error instanceof Error
+            ? error.message
+            : "Não foi possível iniciar o pagamento com o Asaas.",
       },
       { status: 500 }
     );
