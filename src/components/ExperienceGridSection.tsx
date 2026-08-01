@@ -69,7 +69,7 @@ const tilesBase: Tile[] = [
 ];
 
 export function ExperienceGridSection() {
-  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // 2º lote aberto
+  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // 3º lote aberto
 
 const isTileEnabled = (tile: Tile) =>
   ENABLED_TILES.includes(tile.id) || tile.id === "contato";

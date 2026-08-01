@@ -40,9 +40,9 @@ const lots: Lot[] = [
 ];
 
 // ================= CONFIG RÁPIDA =================
-const SOLD_OUT_LOT_ID = "lotePromocional";
-const NEXT_OPEN_LOT_ID = "lote2";
-const NEXT_LOT_NAME = "2º Lote";
+const SOLD_OUT_LOT_IDS = ["lotePromocional", "lote2"];
+const NEXT_OPEN_LOT_ID = "lote3";
+const NEXT_LOT_NAME = "3º Lote";
 
 // contador para 7 dias
 const NEXT_LOT_OPENS_AT_ISO = "2026-04-15T23:59:59-03:00";
@@ -73,7 +73,7 @@ function countdownCopy(days: number) {
 }
 
 function getLotVisualState(lotId: string) {
-  if (lotId === SOLD_OUT_LOT_ID) return "soldout";
+  if (SOLD_OUT_LOT_IDS.includes(lotId)) return "soldout";
   if (lotId === NEXT_OPEN_LOT_ID) return "open";
   return "locked";
 }
@@ -110,18 +110,18 @@ export function RegistrationSection() {
             </p>
 
             <h2 className="mt-3 heading-adventure text-3xl text-white md:text-5xl">
-              2º Lote aberto
+              3º Lote aberto
             </h2>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">
-              O lote promocional encerrou. O{" "}
+              Os lotes anteriores encerraram. O{" "}
               <span className="font-semibold text-white">{NEXT_LOT_NAME}</span>{" "}
               está aberto agora — vagas limitadas. Garanta a sua antes que
               esgotem.
             </p>
           </div>
 
-          {/* Countdown temporariamente desabilitado — 2º lote aberto */}
+          {/* Countdown temporariamente desabilitado — 3º lote aberto */}
           {/* <div className="w-full max-w-md rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-orange-500/10 to-transparent p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black">
