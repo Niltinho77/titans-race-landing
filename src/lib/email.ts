@@ -162,3 +162,73 @@ export async function sendOrderConfirmationEmail(
     html,
   });
 }
+
+type SendPortalPasswordSetupParams = {
+  to: string;
+  name?: string | null;
+  setupUrl: string;
+  expiresAt: Date;
+};
+
+export async function sendPortalPasswordSetupEmail(
+  params: SendPortalPasswordSetupParams
+) {
+  if (!resend || !fromEmail) {
+    console.warn("Resend nao configurado corretamente. Pulando envio de e-mail.");
+    return;
+  }
+
+  const expiresAtFormatted = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(params.expiresAt);
+
+  const subject = "Defina sua senha do Portal Titans Race";
+
+  const html = `
+<div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e5e5e5; background: #020617; padding: 24px;">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <div style="max-width: 560px; margin: 0 auto; background: #020617; border-radius: 16px; border: 1px solid rgba(148,163,184,0.4); padding: 24px;">
+    <h1 style="color: #f97316; font-size: 20px; margin: 0 0 8px 0;">
+      Portal do Inscrito Titans Race
+    </h1>
+
+    <p style="color: #e5e5e5; font-size: 14px; margin: 0 0 16px 0;">
+      Ol&aacute;${params.name ? `, <strong>${params.name}</strong>` : ""}.
+    </p>
+
+    <p style="color: #cbd5f5; font-size: 14px; margin: 0 0 12px 0;">
+      Criamos o acesso ao portal para voc&ecirc; consultar e atualizar dados permitidos da sua inscri&ccedil;&atilde;o.
+    </p>
+
+    <p style="color: #cbd5f5; font-size: 14px; margin: 0 0 18px 0;">
+      Para come&ccedil;ar, defina sua senha pelo bot&atilde;o abaixo. Este link expira em ${expiresAtFormatted}.
+    </p>
+
+    <p style="margin: 24px 0;">
+      <a href="${params.setupUrl}" style="display: inline-block; background: #f97316; color: #020617; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 999px; padding: 12px 18px; text-transform: uppercase; letter-spacing: 0.08em;">
+        Definir minha senha
+      </a>
+    </p>
+
+    <p style="font-size: 12px; color: #9ca3af; margin-top: 16px;">
+      Se voc&ecirc; n&atilde;o solicitou este acesso, ignore este e-mail.
+    </p>
+
+    <p style="font-size: 11px; color: #4b5563; margin-top: 18px;">
+      Titans Race
+    </p>
+  </div>
+</div>
+`;
+
+  await resend.emails.send({
+    from: fromEmail,
+    to: params.to,
+    subject,
+    html,
+  });
+}

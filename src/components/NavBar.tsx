@@ -1,4 +1,3 @@
-// src/components/NavBar.tsx
 "use client";
 
 import Link from "next/link";
@@ -11,47 +10,45 @@ type NavItem = {
   href: string;
   label: string;
   kind: "hash" | "page";
-  highlight?: boolean;
 };
 
 export function NavBar() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-
   const onHome = pathname === "/";
 
   const links: NavItem[] = useMemo(() => {
-    // Se estiver na HOME: usa âncoras (#...)
-    // Se estiver em outra página (ex: /sorteio): manda pra HOME + âncora
     const H = (hash: string) => (onHome ? hash : `/${hash}`);
 
     return [
       { href: "/sorteio", label: "Liga Titans", kind: "page" },
       { href: H("#inscricoes"), label: "Modalidades", kind: "hash" },
       { href: H("#local"), label: "Local", kind: "hash" },
-      { href: H("#inscricoes"), label: "Inscrições", kind: "hash" },
+      { href: H("#inscricoes"), label: "Inscri&ccedil;&otilde;es", kind: "hash" },
+      { href: "/portal/login", label: "Portal", kind: "page" },
       { href: H("#patrocinadores"), label: "Patrocinadores", kind: "hash" },
       { href: H("#contato"), label: "Contato", kind: "hash" },
     ];
   }, [onHome]);
 
   const ctaHref = onHome ? "#inscricoes" : "/#inscricoes";
-
   const toggle = () => setOpen((prev) => !prev);
   const close = () => setOpen(false);
-
   const isActivePage = (href: string) => pathname === href;
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        {/* LOGO */}
         <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Link href={onHome ? "#inicio" : "/#inicio"} className="flex items-center gap-3" onClick={close}>
+          <Link
+            href={onHome ? "#inicio" : "/#inicio"}
+            className="flex items-center gap-3"
+            onClick={close}
+          >
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-black/60 shadow-[0_0_12px_rgba(0,0,0,0.6)]">
               <span className="text-xs font-semibold tracking-wide text-zinc-200">TR</span>
             </div>
@@ -62,12 +59,10 @@ export function NavBar() {
           </Link>
         </motion.div>
 
-        {/* LINKS DESKTOP */}
-        <nav className="hidden items-center gap-6 text-xs font-medium text-zinc-300 md:flex">
+        <nav className="hidden items-center gap-5 text-xs font-medium text-zinc-300 md:flex">
           {links.map((link) => {
             const active = link.kind === "page" && isActivePage(link.href);
 
-            // Página (Next Link) vs Âncora (a)
             if (link.kind === "page") {
               return (
                 <motion.div key={link.href} whileHover={{ scale: 1.05 }}>
@@ -75,15 +70,11 @@ export function NavBar() {
                     href={link.href}
                     onClick={close}
                     className={[
-                      "relative uppercase tracking-[0.22em] text-[10px] transition-colors",
+                      "relative text-[10px] uppercase tracking-[0.2em] transition-colors",
                       active ? "text-orange-400" : "hover:text-orange-400",
                     ].join(" ")}
-                  >
-                    {link.label}
-                    {active && (
-                      <span className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full bg-orange-400/80" />
-                    )}
-                  </Link>
+                    dangerouslySetInnerHTML={{ __html: link.label }}
+                  />
                 </motion.div>
               );
             }
@@ -93,16 +84,14 @@ export function NavBar() {
                 key={link.href}
                 href={link.href}
                 onClick={close}
-                className="relative uppercase tracking-[0.22em] text-[10px] transition-colors hover:text-orange-400"
+                className="relative text-[10px] uppercase tracking-[0.2em] transition-colors hover:text-orange-400"
                 whileHover={{ scale: 1.05 }}
-              >
-                {link.label}
-              </motion.a>
+                dangerouslySetInnerHTML={{ __html: link.label }}
+              />
             );
           })}
         </nav>
 
-        {/* CTA DESKTOP */}
         <motion.a
           href={ctaHref}
           onClick={close}
@@ -114,7 +103,6 @@ export function NavBar() {
           Inscreva-se
         </motion.a>
 
-        {/* BOTÃO MOBILE (MENU) */}
         <button
           type="button"
           onClick={toggle}
@@ -125,7 +113,6 @@ export function NavBar() {
         </button>
       </div>
 
-      {/* MENU MOBILE */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -149,9 +136,8 @@ export function NavBar() {
                         "rounded-xl px-3 py-3 text-[11px] font-medium uppercase tracking-[0.18em] transition",
                         active ? "bg-white/10 text-orange-300" : "text-zinc-100 hover:bg-white/5",
                       ].join(" ")}
-                    >
-                      {link.label}
-                    </Link>
+                      dangerouslySetInnerHTML={{ __html: link.label }}
+                    />
                   );
                 }
 
@@ -161,9 +147,8 @@ export function NavBar() {
                     href={link.href}
                     onClick={close}
                     className="rounded-xl px-3 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-zinc-100 transition hover:bg-white/5"
-                  >
-                    {link.label}
-                  </a>
+                    dangerouslySetInnerHTML={{ __html: link.label }}
+                  />
                 );
               })}
 

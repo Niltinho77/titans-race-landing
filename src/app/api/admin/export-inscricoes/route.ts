@@ -1,6 +1,7 @@
 // src/app/api/admin/export-inscricoes/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentPortalUser } from "@/lib/portalAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,10 @@ function formatDateBR(date: Date) {
 }
 
 export async function GET() {
+  const user = await getCurrentPortalUser();
+  if (!user) return NextResponse.json({ error: "NÃ£o autorizado." }, { status: 401 });
+  if (user.role !== "ADMIN") return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+
   const orders = await prisma.order.findMany({
     where: { status: "PAID" },
     include: {

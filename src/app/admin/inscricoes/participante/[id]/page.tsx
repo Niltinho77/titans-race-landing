@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import EditParticipantForm from "./EditParticipantForm";
+import { requireAdminUser } from "@/lib/portalAuth";
+import PortalHeader from "@/components/portal/PortalHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +11,7 @@ export default async function EditParticipantPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requireAdminUser();
   const { id } = await params; // ✅ DESENROLA params (Promise) antes de usar
 
   const participant = await prisma.participant.findUnique({
@@ -18,11 +21,12 @@ export default async function EditParticipantPage({
 
   if (!participant) {
     return (
-      <main className="min-h-screen bg-black px-4 pb-24 pt-20 text-zinc-200">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-white/10 bg-black/70 p-6">
+      <main className="min-h-screen bg-black pb-24 text-zinc-200">
+        <PortalHeader email={user.email} role={user.role} />
+        <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-white/10 bg-black/70 p-6">
           Participante não encontrado.
           <div className="mt-4">
-            <Link className="text-orange-300 underline" href="/admin/inscricoes">
+            <Link className="text-orange-300 underline" href="/portal/admin/inscricoes">
               Voltar
             </Link>
           </div>
@@ -32,8 +36,9 @@ export default async function EditParticipantPage({
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 pb-24 pt-20 text-zinc-200">
-      <div className="mx-auto max-w-3xl space-y-4">
+    <main className="min-h-screen bg-black pb-24 text-zinc-200">
+      <PortalHeader email={user.email} role={user.role} />
+      <div className="mx-auto max-w-3xl space-y-4 px-4 pt-10">
         <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
@@ -50,7 +55,7 @@ export default async function EditParticipantPage({
           </div>
 
           <Link
-            href="/admin/inscricoes"
+            href="/portal/admin/inscricoes"
             className="rounded-full border border-white/15 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-100 hover:bg-white/5"
           >
             Voltar

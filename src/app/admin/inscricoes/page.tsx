@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import Link from "next/link";
 import { getModalityById } from "@/config/checkout";
+import { requireAdminUser } from "@/lib/portalAuth";
+import PortalHeader from "@/components/portal/PortalHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +139,7 @@ function isComplimentaryOrder(order: OrderWithParticipants) {
 }
 
 export default async function AdminInscricoesPage() {
+  const user = await requireAdminUser();
   const orders: OrderWithParticipants[] = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
     include: { participants: { include: { extras: true } } },
@@ -174,8 +177,9 @@ export default async function AdminInscricoesPage() {
   const modalityEntries = Object.entries(groupedByModality).sort((a, b) => b[1].length - a[1].length);
 
   return (
-    <main className="min-h-screen bg-black px-4 pb-24 pt-20">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <main className="min-h-screen bg-black pb-24">
+      <PortalHeader email={user.email} role={user.role} />
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pt-10">
         {/* Header */}
         <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
@@ -269,7 +273,7 @@ export default async function AdminInscricoesPage() {
                       {order.participants.map((participant) => (
                         <Link
                           key={participant.id}
-                          href={`/admin/inscricoes/participante/${participant.id}`}
+                          href={`/portal/admin/participante/${participant.id}`}
                           className="block text-sm font-semibold text-zinc-100 hover:text-orange-300"
                         >
                           {participant.fullName}
@@ -498,7 +502,7 @@ export default async function AdminInscricoesPage() {
                                                 {p.fullName}
                                               </p>
                                               <Link
-                                                href={`/admin/inscricoes/participante/${p.id}`}
+                                                href={`/portal/admin/participante/${p.id}`}
                                                 className="mt-2 inline-flex w-fit rounded-full border border-white/20 bg-black/50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-100 hover:bg-white/5"
                                               >
                                                 Editar
@@ -609,3 +613,4 @@ function ResumoCard({
     </div>
   );
 }
+

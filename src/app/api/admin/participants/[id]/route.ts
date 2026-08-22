@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentPortalUser } from "@/lib/portalAuth";
 
 const onlyDigits = (v: string) => (v ?? "").replace(/\D/g, "");
 
@@ -7,6 +8,10 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getCurrentPortalUser();
+  if (!user) return NextResponse.json({ error: "NÃ£o autorizado." }, { status: 401 });
+  if (user.role !== "ADMIN") return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
+
   try {
     const { id } = await params;
     const body = await req.json().catch(() => null);

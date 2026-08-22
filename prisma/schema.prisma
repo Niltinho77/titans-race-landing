@@ -53,7 +53,7 @@ model Order {
 }
 
 model Participant {
-  id             String             @id @default(cuid())
+  id             String                 @id @default(cuid())
   orderId        String
   fullName       String
   cpf            String
@@ -66,10 +66,11 @@ model Participant {
   emergencyName  String?
   emergencyPhone String?
   healthInfo     String?
-  order          Order              @relation(fields: [orderId], references: [id])
+  order          Order                  @relation(fields: [orderId], references: [id])
   extras         ParticipantExtra[]
   bibNumber      Int?
   teamIndex      Int? // só faz sentido pra "equipes" (e opcionalmente "duplas" se quiser)
+  changeLogs     ParticipantChangeLog[]
 }
 
 model ParticipantExtra {
@@ -124,4 +125,64 @@ model LeagueParticipant {
   points    Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum PortalRole {
+  PARTICIPANT
+  ADMIN
+}
+
+model PortalUser {
+  id                    String                 @id @default(cuid())
+  email                 String                 @unique
+  name                  String?
+  passwordHash          String?
+  role                  PortalRole             @default(PARTICIPANT)
+  requiresPasswordSetup Boolean                @default(true)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  sessions              PortalSession[]
+  passwordTokens        PortalPasswordToken[]
+  changeLogs            ParticipantChangeLog[]
+}
+
+model PortalSession {
+  id        String     @id @default(cuid())
+  tokenHash String     @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime   @default(now())
+  user      PortalUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PortalPasswordToken {
+  id        String     @id @default(cuid())
+  tokenHash String     @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime   @default(now())
+  user      PortalUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model ParticipantChangeLog {
+  id            String      @id @default(cuid())
+  participantId String
+  actorUserId   String?
+  action        String
+  beforeJson    Json?
+  afterJson     Json?
+  createdAt     DateTime    @default(now())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  actor         PortalUser? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([participantId])
+  @@index([actorUserId])
+  @@index([action])
 }
