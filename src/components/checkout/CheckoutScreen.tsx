@@ -11,6 +11,7 @@ import {
 } from "@/config/checkout";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 
 type ParticipantExtra = {
   type: ExtraType;
@@ -169,6 +170,27 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     const perTicket = getParticipantsPerTicket(modality.id as ModalityId);
     return tickets * perTicket;
   }, [modality, tickets]);
+
+  useEffect(() => {
+    if (!modality) return;
+
+    trackAnalyticsEvent("checkout_view", {
+      modalityId: modality.id,
+      modalityName: modality.name,
+    });
+  }, [modality]);
+
+  useEffect(() => {
+    if (!modality) return;
+
+    trackAnalyticsEvent(`checkout_step_${step}`, {
+      step,
+      modalityId: modality.id,
+      modalityName: modality.name,
+      tickets,
+      participantsCount,
+    });
+  }, [step, modality, tickets, participantsCount]);
 
   const {
     ticketsTotal,
@@ -389,6 +411,13 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
 
     setIsSubmitting(true);
     setSubmitError(null);
+    trackAnalyticsEvent("checkout_submit", {
+      modalityId: modality.id,
+      modalityName: modality.name,
+      tickets,
+      participantsCount,
+      totalWithFee: grandTotalWithFee,
+    });
 
     try {
       const normalizedCoupon =
@@ -429,6 +458,14 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
       const data: { orderId: string; checkoutUrl?: string } = await res.json();
 
       setCreatedOrderId(data.orderId);
+      trackAnalyticsEvent("checkout_order_created", {
+        orderId: data.orderId,
+        modalityId: modality.id,
+        modalityName: modality.name,
+        tickets,
+        participantsCount,
+        totalWithFee: grandTotalWithFee,
+      });
 
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
@@ -440,6 +477,11 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
       );
     } catch (err: unknown) {
       console.error(err);
+      trackAnalyticsEvent("checkout_error", {
+        modalityId: modality.id,
+        modalityName: modality.name,
+        message: err instanceof Error ? err.message : "Erro inesperado ao finalizar.",
+      });
       setSubmitError(
         err instanceof Error ? err.message : "Erro inesperado ao finalizar."
       );

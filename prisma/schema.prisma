@@ -186,3 +186,83 @@ model ParticipantChangeLog {
   @@index([actorUserId])
   @@index([action])
 }
+
+model Sponsor {
+  id        String   @id @default(cuid())
+  name      String
+  logo      String?
+  url       String?
+  instagram String?
+  category  String
+  value     Int?
+  status    String   @default("active")
+  property  String?
+  order     Int      @default(0)
+  featured  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([order])
+}
+
+model SponsorshipProperty {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  description    String
+  price          Int
+  image          String?
+  type           String
+  exposure       String?
+  available      Boolean  @default(true)
+  status         String   @default("available")
+  currentSponsor String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([available])
+  @@index([type])
+}
+
+model SponsorshipLead {
+  id                 String   @id @default(cuid())
+  company            String
+  responsibleName    String
+  phone              String
+  email              String
+  instagram          String?
+  city               String?
+  selectedPackages   Json
+  selectedProperties Json
+  selectedItems      Json
+  estimatedValue     Int
+  notes              String?
+  status             String   @default("novo")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([company])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  eventName String
+  path      String
+  title     String?
+  referrer  String?
+  userAgent String?
+  device    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([eventName])
+  @@index([path])
+  @@index([createdAt])
+}

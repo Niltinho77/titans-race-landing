@@ -26,7 +26,7 @@ export function NavBar() {
       { href: H("#local"), label: "Local", kind: "hash" },
       { href: H("#inscricoes"), label: "Inscri&ccedil;&otilde;es", kind: "hash" },
       { href: "/portal/login", label: "Portal", kind: "page" },
-      { href: H("#patrocinadores"), label: "Patrocinadores", kind: "hash" },
+      { href: "/patrocinadores", label: "Seja um patrocinador", kind: "page" },
       { href: H("#contato"), label: "Contato", kind: "hash" },
     ];
   }, [onHome]);

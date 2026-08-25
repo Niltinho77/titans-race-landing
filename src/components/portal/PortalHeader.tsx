@@ -39,12 +39,20 @@ export default function PortalHeader({
             Minhas inscri&ccedil;&otilde;es
           </Link>
           {role === "ADMIN" && (
-            <Link
-              href="/portal/admin/inscricoes"
-              className="border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-orange-200 hover:bg-orange-500/15 sm:px-4 sm:text-[11px] sm:tracking-[0.18em]"
-            >
-              Admin
-            </Link>
+            <>
+              <Link
+                href="/portal/admin/inscricoes"
+                className="border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-orange-200 hover:bg-orange-500/15 sm:px-4 sm:text-[11px] sm:tracking-[0.18em]"
+              >
+                Admin
+              </Link>
+              <Link
+                href="/admin/metricas"
+                className="border border-white/15 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-100 hover:bg-white/5 sm:px-4 sm:text-[11px] sm:tracking-[0.18em]"
+              >
+                Métricas
+              </Link>
+            </>
           )}
           <button
             type="button"

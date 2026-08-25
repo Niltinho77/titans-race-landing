@@ -4,7 +4,6 @@ import { NavBar } from "@/components/NavBar";
 import { ExperienceGridSection } from "@/components/ExperienceGridSection";
 import { LocationSection } from "@/components/LocationSection";
 import { RegistrationSection } from "@/components/RegistrationSection";
-import { SponsorsSection } from "@/components/SponsorsSection";
 import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 
