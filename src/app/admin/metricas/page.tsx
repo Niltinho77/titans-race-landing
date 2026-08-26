@@ -128,6 +128,23 @@ export default async function AdminMetricasPage() {
   const checkoutCreated = events30.filter((event) => event.eventName === "checkout_order_created").length;
   const checkoutAbandoned = Math.max(0, checkoutStep1 - checkoutCreated);
 
+  const flyerCampaignEvents = events30.filter(
+    (event) => metadataString(event, "campaign") === "panfleto_2026",
+  );
+  const flyerPageViews = flyerCampaignEvents.filter((event) => event.eventName === "page_view");
+  const flyerScans = flyerPageViews.filter(
+    (event) => metadataRecord(event).campaignEntry === true,
+  );
+  const flyerVisitors = new Set(flyerCampaignEvents.map((event) => event.sessionId)).size;
+  const flyerCheckoutVisitors = new Set(
+    flyerCampaignEvents
+      .filter((event) => event.eventName === "checkout_view" || event.eventName === "checkout_step_1")
+      .map((event) => event.sessionId),
+  ).size;
+  const flyerOrders = flyerCampaignEvents.filter(
+    (event) => event.eventName === "checkout_order_created",
+  ).length;
+
   const topPages = countBy(pageViews30, (event) => event.path.split("?")[0]).slice(0, 8);
   const topDevices = countBy(pageViews30, (event) => event.device ?? "desconhecido").slice(0, 4);
   const topClicks = countBy(clicks30, (event) => {
@@ -193,6 +210,36 @@ export default async function AdminMetricasPage() {
           <MetricCard title="Pedidos pagos" value={String(paidOrders)} subtitle={`${totalOrders} pedidos totais nos últimos 30 dias`} color="emerald" />
           <MetricCard title="Leads patrocinadores" value={String(sponsorshipLeadCount)} subtitle="Formulários de patrocínio enviados" color="orange" />
         </section>
+
+        <Panel title="QR Code do panfleto · últimos 30 dias">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <MetricCard
+              title="Acessos pelo QR"
+              value={String(flyerScans.length)}
+              subtitle="Leituras que abriram o link do panfleto"
+              color="orange"
+            />
+            <MetricCard
+              title="Pessoas pelo QR"
+              value={String(flyerVisitors)}
+              subtitle="Visitantes únicos atribuídos ao panfleto"
+            />
+            <MetricCard
+              title="Foram ao checkout"
+              value={String(flyerCheckoutVisitors)}
+              subtitle={`${percent(flyerCheckoutVisitors, flyerVisitors)} das pessoas do QR`}
+            />
+            <MetricCard
+              title="Pedidos pelo QR"
+              value={String(flyerOrders)}
+              subtitle={`${percent(flyerOrders, flyerVisitors)} de conversão em pedido`}
+              color="emerald"
+            />
+          </div>
+          <p className="mt-4 break-all text-[11px] text-zinc-500">
+            Link rastreado: https://titansrace.com.br/?utm_source=panfleto&amp;utm_medium=qrcode&amp;utm_campaign=panfleto_2026
+          </p>
+        </Panel>
 
         <section className="grid gap-4 lg:grid-cols-2">
           <Panel title="Páginas mais acessadas">

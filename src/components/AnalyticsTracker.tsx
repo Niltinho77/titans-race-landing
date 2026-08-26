@@ -14,6 +14,14 @@ type AnalyticsPayload = {
 };
 
 const SESSION_KEY = "titans_analytics_session";
+const ATTRIBUTION_KEY = "titans_analytics_attribution";
+
+type Attribution = {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  content?: string;
+};
 
 function shouldTrackPath(path: string) {
   return !path.startsWith("/admin") && !path.startsWith("/portal");
@@ -39,10 +47,34 @@ function getDevice() {
   return "desktop";
 }
 
+function getAttribution(searchParams?: URLSearchParams): Attribution {
+  const incoming = searchParams
+    ? {
+        source: searchParams.get("utm_source")?.slice(0, 100) || undefined,
+        medium: searchParams.get("utm_medium")?.slice(0, 100) || undefined,
+        campaign: searchParams.get("utm_campaign")?.slice(0, 100) || undefined,
+        content: searchParams.get("utm_content")?.slice(0, 100) || undefined,
+      }
+    : {};
+
+  if (incoming.source || incoming.medium || incoming.campaign || incoming.content) {
+    window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(incoming));
+    return incoming;
+  }
+
+  try {
+    return JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || "{}") as Attribution;
+  } catch {
+    return {};
+  }
+}
+
 function sendEvent(payload: AnalyticsPayload, useBeacon = false) {
+  const attribution = getAttribution();
   const body = JSON.stringify({
     sessionId: getSessionId(),
     ...payload,
+    metadata: { ...attribution, ...payload.metadata },
   });
 
   if (useBeacon && navigator.sendBeacon) {
@@ -72,7 +104,7 @@ function elementLabel(element: HTMLElement) {
 function AnalyticsTrackerContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const startedAtRef = useRef<number>(Date.now());
+  const startedAtRef = useRef<number>(0);
   const currentPathRef = useRef<string>("");
 
   useEffect(() => {
@@ -82,6 +114,11 @@ function AnalyticsTrackerContent() {
     startedAtRef.current = Date.now();
 
     if (!shouldTrackPath(pathname)) return;
+
+    getAttribution(new URLSearchParams(query));
+    const isCampaignEntry = ["utm_source", "utm_medium", "utm_campaign", "utm_content"].some(
+      (key) => searchParams.has(key),
+    );
 
     sendEvent({
       eventName: "page_view",
@@ -93,6 +130,7 @@ function AnalyticsTrackerContent() {
       metadata: {
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
+        campaignEntry: isCampaignEntry,
       },
     });
   }, [pathname, searchParams]);
