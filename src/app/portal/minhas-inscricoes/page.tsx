@@ -5,11 +5,13 @@ import PortalHeader from "@/components/portal/PortalHeader";
 import EventCountdown from "@/components/portal/EventCountdown";
 import PortalDocuments from "@/components/portal/PortalDocuments";
 import { getModalityById } from "@/config/checkout";
+import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 
 export const dynamic = "force-dynamic";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRAZIL_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

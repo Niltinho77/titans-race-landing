@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentPortalUser } from "@/lib/portalAuth";
+import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ function extrasToStr(extras: Array<{ type: string; size: string | null; quantity
 
 function formatDateBR(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRAZIL_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -103,7 +105,7 @@ export async function GET() {
         memberIndex: kind === "solo" ? null : (p.teamIndex ?? null),
         participantName: p.fullName ?? "",
         tshirtSize: p.tshirtSize ?? "",
-        extrasStr: extrasToStr(p.extras as any),
+        extrasStr: extrasToStr(p.extras),
         createdAt: order.createdAt,
       });
     }

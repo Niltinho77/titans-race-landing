@@ -1,5 +1,6 @@
 // src/lib/email.ts
 import { Resend } from "resend";
+import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const fromEmail = process.env.RESEND_FROM;
@@ -179,6 +180,7 @@ export async function sendPortalPasswordSetupEmail(
   }
 
   const expiresAtFormatted = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRAZIL_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

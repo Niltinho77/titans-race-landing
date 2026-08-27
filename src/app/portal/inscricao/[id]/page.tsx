@@ -5,6 +5,7 @@ import EventCountdown from "@/components/portal/EventCountdown";
 import PortalDocuments from "@/components/portal/PortalDocuments";
 import { getModalityById } from "@/config/checkout";
 import { prisma } from "@/lib/prisma";
+import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 import {
   changesAreOpen,
   normalizeEmail,
@@ -150,6 +151,7 @@ export default async function ParticipantPortalPage({ params }: PageProps) {
               {participant.changeLogs.map((log) => (
                 <p key={log.id}>
                   {new Intl.DateTimeFormat("pt-BR", {
+                    timeZone: BRAZIL_TIME_ZONE,
                     day: "2-digit",
                     month: "2-digit",
                     year: "numeric",

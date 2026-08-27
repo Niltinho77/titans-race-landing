@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import PortalHeader from "@/components/portal/PortalHeader";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/lib/portalAuth";
+import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ type OrderWithParticipants = Prisma.OrderGetPayload<{ include: { participants: t
 
 function formatDateTime(date: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRAZIL_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",

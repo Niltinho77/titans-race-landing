@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getModalityById } from "@/config/checkout";
 import { requireAdminUser } from "@/lib/portalAuth";
 import PortalHeader from "@/components/portal/PortalHeader";
+import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ function formatCurrency(cents: number | null | undefined): string {
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: BRAZIL_TIME_ZONE,
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -613,4 +615,3 @@ function ResumoCard({
     </div>
   );
 }
-
