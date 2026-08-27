@@ -15,12 +15,15 @@ type AnalyticsPayload = {
 
 const SESSION_KEY = "titans_analytics_session";
 const ATTRIBUTION_KEY = "titans_analytics_attribution";
+const ATTRIBUTION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 type Attribution = {
   source?: string;
   medium?: string;
   campaign?: string;
   content?: string;
+  landingPage?: string;
+  capturedAt?: number;
 };
 
 function shouldTrackPath(path: string) {
@@ -58,15 +61,40 @@ function getAttribution(searchParams?: URLSearchParams): Attribution {
     : {};
 
   if (incoming.source || incoming.medium || incoming.campaign || incoming.content) {
-    window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(incoming));
-    return incoming;
+    const next = {
+      ...incoming,
+      landingPage: `${window.location.pathname}${window.location.search}`.slice(0, 500),
+      capturedAt: Date.now(),
+    };
+    window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next));
+    return next;
   }
 
   try {
-    return JSON.parse(window.localStorage.getItem(ATTRIBUTION_KEY) || "{}") as Attribution;
+    const stored = JSON.parse(
+      window.localStorage.getItem(ATTRIBUTION_KEY) || "{}",
+    ) as Attribution;
+    if (stored.capturedAt && Date.now() - stored.capturedAt > ATTRIBUTION_MAX_AGE_MS) {
+      window.localStorage.removeItem(ATTRIBUTION_KEY);
+      return {};
+    }
+    return stored;
   } catch {
     return {};
   }
+}
+
+export function getAnalyticsContext() {
+  if (typeof window === "undefined") return {};
+  const attribution = getAttribution();
+  return {
+    sessionId: getSessionId(),
+    source: attribution.source,
+    medium: attribution.medium,
+    campaign: attribution.campaign,
+    content: attribution.content,
+    landingPage: attribution.landingPage,
+  };
 }
 
 function sendEvent(payload: AnalyticsPayload, useBeacon = false) {

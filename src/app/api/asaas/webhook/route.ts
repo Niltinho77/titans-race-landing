@@ -174,6 +174,7 @@ export async function POST(req: NextRequest) {
       asaasPaymentStatus?: string | null;
       asaasInvoiceUrl?: string | null;
       status?: string;
+      paidAt?: Date;
     } = {
       asaasPaymentId,
       asaasPaymentStatus,
@@ -185,6 +186,9 @@ export async function POST(req: NextRequest) {
 
     if (shouldUpdateOrderStatus(order.status, mappedStatus)) {
       updateData.status = mappedStatus!;
+      if (mappedStatus === "PAID" && order.status !== "PAID") {
+        updateData.paidAt = new Date();
+      }
     }
 
     const updatedOrder = await prisma.order.update({

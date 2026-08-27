@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { EXTRAS, getModalityById, ExtraType } from "@/config/checkout";
 import { createPagbankCheckout } from "@/lib/pagbank";
+import { cleanOrderAttribution, type OrderAttributionInput } from "@/lib/orderAttribution";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,7 @@ type CheckoutPayload = {
   participants: ParticipantPayload[];
   termsAccepted: boolean;
   couponCode?: string | null;
+  attribution?: OrderAttributionInput;
 };
 
 const FEE_PERCENT = 0.0399;
@@ -194,6 +196,7 @@ export async function POST(req: NextRequest) {
         totalAmount: subtotal,
         feeAmount,
         totalAmountWithFee: totalWithFee,
+        ...cleanOrderAttribution(body.attribution),
 
         // Se já existir esse campo no schema, descomenta:
         // couponCode: normalizedCoupon,

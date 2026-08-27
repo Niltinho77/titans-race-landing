@@ -12,6 +12,7 @@ import {
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { trackAnalyticsEvent } from "@/lib/analytics";
+import { getAnalyticsContext } from "@/components/AnalyticsTracker";
 
 type ParticipantExtra = {
   type: ExtraType;
@@ -442,6 +443,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
         })),
         termsAccepted,
         couponCode: normalizedCoupon,
+        attribution: getAnalyticsContext(),
       };
 
       const res = await fetch("/api/checkout/start-asaas", {

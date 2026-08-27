@@ -15,6 +15,9 @@ const ALLOWED_EVENTS = new Set([
   "checkout_error",
 ]);
 
+const BOT_USER_AGENT = /bot|crawler|spider|headless|slurp|facebookexternalhit|whatsapp|telegrambot|preview|uptime|monitoring/i;
+const MAX_EVENTS_PER_SESSION_PER_MINUTE = 120;
+
 function cleanString(value: unknown, fallback = "") {
   if (typeof value !== "string") return fallback;
   return value.trim().slice(0, 500);
@@ -22,7 +25,15 @@ function cleanString(value: unknown, fallback = "") {
 
 function cleanMetadata(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
+  const clean: Record<string, string | number | boolean | null> = {};
+  for (const [key, item] of Object.entries(value).slice(0, 30)) {
+    const safeKey = key.trim().slice(0, 80);
+    if (!safeKey) continue;
+    if (typeof item === "string") clean[safeKey] = item.slice(0, 500);
+    else if (typeof item === "number" && Number.isFinite(item)) clean[safeKey] = item;
+    else if (typeof item === "boolean" || item === null) clean[safeKey] = item;
+  }
+  return clean;
 }
 
 export async function POST(request: Request) {
@@ -36,9 +47,22 @@ export async function POST(request: Request) {
 
     const sessionId = cleanString(body.sessionId);
     const path = cleanString(body.path, "/");
+    const userAgent = cleanString(body.userAgent || request.headers.get("user-agent"));
 
     if (!sessionId || !path) {
       return NextResponse.json({ error: "Dados obrigatórios ausentes." }, { status: 400 });
+    }
+
+    if (BOT_USER_AGENT.test(userAgent)) {
+      return NextResponse.json({ ok: true, ignored: "bot" });
+    }
+
+    const oneMinuteAgo = new Date(Date.now() - 60_000);
+    const recentEventCount = await prisma.analyticsEvent.count({
+      where: { sessionId, createdAt: { gte: oneMinuteAgo } },
+    });
+    if (recentEventCount >= MAX_EVENTS_PER_SESSION_PER_MINUTE) {
+      return NextResponse.json({ error: "Muitos eventos." }, { status: 429 });
     }
 
     await prisma.analyticsEvent.create({
@@ -48,7 +72,7 @@ export async function POST(request: Request) {
         path,
         title: cleanString(body.title) || null,
         referrer: cleanString(body.referrer) || null,
-        userAgent: cleanString(body.userAgent) || null,
+        userAgent: userAgent || null,
         device: cleanString(body.device) || null,
         metadata: cleanMetadata(body.metadata) as Prisma.InputJsonValue,
       },

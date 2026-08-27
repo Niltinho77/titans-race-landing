@@ -50,6 +50,20 @@ model Order {
   asaasCustomerId         String?
   asaasInvoiceUrl         String?
   confirmationEmailSentAt DateTime?
+
+  // Atribuição comercial capturada no navegador quando o pedido é criado.
+  analyticsSessionId String?
+  source             String?
+  medium             String?
+  campaign           String?
+  content            String?
+  landingPage        String?
+  paidAt             DateTime?
+
+  @@index([analyticsSessionId])
+  @@index([campaign])
+  @@index([source])
+  @@index([paidAt])
 }
 
 model Participant {

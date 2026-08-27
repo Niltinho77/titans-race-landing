@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, CouponType } from "@prisma/client";
 import { EXTRAS, getModalityById, ExtraType, ModalityId } from "@/config/checkout";
 import { mpPreference } from "@/lib/mercadopago";
+import { cleanOrderAttribution, type OrderAttributionInput } from "@/lib/orderAttribution";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,7 @@ type CheckoutPayload = {
   participants: ParticipantPayload[];
   termsAccepted: boolean;
   couponCode?: string | null; // ✅ novo
+  attribution?: OrderAttributionInput;
 };
 
 // ✅ taxa
@@ -273,6 +275,7 @@ export async function POST(req: NextRequest) {
 
           feeAmount,
           totalAmountWithFee: totalWithFee,
+          ...cleanOrderAttribution(body.attribution),
 
           participants: {
             create: body.participants.map((p, idx) => {

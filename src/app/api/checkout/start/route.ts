@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { EXTRAS, getModalityById, ExtraType } from "@/config/checkout";
 import { stripe } from "@/lib/stripe";
+import { cleanOrderAttribution, type OrderAttributionInput } from "@/lib/orderAttribution";
 
 type ParticipantExtraPayload = {
   type: ExtraType;
@@ -30,6 +31,7 @@ type CheckoutPayload = {
   tickets: number;
   participants: ParticipantPayload[];
   termsAccepted: boolean;
+  attribution?: OrderAttributionInput;
 };
 
 // 💸 Config de taxa da plataforma (valores de EXEMPLO)
@@ -128,6 +130,7 @@ export async function POST(req: NextRequest) {
         totalAmount,        // líquido
         feeAmount,          // taxa da plataforma
         totalAmountWithFee: totalWithFee, // total cobrado do atleta
+        ...cleanOrderAttribution(body.attribution),
 
         participants: {
           create: body.participants.map((p) => ({

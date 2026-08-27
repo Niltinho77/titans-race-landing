@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       where: { id: referenceId },
       data: {
         status: mappedStatus,
+        ...(mappedStatus === "PAID" ? { paidAt: new Date() } : {}),
       },
     });
 

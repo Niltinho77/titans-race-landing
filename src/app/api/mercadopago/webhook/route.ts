@@ -220,6 +220,7 @@ export async function POST(req: NextRequest) {
         status: newOrderStatus,
         mpPaymentId: String(payment.id),
         mpPaymentStatus: mpStatus ?? null,
+        ...(newOrderStatus === "PAID" ? { paidAt: new Date() } : {}),
       },
     });
 

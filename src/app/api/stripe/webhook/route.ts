@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
             status: "PAID",
             stripeSessionId: session.id,
             stripePaymentIntentId: paymentIntentId,
+            paidAt: new Date(),
           },
           include: {
             participants: true,

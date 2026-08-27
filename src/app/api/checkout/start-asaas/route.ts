@@ -15,6 +15,7 @@ import {
   normalizePhone,
 } from "@/lib/asaas";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { cleanOrderAttribution, type OrderAttributionInput } from "@/lib/orderAttribution";
 
 type ExtraType = "camisa" | "luva" | "meia";
 
@@ -45,6 +46,7 @@ type CheckoutPayload = {
   participants: ParticipantInput[];
   termsAccepted: boolean;
   couponCode?: string | null;
+  attribution?: OrderAttributionInput;
 };
 
 function calculateFee(amountCents: number) {
@@ -208,6 +210,7 @@ export async function POST(req: Request) {
       appliedCouponCode !== null && discountedTotalAmount === 0;
 
     const teamMode = body.modalityId === "equipes";
+    const attribution = cleanOrderAttribution(body.attribution);
 
     const orderData = {
       modalityId: body.modalityId,
@@ -225,6 +228,8 @@ export async function POST(req: Request) {
 
         couponCode: appliedCouponCode,
         asaasPaymentStatus: isComplimentary ? "COMPLIMENTARY" : null,
+        paidAt: isComplimentary ? new Date() : null,
+        ...attribution,
 
         participants: {
           create: body.participants.map((participant, index) => ({
