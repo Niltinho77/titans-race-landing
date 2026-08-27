@@ -4,6 +4,7 @@ import PortalHeader from "@/components/portal/PortalHeader";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/lib/portalAuth";
 import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
+import { getModalityById } from "@/config/checkout";
 
 export const dynamic = "force-dynamic";
 
@@ -254,140 +255,248 @@ export default async function AdminMetricasPage() {
           </div>
         </header>
 
-        <Panel title="Resultado comercial · últimos 30 dias">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <nav className="sticky top-3 z-20 -mx-1 overflow-x-auto rounded-2xl border border-white/10 bg-black/90 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl">
+          <div className="flex min-w-max gap-1">
+            <QuickLink href="#vendas" label="Vendas" />
+            <QuickLink href="#recuperacao" label={`Recuperação (${recoverableOrders.length})`} alert={recoverableOrders.length > 0} />
+            <QuickLink href="#campanhas" label="Campanhas e QR" />
+            <QuickLink href="#funil" label="Funil" />
+            <QuickLink href="#audiencia" label="Audiência" />
+            <QuickLink href="#diagnostico" label="Diagnóstico" />
+          </div>
+        </nav>
+
+        <DashboardSection
+          id="vendas"
+          index="01"
+          title="Vendas e receita"
+          description="O que virou inscrição paga e dinheiro confirmado. Esta é a visão principal do negócio."
+          tone="emerald"
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <MetricCard title="Receita confirmada" value={formatCurrency(paidRevenue)} subtitle="Somente pagamentos confirmados" color="emerald" />
             <MetricCard title="Pedidos pagos" value={String(paidOrders.length)} subtitle={`${paidAthletes} atletas confirmados`} color="emerald" />
-            <MetricCard title="Não pagos recuperáveis" value={String(recoverableOrders.length)} subtitle="Possuem dados para contato" color="orange" />
             <MetricCard title="Conversão em pagamento" value={percent(paidOrders.length, orders30.length)} subtitle={`${orders30.length} pedidos criados no período`} />
+            <MetricCard title="Pedidos identificados" value={String(identifiedOrders.length)} subtitle={`${percent(identifiedOrders.length, orders30.length)} com origem ou sessão`} />
           </div>
-        </Panel>
-
-        <Panel title="Funil de inscrição · pessoas estimadas">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <MetricCard title="Checkout aberto" value={String(checkoutStep1)} subtitle="Entradas na primeira etapa" color="orange" />
-            <MetricCard title="Dados preenchidos" value={String(checkoutStep2)} subtitle={`${percent(checkoutStep2, checkoutStep1)} avançaram`} />
-            <MetricCard title="Chegou aos termos" value={String(checkoutStep3)} subtitle={`${percent(checkoutStep3, checkoutStep1)} avançaram`} />
-            <MetricCard title="Tentou pagar" value={String(checkoutSubmit)} subtitle="Cliques para finalizar" />
-            <MetricCard title="Pedido criado" value={String(checkoutCreated)} subtitle={`${checkoutAbandoned} desistências aproximadas antes do pedido`} color="emerald" />
+          <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <Panel title="Receita confirmada por origem">
+              <RevenueRanking rows={channelRevenue} />
+            </Panel>
+            <Panel title="Outros resultados">
+              <MetricCard title="Leads de patrocinadores" value={String(sponsorshipLeadCount)} subtitle="Formulários enviados nos últimos 30 dias" color="orange" />
+            </Panel>
           </div>
-          <p className="mt-4 text-[11px] text-zinc-500">Cada etapa conta uma vez por sessão do navegador. Pagamentos e receita acima vêm diretamente dos pedidos.</p>
-        </Panel>
+        </DashboardSection>
 
-        <Panel title="Audiência do site">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard title="Visitantes estimados" value={String(uniqueSessions30)} subtitle={`${uniqueSessions7} nos últimos 7 dias`} />
-            <MetricCard title="Últimas 24h" value={String(uniqueSessions24h)} subtitle={`${events24h.length} interações registradas`} color="orange" />
-            <MetricCard title="Páginas visualizadas" value={String(pageViews30.length)} subtitle={`${pageViews7.length} nos últimos 7 dias`} />
-            <MetricCard title="Tempo médio" value={formatDuration(avgSeconds)} subtitle="Estimativa quando o navegador envia a saída" />
-          </div>
-        </Panel>
-
-        <Panel title="Oportunidades de recuperação · não pagaram">
+        <DashboardSection
+          id="recuperacao"
+          index="02"
+          title="Recuperação de inscrições"
+          description="Pessoas que forneceram contato, mas ainda não tiveram pagamento confirmado. Priorize esta lista."
+          tone="amber"
+          badge={`${recoverableOrders.length} oportunidades`}
+        >
           <RecoveryTable orders={recoverableOrders.slice(0, 30)} />
-        </Panel>
+        </DashboardSection>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Vendas confirmadas por origem">
-            <RevenueRanking rows={channelRevenue} />
-          </Panel>
-          <Panel title="Qualidade da atribuição">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <MetricCard title="Pedidos identificados" value={String(identifiedOrders.length)} subtitle={`${percent(identifiedOrders.length, orders30.length)} com sessão ou campanha`} />
-              <MetricCard title="Leads patrocinadores" value={String(sponsorshipLeadCount)} subtitle="Formulários enviados" color="orange" />
-            </div>
-          </Panel>
-        </section>
-
-        <Panel title="QR Code do panfleto · últimos 30 dias">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <MetricCard
-              title="Acessos pelo QR"
-              value={String(flyerScans.length)}
-              subtitle="Leituras que abriram o link do panfleto"
-              color="orange"
-            />
-            <MetricCard
-              title="Pessoas pelo QR"
-              value={String(flyerVisitors)}
-              subtitle="Visitantes únicos atribuídos ao panfleto"
-            />
-            <MetricCard
-              title="Foram ao checkout"
-              value={String(flyerCheckoutVisitors)}
-              subtitle={`${percent(flyerCheckoutVisitors, flyerVisitors)} das pessoas do QR`}
-            />
-            <MetricCard
-              title="Pedidos pagos pelo QR"
-              value={String(flyerPaidOrders.length)}
-              subtitle={`${flyerCreatedOrders.length} pedidos criados pelo QR`}
-              color="emerald"
-            />
+        <DashboardSection
+          id="campanhas"
+          index="03"
+          title="Campanhas e QR Code"
+          description="Desempenho das ações com origem identificada, separado do tráfego geral do site."
+          tone="orange"
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCard title="Leituras do QR" value={String(flyerScans.length)} subtitle="Aberturas do link do panfleto" color="orange" />
+            <MetricCard title="Pessoas pelo QR" value={String(flyerVisitors)} subtitle="Visitantes únicos estimados" />
+            <MetricCard title="Chegaram ao checkout" value={String(flyerCheckoutVisitors)} subtitle={`${percent(flyerCheckoutVisitors, flyerVisitors)} das pessoas do QR`} />
+            <MetricCard title="Pagaram pelo QR" value={String(flyerPaidOrders.length)} subtitle={`${flyerCreatedOrders.length} pedidos criados`} color="emerald" />
           </div>
-          <p className="mt-4 break-all text-[11px] text-zinc-500">
-            Link rastreado: https://titansrace.com.br/?utm_source=panfleto&amp;utm_medium=qrcode&amp;utm_campaign=panfleto_2026
-          </p>
-        </Panel>
+          <div className="mt-4 rounded-2xl border border-orange-500/15 bg-black/30 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-orange-300/70">Link rastreado do panfleto</p>
+            <p className="mt-1 break-all font-mono text-[11px] text-zinc-400">https://titansrace.com.br/?utm_source=panfleto&amp;utm_medium=qrcode&amp;utm_campaign=panfleto_2026</p>
+          </div>
+        </DashboardSection>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Páginas mais acessadas">
-            <Ranking rows={topPages} empty="Sem visualizações registradas." />
-          </Panel>
+        <DashboardSection
+          id="funil"
+          index="04"
+          title="Funil de inscrição"
+          description="Onde as pessoas avançam ou desistem antes de gerar um pedido. Cada etapa conta uma vez por sessão."
+          tone="blue"
+        >
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <FunnelStep index="1" title="Abriu" value={checkoutStep1} subtitle="checkout" />
+            <FunnelStep index="2" title="Preencheu" value={checkoutStep2} subtitle={`${percent(checkoutStep2, checkoutStep1)} avançaram`} />
+            <FunnelStep index="3" title="Termos" value={checkoutStep3} subtitle={`${percent(checkoutStep3, checkoutStep1)} avançaram`} />
+            <FunnelStep index="4" title="Tentou pagar" value={checkoutSubmit} subtitle="finalizações" />
+            <FunnelStep index="5" title="Criou pedido" value={checkoutCreated} subtitle={`${checkoutAbandoned} desistências estimadas`} last />
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <Panel title="Interesse por modalidade">
+              <Ranking rows={checkoutByModality} empty="Sem checkouts iniciados." />
+            </Panel>
+            <Panel title="Como interpretar">
+              <div className="space-y-3 text-xs leading-relaxed text-zinc-400">
+                <p><span className="font-semibold text-white">Funil:</span> mede intenção e avanço dentro do checkout.</p>
+                <p><span className="font-semibold text-white">Pedidos:</span> surgem somente depois que os dados foram enviados.</p>
+                <p><span className="font-semibold text-emerald-300">Venda:</span> só é contabilizada quando o gateway confirma o pagamento.</p>
+              </div>
+            </Panel>
+          </div>
+        </DashboardSection>
 
-          <Panel title="Cliques mais frequentes">
-            <Ranking rows={topClicks} empty="Sem cliques registrados." />
-          </Panel>
-        </section>
+        <DashboardSection
+          id="audiencia"
+          index="05"
+          title="Audiência e comportamento"
+          description="Como o público navega pelo site. Estes números são estimativas de navegador, não vendas."
+          tone="zinc"
+        >
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <MetricCard title="Visitantes estimados" value={String(uniqueSessions30)} subtitle={`${uniqueSessions7} nos últimos 7 dias`} />
+            <MetricCard title="Visitantes nas últimas 24h" value={String(uniqueSessions24h)} subtitle={`${events24h.length} interações registradas`} color="orange" />
+            <MetricCard title="Páginas visualizadas" value={String(pageViews30.length)} subtitle={`${pageViews7.length} nos últimos 7 dias`} />
+            <MetricCard title="Tempo médio" value={formatDuration(avgSeconds)} subtitle="Estimativa enviada pelo navegador" />
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <Panel title="Páginas mais acessadas"><Ranking rows={topPages} empty="Sem visualizações registradas." /></Panel>
+            <Panel title="Cliques mais frequentes"><Ranking rows={topClicks} empty="Sem cliques registrados." /></Panel>
+            <Panel title="Dispositivos"><Ranking rows={topDevices} empty="Sem dados de dispositivo." /></Panel>
+          </div>
+        </DashboardSection>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Panel title="Checkout por modalidade">
-            <Ranking rows={checkoutByModality} empty="Sem checkouts iniciados." />
-          </Panel>
-
-          <Panel title="Dispositivos">
-            <Ranking rows={topDevices} empty="Sem dados de dispositivo." />
-          </Panel>
-        </section>
-
-        <Panel title="Eventos recentes">
-          {recentEvents.length === 0 ? (
-            <p className="text-sm text-zinc-500">Nenhum evento registrado ainda.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-xs text-zinc-300">
-                <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-                  <tr>
-                    <th className="py-3 pr-3">Quando</th>
-                    <th className="py-3 pr-3">Evento</th>
-                    <th className="py-3 pr-3">Página</th>
-                    <th className="py-3 pr-3">Dispositivo</th>
-                    <th className="py-3 pr-3">Detalhe</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {recentEvents.map((event) => (
-                    <tr key={event.id}>
-                      <td className="py-3 pr-3 text-zinc-500">{formatDateTime(event.createdAt)}</td>
-                      <td className="py-3 pr-3 text-zinc-100">{eventLabel(event.eventName)}</td>
-                      <td className="py-3 pr-3">{event.path}</td>
-                      <td className="py-3 pr-3">{event.device ?? "-"}</td>
-                      <td className="py-3 pr-3">
-                        {metadataString(event, "label") ||
-                          metadataString(event, "modalityName") ||
-                          metadataString(event, "href") ||
-                          (metadataNumber(event, "seconds")
-                            ? formatDuration(metadataNumber(event, "seconds"))
-                            : "-")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <DashboardSection
+          id="diagnostico"
+          index="06"
+          title="Diagnóstico técnico"
+          description="Dados detalhados para conferência. Não são necessários para a rotina comercial diária."
+          tone="zinc"
+        >
+          <details className="group rounded-2xl border border-white/10 bg-black/40">
+            <summary className="cursor-pointer list-none px-4 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-300">
+              Ver os 25 eventos mais recentes
+              <span className="ml-2 text-zinc-600 group-open:hidden">+</span>
+              <span className="ml-2 hidden text-zinc-600 group-open:inline">−</span>
+            </summary>
+            <div className="border-t border-white/10 p-4">
+              {recentEvents.length === 0 ? (
+                <p className="text-sm text-zinc-500">Nenhum evento registrado ainda.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-left text-xs text-zinc-300">
+                    <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                      <tr><th className="py-3 pr-3">Quando</th><th className="py-3 pr-3">Evento</th><th className="py-3 pr-3">Página</th><th className="py-3 pr-3">Dispositivo</th><th className="py-3 pr-3">Detalhe</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {recentEvents.map((event) => (
+                        <tr key={event.id}>
+                          <td className="py-3 pr-3 text-zinc-500">{formatDateTime(event.createdAt)}</td>
+                          <td className="py-3 pr-3 text-zinc-100">{eventLabel(event.eventName)}</td>
+                          <td className="py-3 pr-3">{event.path}</td>
+                          <td className="py-3 pr-3">{event.device ?? "-"}</td>
+                          <td className="py-3 pr-3">{metadataString(event, "label") || metadataString(event, "modalityName") || metadataString(event, "href") || (metadataNumber(event, "seconds") ? formatDuration(metadataNumber(event, "seconds")) : "-")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          )}
-        </Panel>
+          </details>
+        </DashboardSection>
       </div>
     </main>
+  );
+}
+
+function QuickLink({ href, label, alert = false }: { href: string; label: string; alert?: boolean }) {
+  return (
+    <a
+      href={href}
+      className={`rounded-xl px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] transition hover:bg-white/10 ${
+        alert ? "bg-amber-500/15 text-amber-300" : "text-zinc-400 hover:text-white"
+      }`}
+    >
+      {label}
+    </a>
+  );
+}
+
+function DashboardSection({
+  id,
+  index,
+  title,
+  description,
+  tone,
+  badge,
+  children,
+}: {
+  id: string;
+  index: string;
+  title: string;
+  description: string;
+  tone: "emerald" | "amber" | "orange" | "blue" | "zinc";
+  badge?: string;
+  children: React.ReactNode;
+}) {
+  const toneClasses = {
+    emerald: "border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.09] via-black/80 to-black/80",
+    amber: "border-amber-500/30 bg-gradient-to-br from-amber-500/[0.10] via-black/80 to-black/80",
+    orange: "border-orange-500/25 bg-gradient-to-br from-orange-500/[0.09] via-black/80 to-black/80",
+    blue: "border-sky-500/25 bg-gradient-to-br from-sky-500/[0.08] via-black/80 to-black/80",
+    zinc: "border-white/10 bg-gradient-to-br from-white/[0.04] via-black/80 to-black/80",
+  };
+  const accentClasses = {
+    emerald: "text-emerald-400",
+    amber: "text-amber-400",
+    orange: "text-orange-400",
+    blue: "text-sky-400",
+    zinc: "text-zinc-500",
+  };
+
+  return (
+    <section id={id} className={`scroll-mt-24 rounded-[28px] border p-4 sm:p-6 ${toneClasses[tone]}`}>
+      <header className="mb-5 flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-4">
+          <span className={`font-mono text-xs font-bold ${accentClasses[tone]}`}>{index}</span>
+          <div>
+            <h2 className="text-xl font-semibold text-white sm:text-2xl">{title}</h2>
+            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-zinc-400 sm:text-sm">{description}</p>
+          </div>
+        </div>
+        {badge && (
+          <span className="w-fit rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300">
+            {badge}
+          </span>
+        )}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function FunnelStep({
+  index,
+  title,
+  value,
+  subtitle,
+  last = false,
+}: {
+  index: string;
+  title: string;
+  value: number;
+  subtitle: string;
+  last?: boolean;
+}) {
+  return (
+    <div className={`relative rounded-2xl border p-3 sm:p-4 ${last ? "col-span-2 border-emerald-500/30 bg-emerald-500/10 md:col-span-1" : "border-sky-500/20 bg-sky-500/[0.06]"}`}>
+      <p className="font-mono text-[10px] text-sky-400/70">ETAPA {index}</p>
+      <p className="mt-2 text-2xl font-semibold text-white sm:text-3xl">{value}</p>
+      <p className="mt-1 text-xs font-semibold text-zinc-200">{title}</p>
+      <p className="mt-1 text-[10px] leading-relaxed text-zinc-500">{subtitle}</p>
+    </div>
   );
 }
 
@@ -410,9 +519,9 @@ function MetricCard({
         : "border-white/10 bg-black/70";
 
   return (
-    <div className={`rounded-3xl border p-4 text-xs text-zinc-300 ${cls}`}>
-      <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">{title}</p>
-      <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
+    <div className={`min-w-0 rounded-2xl border p-3 text-xs text-zinc-300 sm:rounded-3xl sm:p-4 ${cls}`}>
+      <p className="text-[9px] uppercase leading-relaxed tracking-[0.16em] text-zinc-500 sm:text-[11px] sm:tracking-[0.25em]">{title}</p>
+      <p className="mt-2 break-words text-xl font-semibold leading-tight text-white sm:text-3xl">{value}</p>
       <p className="mt-1 text-[11px] text-zinc-500">{subtitle}</p>
     </div>
   );
@@ -486,22 +595,58 @@ function RecoveryTable({ orders }: { orders: OrderWithParticipants[] }) {
     return <p className="text-sm text-zinc-500">Nenhum pedido não pago com contato nos últimos 30 dias.</p>;
   }
 
-  const labels: Record<string, string> = {
-    PENDING: "Aguardando",
-    FAILED: "Falhou",
-    OVERDUE: "Vencido",
-    CANCELED: "Cancelado",
-  };
-
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[880px] text-left text-xs text-zinc-300">
+    <>
+      <div className="space-y-3 md:hidden">
+        {orders.map((order) => {
+          const details = recoveryDetails(order);
+          return (
+            <article key={`mobile-${order.id}`} className="rounded-2xl border border-white/10 bg-black/50 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">{details.participant?.fullName || "Sem nome"}</p>
+                  <p className="mt-1 text-[10px] text-zinc-500">{formatDateTime(order.createdAt)} · {details.modalityName}</p>
+                </div>
+                <StatusPill label={details.statusLabel} className={details.statusClass} />
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[11px]">
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Valor</p>
+                  <p className="mt-1 font-mono font-semibold text-zinc-100">{formatCurrency(order.totalAmountWithFee ?? order.totalAmount ?? 0)}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Origem</p>
+                  <p className="mt-1 truncate text-zinc-300">{channelLabel(order.source, order.campaign)}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 text-[11px] text-zinc-400">
+                <p>{details.participant?.phone || "Sem telefone"}</p>
+                <p className="mt-1 truncate text-zinc-500">{details.participant?.email || "Sem e-mail"}</p>
+              </div>
+
+              {details.whatsappHref ? (
+                <a href={details.whatsappHref} target="_blank" rel="noreferrer" className="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-black active:bg-emerald-400">
+                  Chamar no WhatsApp
+                </a>
+              ) : (
+                <p className="mt-4 rounded-xl border border-white/10 px-4 py-3 text-center text-[11px] text-zinc-600">Sem telefone para contato</p>
+              )}
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[980px] text-left text-xs text-zinc-300">
         <thead className="border-b border-white/10 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
           <tr>
             <th className="py-3 pr-3">Quando</th>
             <th className="py-3 pr-3">Pessoa</th>
             <th className="py-3 pr-3">Contato</th>
             <th className="py-3 pr-3">Modalidade</th>
+            <th className="py-3 pr-3">Valor</th>
             <th className="py-3 pr-3">Situação</th>
             <th className="py-3 pr-3">Origem</th>
             <th className="py-3 text-right">Ação</th>
@@ -509,29 +654,24 @@ function RecoveryTable({ orders }: { orders: OrderWithParticipants[] }) {
         </thead>
         <tbody className="divide-y divide-white/5">
           {orders.map((order) => {
-            const participant = order.participants[0];
-            const phone = participant?.phone.replace(/\D/g, "") ?? "";
-            const whatsappPhone = phone.startsWith("55") ? phone : `55${phone}`;
-            const paymentLink = order.asaasInvoiceUrl
-              ? ` Você pode continuar por aqui: ${order.asaasInvoiceUrl}`
-              : "";
-            const message = `Olá, ${participant?.fullName?.split(" ")[0] || "atleta"}! Vi que sua inscrição na Titans Race ainda não foi concluída. Posso ajudar com o pagamento?${paymentLink}`;
+            const details = recoveryDetails(order);
 
             return (
               <tr key={order.id}>
                 <td className="py-3 pr-3 text-zinc-500">{formatDateTime(order.createdAt)}</td>
-                <td className="py-3 pr-3 font-semibold text-zinc-100">{participant?.fullName || "Sem nome"}</td>
+                <td className="py-3 pr-3 font-semibold text-zinc-100">{details.participant?.fullName || "Sem nome"}</td>
                 <td className="py-3 pr-3">
-                  <p>{participant?.phone || "-"}</p>
-                  <p className="mt-1 text-zinc-500">{participant?.email || "-"}</p>
+                  <p>{details.participant?.phone || "-"}</p>
+                  <p className="mt-1 text-zinc-500">{details.participant?.email || "-"}</p>
                 </td>
-                <td className="py-3 pr-3">{order.modalityId}</td>
-                <td className="py-3 pr-3">{labels[order.status] ?? order.status}</td>
+                <td className="py-3 pr-3">{details.modalityName}</td>
+                <td className="py-3 pr-3 font-mono text-zinc-100">{formatCurrency(order.totalAmountWithFee ?? order.totalAmount ?? 0)}</td>
+                <td className="py-3 pr-3"><StatusPill label={details.statusLabel} className={details.statusClass} /></td>
                 <td className="py-3 pr-3">{channelLabel(order.source, order.campaign)}</td>
                 <td className="py-3 text-right">
-                  {phone ? (
+                  {details.whatsappHref ? (
                     <a
-                      href={`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`}
+                      href={details.whatsappHref}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex rounded-full bg-emerald-500 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-black hover:bg-emerald-400"
@@ -547,6 +687,39 @@ function RecoveryTable({ orders }: { orders: OrderWithParticipants[] }) {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
+}
+
+function recoveryDetails(order: OrderWithParticipants) {
+  const participant = order.participants[0];
+  const phone = participant?.phone.replace(/\D/g, "") ?? "";
+  const whatsappPhone = phone.startsWith("55") ? phone : `55${phone}`;
+  const paymentLink = order.asaasInvoiceUrl
+    ? ` Você pode continuar por aqui: ${order.asaasInvoiceUrl}`
+    : "";
+  const message = `Olá, ${participant?.fullName?.split(" ")[0] || "atleta"}! Vi que sua inscrição na Titans Race ainda não foi concluída. Posso ajudar com o pagamento?${paymentLink}`;
+  const labels: Record<string, string> = {
+    PENDING: "Aguardando",
+    FAILED: "Falhou",
+    OVERDUE: "Vencido",
+    CANCELED: "Cancelado",
+  };
+
+  return {
+    participant,
+    modalityName: getModalityById(order.modalityId)?.name ?? order.modalityId,
+    statusLabel: labels[order.status] ?? order.status,
+    statusClass: order.status === "PENDING"
+      ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+      : "border-red-500/30 bg-red-500/10 text-red-300",
+    whatsappHref: phone
+      ? `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`
+      : null,
+  };
+}
+
+function StatusPill({ label, className }: { label: string; className: string }) {
+  return <span className={`inline-flex shrink-0 rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] ${className}`}>{label}</span>;
 }

@@ -1023,8 +1023,8 @@ function ParticipantScoreCard({
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-5xl font-black leading-none text-white">
+        <div className="shrink-0 pl-2 text-right">
+          <p className="text-4xl font-black leading-none text-white sm:text-5xl">
             {participant.points}
           </p>
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
@@ -1084,7 +1084,7 @@ function SimpleLeagueRanking({
             return (
               <div
                 key={participant.instagram}
-                className="grid grid-cols-[44px_1fr_72px] gap-3 border-b border-white/10 bg-white/[0.03] p-3 last:border-b-0 md:grid-cols-[56px_1fr_140px_1fr_92px]"
+                className="grid grid-cols-[40px_minmax(0,1fr)_56px] items-center gap-2 border-b border-white/10 bg-white/[0.03] p-3 last:border-b-0 md:grid-cols-[56px_minmax(0,1fr)_140px_minmax(0,1fr)_92px] md:gap-3"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/50 text-base font-black text-orange-200">
                   #{index + 1}
@@ -1109,19 +1109,19 @@ function SimpleLeagueRanking({
                     {nextLevel ? `faltam ${pointsToNext}` : "máximo"}
                   </p>
                 </div>
-                <div className="col-span-3 md:col-span-1">
-                  <XpBar
-                    progress={getProgress(participant.points)}
-                    className="mt-2 h-2.5 md:mt-3"
-                  />
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-black leading-none text-white">
+                <div className="min-w-0 text-right md:col-start-5 md:row-start-1">
+                  <p className="whitespace-nowrap text-xl font-black leading-none text-white md:text-2xl">
                     {participant.points}
                   </p>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                  <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-500 md:text-[10px] md:tracking-[0.18em]">
                     pts
                   </p>
+                </div>
+                <div className="col-span-3 md:col-span-1 md:col-start-4 md:row-start-1">
+                  <XpBar
+                    progress={getProgress(participant.points)}
+                    className="mt-1 h-2.5 md:mt-0"
+                  />
                 </div>
               </div>
             );
