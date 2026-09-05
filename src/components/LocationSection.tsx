@@ -2,6 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { EVENT } from "@/config/event";
 import { MapPin, Building2, Flame, Droplets } from "lucide-react";
 
 export function LocationSection() {
@@ -29,10 +30,25 @@ export function LocationSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          A Titans Race acontecerá em uma área campestre de Alegrete/RS,
-          com terreno variado, setores de lama, desafios naturais, áreas
-          abertas e pontos estratégicos para montagem de obstáculos.
+          A Titans Race acontecerá no <strong className="font-semibold text-white">campo ao lado do Hotel Refazenda</strong>,
+          em {EVENT.city}. Um espaço ao ar livre com terreno variado, lama e
+          obstáculos para viver cada desafio da prova.
         </motion.p>
+
+        <div className="mt-6 flex flex-col items-start gap-3">
+          <a
+            href={EVENT.mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full border border-orange-500/40 bg-orange-500/10 px-5 py-3 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-400"
+          >
+            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Encontrar Hotel Refazenda no mapa
+          </a>
+          <p className="max-w-xl text-xs leading-relaxed text-zinc-400">
+            Use o hotel como ponto de referência para chegar. A prova será no campo ao lado.
+          </p>
+        </div>
 
         {/* FEATURES */}
         <motion.div
@@ -49,35 +65,34 @@ export function LocationSection() {
         </motion.div>
 
         {/* GRID DE MÍDIA */}
-        <div className="mt-14 grid gap-4 md:grid-cols-[1.3fr_1fr]">
+        <div className="mt-10 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
           {/* IMAGEM PRINCIPAL */}
           <motion.div
-            className="group relative h-80 overflow-hidden rounded-3xl border border-white/10 md:h-full"
+            className="relative flex h-60 items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-black p-5 md:h-72"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
             <img
-              src="/images/local-1.png"
-              alt="Local da prova"
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              src="/images/pag_usuario2.png"
+              alt="Titans Race II — Corra, Supere, Vença"
+              className="h-full w-full max-w-[240px] object-contain"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           </motion.div>
 
           {/* MAPA EMBED */}
           <motion.div
-            className="relative h-80 overflow-hidden rounded-3xl border border-white/10 shadow-xl md:h-full"
+            className="relative h-72 overflow-hidden rounded-3xl border border-white/10 shadow-xl"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
             <iframe
-              title="Mapa - Alegrete"
+              title="Mapa do Hotel Refazenda, referência para o campo da Titans Race em Alegrete/RS"
               className="h-full w-full grayscale-[0.6] contrast-[1.15] brightness-[0.85]"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3455.51!2d-55.79!3d-29.78!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x946f3abb81000001%3A0x123456789abcdef!2sAlegrete%20RS!5e0!3m2!1spt-BR!2sbr!4v0000000000"
+              src={EVENT.mapsEmbedUrl}
               allowFullScreen
               loading="lazy"
             ></iframe>

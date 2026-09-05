@@ -18,6 +18,14 @@ const bebas = Bebas_Neue({
 export const metadata: Metadata = {
   title: "Titans Race - Alegrete",
   description: "Corrida de obstáculos Titans Race - Alegrete/RS",
+  icons: {
+    icon: {
+      url: "/icon.png?v=1",
+      type: "image/png",
+    },
+    shortcut: "/icon.png?v=1",
+    apple: "/icon.png?v=1",
+  },
 };
 
 export default function RootLayout({

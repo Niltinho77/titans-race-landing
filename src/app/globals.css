@@ -29,3 +29,19 @@ body {
   font-weight: 400;
   font-style: normal;
 }
+
+.registration-popup::backdrop {
+  background: rgb(0 0 0 / 72%);
+  backdrop-filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .registration-popup[open] {
+    animation: registration-popup-enter 280ms ease-out;
+  }
+
+  @keyframes registration-popup-enter {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}

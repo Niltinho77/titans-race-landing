@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { CalendarDays, MapPin } from "lucide-react";
+import { EVENT } from "@/config/event";
 import { useEffect, useState } from "react";
 
 const WORDS = ["CORRER", "SUPERAR", "VENCER", "SER UM TITAN"];
@@ -24,9 +26,11 @@ export default function Hero() {
     }
 
     if (isDeleting && subIndex === 0) {
-      setIsDeleting(false);
-      setIndex((prev) => (prev + 1) % WORDS.length);
-      return;
+      const timeout = setTimeout(() => {
+        setIsDeleting(false);
+        setIndex((prev) => (prev + 1) % WORDS.length);
+      }, TYPING_SPEED);
+      return () => clearTimeout(timeout);
     }
 
     const timeout = setTimeout(() => {
@@ -97,6 +101,17 @@ export default function Hero() {
               </p>
             </motion.div>
 
+            <div className="mt-6 flex flex-col gap-3 border-l-2 border-orange-500 pl-4">
+              <p className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
+                <CalendarDays className="h-5 w-5 shrink-0 text-orange-400" aria-hidden="true" />
+                <time dateTime={EVENT.date}>{EVENT.dateLabel}</time>
+              </p>
+              <a href="#local" className="flex items-start gap-2 rounded-sm text-sm leading-relaxed text-slate-200 transition hover:text-orange-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" aria-hidden="true" />
+                <span>{EVENT.venue}<span className="block text-xs text-slate-400">{EVENT.city} · Ver localização</span></span>
+              </a>
+            </div>
+
             {/* Texto de impacto */}
             <motion.div
               className="mt-6 max-w-2xl"
@@ -134,7 +149,7 @@ export default function Hero() {
               </a>
 
               <a
-                href="/regulamento.pdf"
+                href="/REGULAMENTO.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-full border border-white/30 px-10 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/90 transition hover:bg-white/5"
