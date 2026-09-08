@@ -1,3 +1,4 @@
+import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start-pagbank/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
@@ -80,6 +81,9 @@ function getSiteUrl(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CheckoutPayload;
+    if (isExternalPaymentCoupon(body.couponCode)) {
+      return NextResponse.json({ error: "Use o checkout principal para registrar pagamento por fora." }, { status: 400 });
+    }
 
     const modality = getModalityById(body.modalityId);
     if (!modality) {

@@ -1,3 +1,4 @@
+import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/coupons/preview/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -123,10 +124,12 @@ export async function POST(req: Request) {
 
     // Cupons dão desconto na inscrição; produtos extras continuam cobrados.
     discountAmount = Math.min(discountAmount, discountBase);
+    if (isExternalPaymentCoupon(coupon.code)) discountAmount = 0;
     const totalAfterDiscount = Math.max(0, subtotal - discountAmount);
 
     return NextResponse.json({
       code: coupon.code,
+      externalPayment: isExternalPaymentCoupon(coupon.code),
       discountAmount,
       totalAfterDiscount,
     });

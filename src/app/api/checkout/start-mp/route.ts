@@ -1,3 +1,4 @@
+import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma, CouponType } from "@prisma/client";
@@ -166,6 +167,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as CheckoutPayload;
+    if (isExternalPaymentCoupon(body.couponCode)) {
+      return NextResponse.json({ error: "Use o checkout principal para registrar pagamento por fora." }, { status: 400 });
+    }
 
     const modality = getModalityById(body.modalityId);
     if (!modality) {

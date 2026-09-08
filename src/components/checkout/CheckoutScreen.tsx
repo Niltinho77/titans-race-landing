@@ -1,6 +1,7 @@
 // src/components/checkout/CheckoutScreen.tsx
 "use client";
 
+import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { useEffect, useMemo, useState } from "react";
 import {
   EXTRAS,
@@ -229,7 +230,9 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     const subtotal = ticketsTotalCalc + extrasTotalCalc;
     const discount = Math.min(discountAmount || 0, subtotal);
     const subtotalAfterDiscount = Math.max(0, subtotal - discount);
-    const { totalWithFee, feeAmount } = calculateFee(subtotalAfterDiscount);
+    const { totalWithFee, feeAmount } = isExternalPaymentCoupon(appliedCoupon)
+      ? { totalWithFee: subtotalAfterDiscount, feeAmount: 0 }
+      : calculateFee(subtotalAfterDiscount);
 
     return {
       ticketsTotal: ticketsTotalCalc,
@@ -240,7 +243,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
       feeAmount,
       grandTotalWithFee: totalWithFee,
     };
-  }, [modality, tickets, participants, discountAmount]);
+  }, [modality, tickets, participants, discountAmount, appliedCoupon]);
 
   const applyCoupon = async () => {
     const code = normalizeCoupon(couponCode);
@@ -584,7 +587,14 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
                 </div>
               </div>
 
-              {appliedCoupon && discountAmount > 0 && (
+              {isExternalPaymentCoupon(appliedCoupon) && (
+                <p className="mt-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-orange-200">
+                  Pagamento por fora: o cupom dispensa a cobrança online, mas a inscrição não é gratuita.
+                  O valor de {formatCurrency(ticketsTotal)} fica pendente com a organização.
+                  Válido para uma inscrição, sem produtos extras.
+                </p>
+              )}
+              {appliedCoupon && !isExternalPaymentCoupon(appliedCoupon) && discountAmount > 0 && (
                 <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-200">
                   Cupom <span className="font-semibold">{appliedCoupon}</span>{" "}
                   aplicado. Desconto:{" "}

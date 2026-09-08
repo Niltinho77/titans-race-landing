@@ -1,3 +1,4 @@
+import { isExternalPaymentOrder } from "@/config/externalPayment";
 // src/app/admin/inscricoes/page.tsx
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
@@ -151,6 +152,8 @@ export default async function AdminInscricoesPage() {
   const pagos = orders.filter((o) => o.status === "PAID").length;
   const pendentes = orders.filter((o) => o.status === "PENDING").length;
   const falhos = orders.filter((o) => o.status === "FAILED").length;
+  const externalOrders = orders.filter(isExternalPaymentOrder);
+  const externalDue = externalOrders.filter((order) => order.status === "PENDING").reduce((sum, order) => sum + (order.totalAmountWithFee ?? 0), 0);
   const complimentaryOrders = orders.filter(isComplimentaryOrder);
   const complimentaryAthletes = complimentaryOrders.reduce(
     (sum, order) => sum + order.participants.length,
@@ -240,6 +243,22 @@ export default async function AdminInscricoesPage() {
             subtitle={`${complimentaryOrders.length} pedidos de cortesia`}
             color="emerald"
           />
+        </section>
+
+        <section className="rounded-3xl border border-orange-500/30 bg-orange-500/5 p-5">
+          <h2 className="text-xl font-semibold text-orange-300">Pagamento por fora</h2>
+          <p className="mt-2 text-sm text-zinc-300">{externalOrders.length} pedidos · {formatCurrency(externalDue)} a receber diretamente pela organização</p>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {externalOrders.map((order) => (
+              <div key={order.id} className="rounded-2xl border border-white/10 p-4">
+                <p className="text-sm text-orange-200">{getModalityById(order.modalityId)?.name} · {statusLabel(order.status)} · {formatCurrency(order.totalAmountWithFee)}</p>
+                <p className="mt-1 text-xs text-zinc-400">Cupom {order.couponCode}</p>
+                {order.participants.map((participant) => (
+                  <Link key={participant.id} href={`/portal/admin/participante/${participant.id}`} className="mt-2 block text-sm text-white hover:text-orange-300">{participant.fullName}</Link>
+                ))}
+              </div>
+            ))}
+          </div>
         </section>
 
         {complimentaryOrders.length > 0 && (
@@ -423,6 +442,9 @@ export default async function AdminInscricoesPage() {
                                     </span>
                                   )}
 
+                                  {isExternalPaymentOrder(order) && (
+                                    <span className="rounded-full border border-orange-500/40 px-2 py-1 text-xs text-orange-300">Pagamento por fora · {statusLabel(order.status)}</span>
+                                  )}
                                   {isComplimentaryOrder(order) && (
                                     <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
                                       Gratuita

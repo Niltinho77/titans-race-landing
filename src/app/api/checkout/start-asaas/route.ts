@@ -1,3 +1,4 @@
+import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start-asaas/route.ts
 
 import { NextResponse } from "next/server";
@@ -204,6 +205,12 @@ export async function POST(req: Request) {
       appliedCouponMaxUses = coupon.maxUses;
     }
 
+    const isExternalPayment = isExternalPaymentCoupon(appliedCouponCode);
+    if (isExternalPayment && (body.tickets !== 1 || extrasAmount > 0)) {
+      return NextResponse.json({ error: "Pagamento por fora permite uma inscrição por cupom, sem produtos extras. Combine os extras diretamente com a organização." }, { status: 400 });
+    }
+    // This coupon bypasses online collection; the full registration remains due.
+    if (isExternalPayment) discountAmount = 0;
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
     const { totalWithFee, feeAmount } = calculateFee(discountedTotalAmount);
     const isComplimentary =
@@ -223,11 +230,11 @@ export async function POST(req: Request) {
         totalAmount: subtotal,
         discountAmount,
         discountedTotalAmount,
-        feeAmount,
-        totalAmountWithFee: totalWithFee,
+        feeAmount: isExternalPayment ? 0 : feeAmount,
+        totalAmountWithFee: isExternalPayment ? subtotal : totalWithFee,
 
         couponCode: appliedCouponCode,
-        asaasPaymentStatus: isComplimentary ? "COMPLIMENTARY" : null,
+        asaasPaymentStatus: isExternalPayment ? "EXTERNAL_PENDING" : isComplimentary ? "COMPLIMENTARY" : null,
         paidAt: isComplimentary ? new Date() : null,
         ...attribution,
 
@@ -258,7 +265,7 @@ export async function POST(req: Request) {
         },
     };
 
-    const order = isComplimentary
+    const order = (isComplimentary || isExternalPayment)
       ? await prisma.$transaction(async (tx) => {
           const claimedCoupon = await tx.coupon.updateMany({
             where: {
@@ -286,6 +293,14 @@ export async function POST(req: Request) {
         });
 
     createdOrderId = order.id;
+
+    if (isExternalPayment) {
+      return NextResponse.json({
+        orderId: order.id,
+        externalPayment: true,
+        checkoutUrl: "/checkout/pagamento-por-fora",
+      });
+    }
 
     if (isComplimentary) {
       const recipients = Array.from(
