@@ -2,8 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Lock, AlarmClock, Flame } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Lock, Flame } from "lucide-react";
 
 type Lot = {
   id: string;
@@ -39,59 +38,17 @@ const lots: Lot[] = [
   },
 ];
 
-// ================= CONFIG RÁPIDA =================
-const SOLD_OUT_LOT_IDS = ["lotePromocional", "lote2"];
-const NEXT_OPEN_LOT_ID = "lote3";
-const NEXT_LOT_NAME = "3º Lote";
-
-// contador para 7 dias
-const NEXT_LOT_OPENS_AT_ISO = "2026-04-15T23:59:59-03:00";
-// ================================================
-
-function formatCountdown(ms: number) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  return {
-    days,
-    hours: pad(hours),
-    minutes: pad(minutes),
-    seconds: pad(seconds),
-  };
-}
-
-function countdownCopy(days: number) {
-  if (days <= 0) return "ABRINDO AGORA";
-  if (days === 1) return "ÚLTIMO DIA";
-  if (days <= 3) return "ABERTURA IMINENTE";
-  return "ABERTURA EM BREVE";
-}
+const SOLD_OUT_LOT_IDS = ["lotePromocional", "lote2", "lote3"];
+const OPEN_LOT_ID = "loteFinal";
+const OPEN_LOT_NAME = "Último Lote";
 
 function getLotVisualState(lotId: string) {
   if (SOLD_OUT_LOT_IDS.includes(lotId)) return "soldout";
-  if (lotId === NEXT_OPEN_LOT_ID) return "open";
+  if (lotId === OPEN_LOT_ID) return "open";
   return "locked";
 }
 
 export function RegistrationSection() {
-  const opensAt = useMemo(() => new Date(NEXT_LOT_OPENS_AT_ISO), []);
-  const [now, setNow] = useState<Date>(() => new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const msLeft = opensAt.getTime() - now.getTime();
-  const countdown = formatCountdown(msLeft);
-  const countdownLabel = countdownCopy(countdown.days);
-  const hasOpened = msLeft <= 0;
-
   return (
     <section
       id="lotes"
@@ -110,36 +67,17 @@ export function RegistrationSection() {
             </p>
 
             <h2 className="mt-3 heading-adventure text-3xl text-white md:text-5xl">
-              3º Lote aberto
+              Último lote aberto
             </h2>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">
               Os lotes anteriores encerraram. O{" "}
-              <span className="font-semibold text-white">{NEXT_LOT_NAME}</span>{" "}
-              está aberto agora — vagas limitadas. Garanta a sua antes que
-              esgotem.
+              <span className="font-semibold text-white">{OPEN_LOT_NAME}</span>{" "}
+              está aberto. Esta é a última oportunidade de participar desta edição.
+              Garanta sua inscrição antes do encerramento.
             </p>
           </div>
 
-          {/* Countdown temporariamente desabilitado — 3º lote aberto */}
-          {/* <div className="w-full max-w-md rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/15 via-orange-500/10 to-transparent p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-black">
-                <AlarmClock className="h-3.5 w-3.5" />
-                {hasOpened ? "LOTE LIBERADO" : countdownLabel}
-              </span>
-
-              <span className="font-mono text-lg font-extrabold text-white">
-                {countdown.days}d {countdown.hours}:{countdown.minutes}:
-                {countdown.seconds}
-              </span>
-            </div>
-
-            <p className="mt-3 text-xs text-zinc-300">
-              Contagem para abertura do{" "}
-              <span className="font-semibold text-white">{NEXT_LOT_NAME}</span>.
-            </p>
-          </div> */}
         </motion.div>
 
         
@@ -149,7 +87,6 @@ export function RegistrationSection() {
             const state = getLotVisualState(lot.id);
             const isSoldOut = state === "soldout";
             const isOpen = state === "open";
-            const isNext = false; // mantido para compatibilidade de estilos
 
             return (
               <motion.div

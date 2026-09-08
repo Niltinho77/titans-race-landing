@@ -61,7 +61,7 @@ const tilesBase: Tile[] = [
   {
     id: "contato",
     title: "ENTRAR EM CONTATO",
-    subtitle: "Garanta prioridade na abertura",
+    subtitle: "Tire suas dúvidas e venha participar",
     location: "WhatsApp Oficial",
     image: "/images/contato.jpg",
     href: "https://wa.me/5555992234690?text=Olá!%20Gostaria%20de%20mais%20informações",
@@ -69,7 +69,7 @@ const tilesBase: Tile[] = [
 ];
 
 export function ExperienceGridSection() {
-  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // 3º lote aberto
+  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // Último lote aberto
 
 const isTileEnabled = (tile: Tile) =>
   ENABLED_TILES.includes(tile.id) || tile.id === "contato";
@@ -86,7 +86,7 @@ const isTileEnabled = (tile: Tile) =>
             modalidades & experiências
           </span>
           <span className="text-slate-500">
-            escolha sua modalidade • inscrições abertas
+            escolha sua modalidade • último lote
           </span>
         </div>
 
@@ -141,7 +141,7 @@ const isTileEnabled = (tile: Tile) =>
                       </p>
 
                       <p className="mx-auto mt-2 max-w-[28ch] text-[10px] leading-relaxed text-slate-200/90 sm:text-[11px] md:text-xs">
-                        O próximo lote começa em breve.
+                        As inscrições desta modalidade estão encerradas.
                       </p>
                     </div>
                   </div>

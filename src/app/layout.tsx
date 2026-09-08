@@ -16,8 +16,29 @@ const bebas = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://titansrace.com.br"),
   title: "Titans Race - Alegrete",
   description: "Corrida de obstáculos Titans Race - Alegrete/RS",
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Titans Race",
+    title: "Titans Race | Corrida de obstáculos",
+    description: "Corra. Supere. Vença. Viva o desafio em Alegrete/RS. Escolha sua modalidade e garanta sua inscrição.",
+    images: [{
+      url: "/share-image?v=1",
+      width: 400,
+      height: 400,
+      type: "image/png",
+      alt: "Titans Race — Alegrete/RS",
+    }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Titans Race | Corrida de obstáculos",
+    description: "Corra. Supere. Vença. Viva o desafio em Alegrete/RS.",
+    images: [{ url: "/share-image?v=1", alt: "Titans Race — Alegrete/RS" }],
+  },
   icons: {
     icon: {
       url: "/icon.png?v=1",

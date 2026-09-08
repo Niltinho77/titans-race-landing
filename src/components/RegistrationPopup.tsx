@@ -4,7 +4,7 @@ import Image from "next/image";
 import { ArrowUpRight, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-const SESSION_KEY = "titans-registration-reminder-v1";
+const SESSION_KEY = "titans-registration-last-lot-v2";
 
 export function RegistrationPopup() {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -99,20 +99,20 @@ export function RegistrationPopup() {
         <div className="relative flex flex-col justify-center px-7 pb-7 pt-2 sm:py-12 sm:pl-6 sm:pr-9">
           <p className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-orange-400">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-500" aria-hidden="true" />
-            Inscrições abertas
+            Último lote aberto
           </p>
           <h2 id="registration-popup-title" className="heading-adventure text-[34px] leading-[1.12] sm:text-[42px]">
-            AINDA DÁ<br />TEMPO DE<br /><span className="text-orange-500">SE INSCREVER.</span>
+            ÚLTIMO LOTE.<br />A HORA É<br /><span className="text-orange-500">AGORA.</span>
           </h2>
           <p id="registration-popup-description" className="mt-5 max-w-sm text-sm leading-relaxed text-zinc-300">
-            A próxima superação pode ser a sua. Escolha sua modalidade e venha viver a Titans Race.
+            Chegamos ao último lote da Titans Race. Esta é a última oportunidade de se inscrever nesta edição. Garanta sua inscrição antes do encerramento e venha superar seus limites.
           </p>
           <a
             href="#inscricoes"
             onClick={() => dialogRef.current?.close()}
             className="mt-7 flex min-h-12 items-center justify-center gap-3 rounded-full bg-orange-500 px-5 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-black transition hover:bg-orange-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-400"
           >
-            Quero me inscrever <ArrowUpRight size={18} aria-hidden="true" />
+            Garantir minha inscrição <ArrowUpRight size={18} aria-hidden="true" />
           </a>
           <button type="button" onClick={() => dialogRef.current?.close()} className="mt-2 min-h-11 rounded-full text-xs text-zinc-400 transition hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
             Vou continuar explorando
