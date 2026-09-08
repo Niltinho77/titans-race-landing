@@ -36,17 +36,17 @@ async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed 
   return { response, writes, gatewayCalls, emails };
 }
 
-test('external registration retains debt, consumes coupon, skips gateway and paid email', async () => {
+test('external registration records received payment, consumes coupon and skips online collection', async () => {
   const result = await run({ code: 'JENIFFERSOLO100' });
   assert.equal(result.response.status, 200);
   assert.equal(result.response.body.externalPayment, true);
   const order = result.writes[0];
-  assert.equal(order.status, 'PENDING');
-  assert.equal(order.asaasPaymentStatus, 'EXTERNAL_PENDING');
+  assert.equal(order.status, 'PAID');
+  assert.equal(order.asaasPaymentStatus, 'EXTERNAL_PAID');
   assert.equal(order.totalAmountWithFee, 18000);
   assert.equal(order.discountAmount, 0);
   assert.equal(order.feeAmount, 0);
-  assert.equal(order.paidAt, null);
+  assert.ok(order.paidAt instanceof Date);
   assert.equal(result.gatewayCalls, 0);
   assert.equal(result.emails, 0);
 });

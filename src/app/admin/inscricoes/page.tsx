@@ -153,6 +153,7 @@ export default async function AdminInscricoesPage() {
   const pendentes = orders.filter((o) => o.status === "PENDING").length;
   const falhos = orders.filter((o) => o.status === "FAILED").length;
   const externalOrders = orders.filter(isExternalPaymentOrder);
+  const externalReceived = externalOrders.filter((order) => order.status === "PAID").reduce((sum, order) => sum + (order.totalAmountWithFee ?? 0), 0);
   const externalDue = externalOrders.filter((order) => order.status === "PENDING").reduce((sum, order) => sum + (order.totalAmountWithFee ?? 0), 0);
   const complimentaryOrders = orders.filter(isComplimentaryOrder);
   const complimentaryAthletes = complimentaryOrders.reduce(
@@ -247,7 +248,7 @@ export default async function AdminInscricoesPage() {
 
         <section className="rounded-3xl border border-orange-500/30 bg-orange-500/5 p-5">
           <h2 className="text-xl font-semibold text-orange-300">Pagamento por fora</h2>
-          <p className="mt-2 text-sm text-zinc-300">{externalOrders.length} pedidos · {formatCurrency(externalDue)} a receber diretamente pela organização</p>
+          <p className="mt-2 text-sm text-zinc-300">{externalOrders.length} pedidos · {formatCurrency(externalReceived)} recebidos diretamente pela organização{externalDue > 0 ? ` · ${formatCurrency(externalDue)} pendentes` : ""}</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {externalOrders.map((order) => (
               <div key={order.id} className="rounded-2xl border border-white/10 p-4">

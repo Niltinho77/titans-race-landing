@@ -209,7 +209,7 @@ export async function POST(req: Request) {
     if (isExternalPayment && (body.tickets !== 1 || extrasAmount > 0)) {
       return NextResponse.json({ error: "Pagamento por fora permite uma inscrição por cupom, sem produtos extras. Combine os extras diretamente com a organização." }, { status: 400 });
     }
-    // This coupon bypasses online collection; the full registration remains due.
+    // This coupon bypasses online collection; the organizer has already received the registration payment.
     if (isExternalPayment) discountAmount = 0;
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
     const { totalWithFee, feeAmount } = calculateFee(discountedTotalAmount);
@@ -222,7 +222,7 @@ export async function POST(req: Request) {
     const orderData = {
       modalityId: body.modalityId,
         tickets: body.tickets,
-        status: isComplimentary ? "PAID" : "PENDING",
+        status: (isComplimentary || isExternalPayment) ? "PAID" : "PENDING",
         termsAccepted: body.termsAccepted,
 
         ticketsAmount,
@@ -234,8 +234,8 @@ export async function POST(req: Request) {
         totalAmountWithFee: isExternalPayment ? subtotal : totalWithFee,
 
         couponCode: appliedCouponCode,
-        asaasPaymentStatus: isExternalPayment ? "EXTERNAL_PENDING" : isComplimentary ? "COMPLIMENTARY" : null,
-        paidAt: isComplimentary ? new Date() : null,
+        asaasPaymentStatus: isExternalPayment ? "EXTERNAL_PAID" : isComplimentary ? "COMPLIMENTARY" : null,
+        paidAt: (isComplimentary || isExternalPayment) ? new Date() : null,
         ...attribution,
 
         participants: {

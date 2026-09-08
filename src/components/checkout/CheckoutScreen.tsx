@@ -590,7 +590,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
               {isExternalPaymentCoupon(appliedCoupon) && (
                 <p className="mt-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-orange-200">
                   Pagamento por fora: o cupom dispensa a cobrança online, mas a inscrição não é gratuita.
-                  O valor de {formatCurrency(ticketsTotal)} fica pendente com a organização.
+                  O pagamento de {formatCurrency(ticketsTotal)} já foi recebido pela organização. Sua inscrição será registrada como paga.
                   Válido para uma inscrição, sem produtos extras.
                 </p>
               )}
