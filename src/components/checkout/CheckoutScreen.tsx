@@ -587,13 +587,6 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
                 </div>
               </div>
 
-              {isExternalPaymentCoupon(appliedCoupon) && (
-                <p className="mt-3 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-orange-200">
-                  Pagamento por fora: o cupom dispensa a cobrança online, mas a inscrição não é gratuita.
-                  O pagamento de {formatCurrency(ticketsTotal)} já foi recebido pela organização. Sua inscrição será registrada como paga.
-                  Válido para uma inscrição, sem produtos extras.
-                </p>
-              )}
               {appliedCoupon && !isExternalPaymentCoupon(appliedCoupon) && discountAmount > 0 && (
                 <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-200">
                   Cupom <span className="font-semibold">{appliedCoupon}</span>{" "}
