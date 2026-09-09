@@ -13,12 +13,12 @@ function load(file, mocks = {}) {
 const config = load('src/config/externalPayment.ts');
 const checkout = load('src/config/checkout.ts');
 
-async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed = 1, modalityId = 'competicao' } = {}) {
+async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed = 1, modalityId = 'competicao', couponModalityId = 'competicao' } = {}) {
   const writes = [];
   let gatewayCalls = 0;
   let emails = 0;
   const db = {
-    coupon: { findFirst: async () => ({ code, active: true, type: 'PERCENT', amount: 100, usedCount: 0, maxUses: 1, modalityId: 'competicao' }), updateMany: async () => ({ count: claimed }) },
+    coupon: { findFirst: async () => ({ code, active: true, type: 'PERCENT', amount: 100, usedCount: 0, maxUses: 1, modalityId: couponModalityId }), updateMany: async () => ({ count: claimed }) },
     order: { create: async ({ data }) => { writes.push(data); return { id: 'test-order', ...data, participants: data.participants.create }; }, update: async () => ({}) },
     $transaction: async (fn) => fn(db),
   };
@@ -49,6 +49,18 @@ test('external registration records received payment, consumes coupon and skips 
   assert.ok(order.paidAt instanceof Date);
   assert.equal(result.gatewayCalls, 0);
   assert.equal(result.emails, 0);
+});
+test('Diversão external coupon records the correct price and skips online collection', async () => {
+  const result = await run({ code: 'JULIADIVERSAO100', modalityId: 'diversao', couponModalityId: 'diversao' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.response.body.externalPayment, true);
+  const order = result.writes[0];
+  assert.equal(order.status, 'PAID');
+  assert.equal(order.asaasPaymentStatus, 'EXTERNAL_PAID');
+  assert.equal(order.totalAmountWithFee, 17500);
+  assert.equal(order.discountAmount, 0);
+  assert.equal(order.feeAmount, 0);
+  assert.equal(result.gatewayCalls, 0);
 });
 test('ordinary 100% coupon remains a complimentary registration', async () => {
   const result = await run({ code: 'COURTESY100' });
