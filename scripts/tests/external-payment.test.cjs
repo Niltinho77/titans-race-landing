@@ -37,7 +37,7 @@ async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed 
 }
 
 test('external registration records received payment, consumes coupon and skips online collection', async () => {
-  const result = await run({ code: 'JENIFFERSOLO100' });
+  const result = await run({ code: 'ISABELLISOLO100' });
   assert.equal(result.response.status, 200);
   assert.equal(result.response.body.externalPayment, true);
   const order = result.writes[0];
