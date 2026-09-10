@@ -81,7 +81,7 @@ export async function createAsaasCheckout(input: AsaasCreateCheckoutInput) {
   const body: Record<string, unknown> = {
   billingTypes: ["PIX", "CREDIT_CARD"],
   chargeTypes: ["DETACHED"],
-  minutesToExpire: input.minutesToExpire ?? 60,
+  minutesToExpire: input.minutesToExpire ?? 24 * 60,
   externalReference: input.externalReference,
   callback: {
     successUrl: input.successUrl,

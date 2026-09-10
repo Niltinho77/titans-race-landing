@@ -28,10 +28,7 @@ type ParticipantForm = {
   phone: string;
   email: string;
   city: string;
-  state: string;
   tshirtSize: string;
-  emergencyName: string;
-  emergencyPhone: string;
   healthInfo: string;
   extras: ParticipantExtra[];
 };
@@ -437,10 +434,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           phone: p.phone,
           email: p.email,
           city: p.city,
-          state: p.state,
           tshirtSize: p.tshirtSize,
-          emergencyName: p.emergencyName,
-          emergencyPhone: p.emergencyPhone,
           healthInfo: p.healthInfo,
           extras: p.extras,
         })),
@@ -756,10 +750,7 @@ function createEmptyParticipant(): ParticipantForm {
     phone: "",
     email: "",
     city: "",
-    state: "",
     tshirtSize: "Baby Look - M",
-    emergencyName: "",
-    emergencyPhone: "",
     healthInfo: "",
     extras: [],
   };
@@ -912,6 +903,7 @@ function Step2Participants({
                   value={participant.fullName}
                   onChange={(v) => onChange(index, "fullName", v)}
                   error={showErrors && participant.fullName.trim().length <= 3}
+                  errorMessage="Informe o nome completo."
                 />
                 <Input
                   label="CPF"
@@ -920,6 +912,7 @@ function Step2Participants({
                   maxLength={14}
                   inputMode="numeric"
                   error={showErrors && !isValidCPF(participant.cpf)}
+                  errorMessage="Informe os 11 dígitos do CPF."
                 />
                 <Input
                   label="Data de nascimento"
@@ -929,6 +922,7 @@ function Step2Participants({
                   maxLength={10}
                   inputMode="numeric"
                   error={showErrors && !isValidDate(participant.birthDate)}
+                  errorMessage="Use o formato dd/mm/aaaa."
                 />
                 <Input
                   label="Telefone / WhatsApp"
@@ -937,6 +931,7 @@ function Step2Participants({
                   maxLength={15}
                   inputMode="tel"
                   error={showErrors && !isValidPhone(participant.phone)}
+                  errorMessage="Informe um celular com DDD."
                 />
                 <Input
                   label="E-mail"
@@ -944,42 +939,21 @@ function Step2Participants({
                   onChange={(v) => onChange(index, "email", v)}
                   type="email"
                   error={showErrors && !isValidEmail(participant.email)}
+                  errorMessage="Informe um e-mail válido."
                 />
                 <Input
-                  label="Cidade"
+                  label="Cidade (opcional)"
                   value={participant.city}
                   onChange={(v) => onChange(index, "city", v)}
                 />
-                <Input
-                  label="UF"
-                  value={participant.state}
-                  onChange={(v) =>
-                    onChange(index, "state", v.toUpperCase().slice(0, 2))
-                  }
-                  maxLength={2}
-                />
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="mt-4">
                 <Select
                   label="Tamanho da camiseta"
                   value={participant.tshirtSize}
                   onChange={(v) => onChange(index, "tshirtSize", v)}
                   options={DEFAULT_TSHIRT_SIZES}
-                />
-                <Input
-                  label="Contato de emergência"
-                  value={participant.emergencyName}
-                  onChange={(v) => onChange(index, "emergencyName", v)}
-                />
-                <Input
-                  label="Telefone do contato"
-                  value={participant.emergencyPhone}
-                  onChange={(v) =>
-                    onChange(index, "emergencyPhone", formatPhone(v))
-                  }
-                  maxLength={15}
-                  inputMode="tel"
                 />
               </div>
 
@@ -1109,7 +1083,11 @@ function Step3ExtrasAndTerms({
         ))}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-300">
+      <div className={`mt-4 rounded-2xl border bg-black/70 p-4 text-xs text-zinc-300 ${
+        showErrors && !termsAccepted
+          ? "border-red-500/70 bg-red-500/5"
+          : "border-white/10"
+      }`}>
         <p className="text-[11px] text-zinc-400">
           Antes de finalizar, é necessário concordar com o regulamento e o termo
           de responsabilidade da prova. Você pode acessar os documentos nos links
@@ -1146,12 +1124,19 @@ function Step3ExtrasAndTerms({
               showErrors && !termsAccepted ? "border-red-500" : "border-white/20"
             }`}
           />
-          <label htmlFor="terms" className="text-[11px] leading-relaxed">
+          <label htmlFor="terms" className={`text-[11px] leading-relaxed ${
+            showErrors && !termsAccepted ? "text-red-300" : ""
+          }`}>
             Declaro que li e aceito o regulamento e o termo de responsabilidade
             da Titans Race, estou apto(a) a participar da prova e ciente dos
             riscos inerentes à atividade.
           </label>
         </div>
+        {showErrors && !termsAccepted && (
+          <p className="mt-2 text-[11px] font-medium text-red-400" role="alert">
+            Aceite o regulamento e o termo para finalizar a inscrição.
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -1166,6 +1151,7 @@ function Input({
   maxLength,
   inputMode,
   error,
+  errorMessage,
 }: {
   label: string;
   value: string;
@@ -1175,21 +1161,30 @@ function Input({
   maxLength?: number;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   error?: boolean;
+  errorMessage?: string;
 }) {
   return (
     <div className="flex flex-col gap-1 text-xs">
-      <label className="text-zinc-400">{label}</label>
+      <label className={error ? "font-medium text-red-400" : "text-zinc-400"}>{label}</label>
       <input
         type={type}
         value={value ?? ""}
         placeholder={placeholder}
         maxLength={maxLength}
         inputMode={inputMode}
+        aria-invalid={error || undefined}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full rounded-xl border bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500 ${
-          error ? "border-red-500" : "border-white/10"
+        className={`w-full rounded-xl border px-3 py-2 text-xs text-zinc-100 outline-none ${
+          error
+            ? "border-red-500 bg-red-500/10 focus:border-red-400"
+            : "border-white/10 bg-black/60 focus:border-orange-500"
         }`}
       />
+      {error && errorMessage && (
+        <span className="text-[11px] font-medium text-red-400" role="alert">
+          {errorMessage}
+        </span>
+      )}
     </div>
   );
 }

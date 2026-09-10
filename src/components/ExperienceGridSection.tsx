@@ -2,6 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { MODALITIES } from "@/config/checkout";
 
 type Tile = {
   id: string;
@@ -68,6 +69,20 @@ const tilesBase: Tile[] = [
   },
 ];
 
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+function getPriceLabel(modalityId: string) {
+  if (modalityId === "duplas") return "por dupla";
+  if (modalityId === "equipes") return "por quarteto";
+  return "por participante";
+}
+
 export function ExperienceGridSection() {
   const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // Último lote aberto
 
@@ -94,6 +109,7 @@ const isTileEnabled = (tile: Tile) =>
         <div className="grid grid-cols-1 gap-4 md:min-h-[100vh] md:grid-cols-4 md:grid-rows-3 md:grid-flow-dense">
           {tilesBase.map((tile, index) => {
             const enabled = isTileEnabled(tile);
+            const modality = MODALITIES.find((item) => item.id === tile.id);
 
             return (
               <motion.div
@@ -171,6 +187,17 @@ const isTileEnabled = (tile: Tile) =>
                     <h3 className="mt-1 heading-adventure text-xl leading-none text-slate-50 drop-shadow sm:text-2xl md:text-3xl">
                       {tile.title}
                     </h3>
+
+                    {modality && (
+                      <p className="mt-3 flex flex-wrap items-baseline gap-x-2 text-white drop-shadow-lg">
+                        <span className="text-lg font-black text-orange-400 sm:text-xl">
+                          {formatCurrency(modality.basePrice)}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.14em] text-slate-200">
+                          {getPriceLabel(modality.id)}
+                        </span>
+                      </p>
+                    )}
 
                     <p className="mt-2 text-[10px] leading-relaxed text-slate-200/90 sm:text-[11px] md:text-xs">
                       {tile.location}

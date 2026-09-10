@@ -347,7 +347,7 @@ export async function POST(req: Request) {
 
     const checkout = await createAsaasCheckout({
       externalReference: order.id,
-      minutesToExpire: 60,
+      minutesToExpire: 24 * 60,
       successUrl: `${baseUrl}/checkout/sucesso?orderId=${order.id}`,
       cancelUrl: `${baseUrl}/checkout/falha?orderId=${order.id}`,
       expiredUrl: `${baseUrl}/checkout/pendente?orderId=${order.id}`,

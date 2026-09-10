@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, MessageCircle, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 const SESSION_KEY = "titans-registration-last-lot-v2";
@@ -107,6 +107,20 @@ export function RegistrationPopup() {
           <p id="registration-popup-description" className="mt-5 max-w-sm text-sm leading-relaxed text-zinc-300">
             Chegamos ao último lote da Titans Race. Esta é a última oportunidade de se inscrever nesta edição. Garanta sua inscrição antes do encerramento e venha superar seus limites.
           </p>
+          <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+            <p className="text-xs leading-relaxed text-emerald-100">
+              Precisa parcelar o pagamento? Fale com a organização pelo WhatsApp para combinar as condições.
+            </p>
+            <a
+              href="https://wa.me/5555992234690?text=Ol%C3%A1%21%20Gostaria%20de%20fazer%20minha%20inscri%C3%A7%C3%A3o%20parcelada%20na%20Titans%20Race.%20Podem%20me%20ajudar%3F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-black transition hover:bg-emerald-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+            >
+              <MessageCircle size={17} aria-hidden="true" />
+              Parcelar pelo WhatsApp
+            </a>
+          </div>
           <a
             href="#inscricoes"
             onClick={() => dialogRef.current?.close()}
