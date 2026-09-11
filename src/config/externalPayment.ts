@@ -8,6 +8,7 @@ export const EXTERNAL_PAYMENT_COUPONS = [
   "CARLADIVERSAO100",
   "ONOFREDUPLAS100",
   "CAROLINEDUPLAS100",
+  "BOTAFOGUENSESOLO100",
 ] as const;
 
 export function isExternalPaymentCoupon(code?: string | null): boolean {
