@@ -294,15 +294,7 @@ export async function POST(req: Request) {
 
     createdOrderId = order.id;
 
-    if (isExternalPayment) {
-      return NextResponse.json({
-        orderId: order.id,
-        externalPayment: true,
-        checkoutUrl: "/checkout/pagamento-por-fora",
-      });
-    }
-
-    if (isComplimentary) {
+    if (isComplimentary || isExternalPayment) {
       const recipients = Array.from(
         new Map(
           order.participants
@@ -321,7 +313,9 @@ export async function POST(req: Request) {
             participantName: participant.fullName,
             orderId: order.id,
             modalityName: modality.name,
-            totalAmount: 0,
+            totalAmount: isExternalPayment
+              ? order.totalAmountWithFee ?? order.totalAmount ?? 0
+              : 0,
           });
         }
 
@@ -331,15 +325,24 @@ export async function POST(req: Request) {
         });
       } catch (emailError) {
         console.error(
-          "Falha ao enviar confirmação da inscrição gratuita:",
+          `Falha ao enviar confirmação da inscrição ${
+            isExternalPayment ? "com pagamento por fora" : "gratuita"
+          }:`,
           emailError
         );
       }
 
       return NextResponse.json({
         orderId: order.id,
-        complimentary: true,
-        checkoutUrl: `/checkout/sucesso?orderId=${order.id}`,
+        ...(isExternalPayment
+          ? {
+              externalPayment: true,
+              checkoutUrl: "/checkout/pagamento-por-fora",
+            }
+          : {
+              complimentary: true,
+              checkoutUrl: `/checkout/sucesso?orderId=${order.id}`,
+            }),
       });
     }
 

@@ -48,7 +48,7 @@ test('external registration records received payment, consumes coupon and skips 
   assert.equal(order.feeAmount, 0);
   assert.ok(order.paidAt instanceof Date);
   assert.equal(result.gatewayCalls, 0);
-  assert.equal(result.emails, 0);
+  assert.equal(result.emails, 1);
 });
 test('Diversão external coupon records the correct price and skips online collection', async () => {
   const result = await run({ code: 'JULIADIVERSAO100', modalityId: 'diversao', couponModalityId: 'diversao' });

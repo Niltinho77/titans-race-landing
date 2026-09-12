@@ -30,10 +30,7 @@ export async function sendOrderConfirmationEmail(
   params: SendOrderConfirmationParams
 ) {
   if (!resend || !fromEmail) {
-    console.warn(
-      "Resend não configurado corretamente. Pulando envio de e-mail."
-    );
-    return;
+    throw new Error("Resend não configurado corretamente.");
   }
 
   const siteUrl =
@@ -156,12 +153,16 @@ export async function sendOrderConfirmationEmail(
 `;
 
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: fromEmail,
     to,
     subject,
     html,
   });
+
+  if (result.error) {
+    throw new Error(`Falha no envio pelo Resend: ${result.error.message}`);
+  }
 }
 
 type SendPortalPasswordSetupParams = {
