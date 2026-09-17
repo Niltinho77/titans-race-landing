@@ -20,6 +20,27 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Microsoft Clarity
+
+O layout global integra o Microsoft Clarity para mapas de calor e gravações de
+sessões. O projeto de `https://titansrace.com.br` já está configurado com o ID
+público `yjuewlruhm`. Faça um novo build/deploy para publicar a integração.
+
+Para usar outro projeto, configure `NEXT_PUBLIC_CLARITY_PROJECT_ID` nas variáveis
+de ambiente da hospedagem antes do build. O ID é público; não use uma chave de API.
+
+Após publicar, visite o site e confira a sessão no painel do Clarity. Na aba Network
+do navegador, confira o carregamento de `https://www.clarity.ms/tag/yjuewlruhm` e
+as requisições de coleta para o Clarity.
+
+O script só carrega em produção, após a página ficar interativa, e permanece
+desativado quando a variável define um ID vazio ou inválido. `npm run dev` não envia
+sessões. Para testar localmente, use um build de produção.
+O componente é global e abrange todas as páginas que usam o layout raiz.
+
+Documentação: https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-setup
+
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

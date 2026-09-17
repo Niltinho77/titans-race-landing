@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, Bebas_Neue } from "next/font/google";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { MicrosoftClarity } from "@/components/MicrosoftClarity";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default function RootLayout({
         `}
       >
         <AnalyticsTracker />
+        <MicrosoftClarity />
         {children}
       </body>
     </html>
