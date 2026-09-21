@@ -85,3 +85,17 @@ test('Solo coupon rejects another modality', async () => {
   assert.equal(result.response.status, 400);
   assert.equal(result.writes.length, 0);
 });
+test('Anna and Ana Paula coupons are configured as external payments', async () => {
+  assert.equal(config.isExternalPaymentCoupon('annadiversao100'), true);
+  assert.equal(config.isExternalPaymentCoupon('anapaulasolo100'), true);
+
+  const diversao = await run({
+    code: 'ANNADIVERSAO100',
+    modalityId: 'diversao',
+    couponModalityId: 'diversao',
+  });
+  const solo = await run({ code: 'ANAPAULASOLO100' });
+
+  assert.equal(diversao.response.body.externalPayment, true);
+  assert.equal(solo.response.body.externalPayment, true);
+});
