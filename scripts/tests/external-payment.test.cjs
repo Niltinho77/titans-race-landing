@@ -68,6 +68,22 @@ test('ordinary 100% coupon remains a complimentary registration', async () => {
   assert.equal(result.writes[0].status, 'PAID');
   assert.equal(result.writes[0].totalAmountWithFee, 0);
 });
+test('Marilia Solo coupon records external payment with one use and no online charge', async () => {
+  assert.equal(config.isExternalPaymentCoupon('mariliasolo100'), true);
+  const result = await run({ code: 'MARILIASOLO100' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.response.body.externalPayment, true);
+  assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
+  assert.equal(result.writes[0].totalAmountWithFee, checkout.getModalityById('competicao').basePrice);
+  assert.equal(result.writes[0].discountAmount, 0);
+  assert.equal(result.writes[0].feeAmount, 0);
+  assert.equal(result.gatewayCalls, 0);
+  for (const input of [{ modalityId: 'diversao' }, { tickets: 2 }, { claimed: 0 }]) {
+    const rejected = await run({ code: 'MARILIASOLO100', ...input });
+    assert.notEqual(rejected.response.status, 200);
+    assert.equal(rejected.writes.length, 0);
+  }
+});
 test('concurrent coupon claim failure creates no order', async () => {
   const result = await run({ claimed: 0 });
   assert.equal(result.writes.length, 0);
