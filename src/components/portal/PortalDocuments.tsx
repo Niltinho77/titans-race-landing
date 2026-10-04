@@ -10,7 +10,7 @@ const DOCUMENTS = [
     label: "Termo menor de idade",
   },
   {
-    href: "/docs/regulamento.pdf",
+    href: "/regulamento.pdf",
     label: "Regulamento",
   },
 ];

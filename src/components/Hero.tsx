@@ -149,7 +149,7 @@ export default function Hero() {
               </a>
 
               <a
-                href="/REGULAMENTO.pdf"
+                href="/regulamento.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-full border border-white/30 px-10 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/90 transition hover:bg-white/5"

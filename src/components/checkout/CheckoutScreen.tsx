@@ -1096,7 +1096,7 @@ function Step3ExtrasAndTerms({
 
         <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3 text-[11px]">
           <a
-            href="/docs/regulamento.pdf"
+            href="/regulamento.pdf"
             target="_blank"
             rel="noopener noreferrer"
             className="w-fit rounded-full border border-white/20 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-orange-300 hover:bg-white/5"
