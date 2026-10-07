@@ -47,3 +47,7 @@ data/backups/
 
 # weekly draw uploads are operational data, not source assets
 public/sorteio/semana/
+
+# Private recovery previews contain contact information.
+.tmp/recovery/
+.tmp/edition1-campaign/

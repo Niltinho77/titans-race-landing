@@ -10,7 +10,13 @@
     "qr:panfleto": "node scripts/generate-panfleto-qr.mjs",
     "portal:bootstrap": "node scripts/bootstrap-portal-users.js",
     "portal:create-admin": "node scripts/bootstrap-portal-users.js --admin-only",
-    "portal:send-invites": "node scripts/bootstrap-portal-users.js --send"
+    "portal:send-invites": "node scripts/bootstrap-portal-users.js --send",
+    "recovery:preview": "node scripts/recovery/preview.mjs",
+    "recovery:test": "node --test scripts/recovery/select-candidates.test.mjs",
+    "edition1-campaign:preview": "node scripts/edition1-campaign/campaign.mjs --preview",
+    "edition1-campaign:prepare": "node scripts/edition1-campaign/campaign.mjs --prepare",
+    "edition1-campaign:send": "node scripts/edition1-campaign/campaign.mjs --send",
+    "edition1-campaign:test": "node --test scripts/edition1-campaign/audience.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
