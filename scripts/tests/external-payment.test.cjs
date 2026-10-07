@@ -62,6 +62,14 @@ test('Diversão external coupon records the correct price and skips online colle
   assert.equal(order.feeAmount, 0);
   assert.equal(result.gatewayCalls, 0);
 });
+test('Lisi Diversão coupon uses the external payment flow', async () => {
+  assert.equal(config.isExternalPaymentCoupon('lisidiversao100'), true);
+  const result = await run({ code: 'LISIDIVERSAO100', modalityId: 'diversao', couponModalityId: 'diversao' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.response.body.externalPayment, true);
+  assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
+  assert.equal(result.gatewayCalls, 0);
+});
 test('ordinary 100% coupon remains a complimentary registration', async () => {
   const result = await run({ code: 'COURTESY100' });
   assert.equal(result.writes[0].asaasPaymentStatus, 'COMPLIMENTARY');
