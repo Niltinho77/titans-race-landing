@@ -176,8 +176,7 @@ export async function sendPortalPasswordSetupEmail(
   params: SendPortalPasswordSetupParams
 ) {
   if (!resend || !fromEmail) {
-    console.warn("Resend nao configurado corretamente. Pulando envio de e-mail.");
-    return;
+    throw new Error("Resend não configurado corretamente para enviar a senha do portal.");
   }
 
   const expiresAtFormatted = new Intl.DateTimeFormat("pt-BR", {
@@ -200,11 +199,11 @@ export async function sendPortalPasswordSetupEmail(
     </h1>
 
     <p style="color: #e5e5e5; font-size: 14px; margin: 0 0 16px 0;">
-      Ol&aacute;${params.name ? `, <strong>${params.name}</strong>` : ""}.
+      Ol&aacute;${params.name ? `, <strong>${escapeHtml(params.name)}</strong>` : ""}.
     </p>
 
     <p style="color: #cbd5f5; font-size: 14px; margin: 0 0 12px 0;">
-      Criamos o acesso ao portal para voc&ecirc; consultar e atualizar dados permitidos da sua inscri&ccedil;&atilde;o.
+      Recebemos uma solicita&ccedil;&atilde;o para definir ou recuperar sua senha do Portal Titans Race.
     </p>
 
     <p style="color: #cbd5f5; font-size: 14px; margin: 0 0 18px 0;">
@@ -228,12 +227,20 @@ export async function sendPortalPasswordSetupEmail(
 </div>
 `;
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: fromEmail,
     to: params.to,
     subject,
     html,
+    text: `Olá${params.name ? `, ${params.name}` : ""}.\n\nPara definir ou recuperar sua senha do Portal Titans Race, acesse:\n${params.setupUrl}\n\nO link expira em ${expiresAtFormatted} (horário de Brasília).\nSe você não solicitou este acesso, ignore este e-mail.`,
   });
+
+  if (result.error) {
+    throw new Error(`Falha no envio da senha pelo Resend: ${result.error.message}`);
+  }
+  if (!result.data?.id) {
+    throw new Error("Resend não confirmou o envio da senha do portal.");
+  }
 }
 
 type SponsorshipLeadEmailItem = {
