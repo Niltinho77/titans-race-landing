@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node scripts/seed-coupon-naodesmaiafranca.cjs; next start",
+    "start": "next start",
     "lint": "eslint",
     "qr:panfleto": "node scripts/generate-panfleto-qr.mjs",
     "portal:bootstrap": "node scripts/bootstrap-portal-users.js",
