@@ -70,6 +70,16 @@ test('Lisi Diversão coupon uses the external payment flow', async () => {
   assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
   assert.equal(result.gatewayCalls, 0);
 });
+test('Luiz Augusto Diversão coupon uses the external payment flow', async () => {
+  assert.equal(config.isExternalPaymentCoupon('luizaugusto100'), true);
+  const result = await run({ code: 'LUIZAUGUSTO100', modalityId: 'diversao', couponModalityId: 'diversao' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.response.body.externalPayment, true);
+  assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
+  assert.equal(result.writes[0].totalAmountWithFee, checkout.getModalityById('diversao').basePrice);
+  assert.equal(result.writes[0].discountAmount, 0);
+  assert.equal(result.gatewayCalls, 0);
+});
 test('ordinary 100% coupon remains a complimentary registration', async () => {
   const result = await run({ code: 'COURTESY100' });
   assert.equal(result.writes[0].asaasPaymentStatus, 'COMPLIMENTARY');
