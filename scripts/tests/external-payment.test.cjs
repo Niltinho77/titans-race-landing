@@ -87,6 +87,24 @@ test('ordinary 100% coupon remains a complimentary registration', async () => {
   assert.equal(result.writes[0].status, 'PAID');
   assert.equal(result.writes[0].totalAmountWithFee, 0);
 });
+
+test('Potyra Diversão records external payment, preserves price and charges no gateway', async () => {
+  assert.equal(config.isExternalPaymentCoupon('potyradiversao100'), true);
+  const result = await run({ code: 'POTYRADIVERSAO100', modalityId: 'diversao', couponModalityId: 'diversao' });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.response.body.externalPayment, true);
+  assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
+  assert.equal(result.writes[0].status, 'PAID');
+  assert.equal(result.writes[0].totalAmountWithFee, checkout.getModalityById('diversao').basePrice);
+  assert.equal(result.writes[0].discountAmount, 0);
+  assert.equal(result.writes[0].feeAmount, 0);
+  assert.equal(result.gatewayCalls, 0);
+  for (const input of [{ tickets: 2 }, { claimed: 0 }, { modalityId: 'competicao' }]) {
+    const rejected = await run({ code: 'POTYRADIVERSAO100', modalityId: 'diversao', couponModalityId: 'diversao', ...input });
+    assert.notEqual(rejected.response.status, 200);
+    assert.equal(rejected.writes.length, 0);
+  }
+});
 test('Marilia Solo coupon records external payment with one use and no online charge', async () => {
   assert.equal(config.isExternalPaymentCoupon('mariliasolo100'), true);
   const result = await run({ code: 'MARILIASOLO100' });
