@@ -1,3 +1,4 @@
+import { registrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start/route.ts
 import { NextRequest, NextResponse } from "next/server";
@@ -54,6 +55,10 @@ function applyStripeFee(amountCents: number) {
 }
 
 export async function POST(req: NextRequest) {
+  if (registrationsAreClosed()) {
+    return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
+  }
+
   try {
     const body = (await req.json()) as CheckoutPayload;
     if (isExternalPaymentCoupon(body.couponCode)) {

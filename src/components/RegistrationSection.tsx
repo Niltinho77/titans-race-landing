@@ -1,6 +1,8 @@
 // src/components/RegistrationSection.tsx
 "use client";
 
+import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+
 import { motion } from "framer-motion";
 import { Lock, Flame } from "lucide-react";
 
@@ -42,13 +44,15 @@ const SOLD_OUT_LOT_IDS = ["lotePromocional", "lote2", "lote3"];
 const OPEN_LOT_ID = "loteFinal";
 const OPEN_LOT_NAME = "Último Lote";
 
-function getLotVisualState(lotId: string) {
+function getLotVisualState(lotId: string, closed: boolean) {
+  if (closed && lotId === OPEN_LOT_ID) return "closed";
   if (SOLD_OUT_LOT_IDS.includes(lotId)) return "soldout";
   if (lotId === OPEN_LOT_ID) return "open";
   return "locked";
 }
 
 export function RegistrationSection() {
+  const closed = useRegistrationClosed();
   return (
     <section
       id="lotes"
@@ -67,14 +71,20 @@ export function RegistrationSection() {
             </p>
 
             <h2 className="mt-3 heading-adventure text-3xl text-white md:text-5xl">
-              Último lote aberto
+              {closed ? "Inscrições encerradas" : "Último lote aberto"}
             </h2>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">
-              Os lotes anteriores encerraram. O{" "}
-              <span className="font-semibold text-white">{OPEN_LOT_NAME}</span>{" "}
-              está aberto. Esta é a última oportunidade de participar desta edição.
-              Garanta sua inscrição antes do encerramento.
+              {closed ? (
+                "As inscrições para esta edição da Titans Race estão encerradas. Nos vemos na arena!"
+              ) : (
+                <>
+                  Os lotes anteriores encerraram. O{" "}
+                  <span className="font-semibold text-white">{OPEN_LOT_NAME}</span>{" "}
+                  está aberto. Esta é a última oportunidade de participar desta edição.
+                  Garanta sua inscrição antes do encerramento.
+                </>
+              )}
             </p>
           </div>
 
@@ -84,7 +94,7 @@ export function RegistrationSection() {
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {lots.map((lot, index) => {
-            const state = getLotVisualState(lot.id);
+            const state = getLotVisualState(lot.id, closed);
             const isSoldOut = state === "soldout";
             const isOpen = state === "open";
 
@@ -135,7 +145,7 @@ export function RegistrationSection() {
                         ? "Esgotado"
                         : isOpen
                         ? "Aberto agora"
-                        : "Bloqueado"}
+                        : closed ? "Encerrado" : "Bloqueado"}
                     </span>
 
                     <span
@@ -178,7 +188,7 @@ export function RegistrationSection() {
                       ) : (
                         <span className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-[11px] uppercase tracking-[0.18em] text-zinc-300">
                           <Lock className="h-4 w-4" />
-                          em breve
+                          {closed ? "inscrições encerradas" : "em breve"}
                         </span>
                       )}
                     </div>

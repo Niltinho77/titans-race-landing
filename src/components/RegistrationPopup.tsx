@@ -1,5 +1,7 @@
 "use client";
 
+import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+
 import Image from "next/image";
 import { ArrowUpRight, MessageCircle, X } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -7,9 +9,11 @@ import { useEffect, useRef } from "react";
 const SESSION_KEY = "titans-registration-last-lot-v2";
 
 export function RegistrationPopup() {
+  const closed = useRegistrationClosed();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
+    if (closed) return;
     const dialog = dialogRef.current;
     if (!dialog) return;
 
@@ -54,7 +58,9 @@ export function RegistrationPopup() {
       dialog.close();
       restorePage();
     };
-  }, []);
+  }, [closed]);
+
+  if (closed) return null;
 
   return (
     <dialog

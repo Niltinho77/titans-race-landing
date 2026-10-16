@@ -24,6 +24,7 @@ async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed 
   };
   const route = load('src/app/api/checkout/start-asaas/route.ts', {
     '@/config/externalPayment': config,
+    '@/config/registration': { registrationsAreClosed: () => false },
     '@/config/checkout': checkout,
     '@/lib/prisma': { prisma: db },
     'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status ?? 200 }) } },

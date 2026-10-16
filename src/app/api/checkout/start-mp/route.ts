@@ -1,3 +1,4 @@
+import { registrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -161,6 +162,10 @@ async function reserveBibNumbers(
 }
 
 export async function POST(req: NextRequest) {
+  if (registrationsAreClosed()) {
+    return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
+  }
+
   try {
     if (!mpPreference) {
       return NextResponse.json({ error: "Mercado Pago não configurado." }, { status: 500 });

@@ -1,6 +1,8 @@
 // src/components/ExperienceGridSection.tsx
 "use client";
 
+import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+
 import { motion } from "framer-motion";
 import { MODALITIES } from "@/config/checkout";
 
@@ -84,10 +86,11 @@ function getPriceLabel(modalityId: string) {
 }
 
 export function ExperienceGridSection() {
+  const closed = useRegistrationClosed();
   const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // Último lote aberto
 
-const isTileEnabled = (tile: Tile) =>
-  ENABLED_TILES.includes(tile.id) || tile.id === "contato";
+  const isTileEnabled = (tile: Tile) =>
+    (!closed && ENABLED_TILES.includes(tile.id)) || tile.id === "contato";
 
   return (
     <section
@@ -101,9 +104,15 @@ const isTileEnabled = (tile: Tile) =>
             modalidades & experiências
           </span>
           <span className="text-slate-500">
-            escolha sua modalidade • último lote
+            {closed ? "Inscrições encerradas" : "escolha sua modalidade • último lote"}
           </span>
         </div>
+
+        {closed && (
+          <h2 role="status" className="heading-adventure py-5 text-center text-3xl text-orange-400 md:text-5xl">
+            Inscrições encerradas
+          </h2>
+        )}
 
         {/* Grid */}
         <div className="grid grid-cols-1 gap-4 md:min-h-[100vh] md:grid-cols-4 md:grid-rows-3 md:grid-flow-dense">
@@ -153,7 +162,7 @@ const isTileEnabled = (tile: Tile) =>
                       </p>
 
                       <p className="mt-2 heading-adventure text-lg leading-tight text-white xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl">
-                        LOTE ESGOTADO
+                        {closed ? "INSCRIÇÕES ENCERRADAS" : "LOTE ESGOTADO"}
                       </p>
 
                       <p className="mx-auto mt-2 max-w-[28ch] text-[10px] leading-relaxed text-slate-200/90 sm:text-[11px] md:text-xs">

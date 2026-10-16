@@ -1,3 +1,4 @@
+import { registrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start-asaas/route.ts
 
@@ -82,6 +83,10 @@ function getBaseUrl(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (registrationsAreClosed()) {
+    return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
+  }
+
   let createdOrderId: string | null = null;
 
   try {

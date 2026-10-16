@@ -1,5 +1,7 @@
 "use client";
 
+import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -13,6 +15,7 @@ type NavItem = {
 };
 
 export function NavBar() {
+  const closed = useRegistrationClosed();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const onHome = pathname === "/";
@@ -100,7 +103,7 @@ export function NavBar() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          Inscreva-se
+          {closed ? "Inscrições encerradas" : "Inscreva-se"}
         </motion.a>
 
         <button
@@ -157,7 +160,7 @@ export function NavBar() {
                 onClick={close}
                 className="mt-2 w-full rounded-full bg-orange-500 px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-black shadow-md transition hover:bg-orange-400"
               >
-                Inscreva-se
+                {closed ? "Inscrições encerradas" : "Inscreva-se"}
               </a>
             </div>
           </motion.div>

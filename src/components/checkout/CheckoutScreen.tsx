@@ -1,6 +1,8 @@
 // src/components/checkout/CheckoutScreen.tsx
 "use client";
 
+import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -141,6 +143,7 @@ function normalizeCoupon(code: string) {
 }
 
 export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
+  const closed = useRegistrationClosed();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [modality, setModality] = useState<Modality | null>(initialModality);
   const [tickets, setTickets] = useState<number>(1);
@@ -324,6 +327,16 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
       return clone;
     });
   }, [participantsCount]);
+
+  if (closed) {
+    return (
+      <div role="status" className="rounded-3xl border border-orange-500/30 bg-black/70 px-6 py-12 text-center text-zinc-200">
+        <h1 className="heading-adventure text-3xl text-orange-400">Inscrições encerradas</h1>
+        <p className="mt-4">As inscrições para esta edição da Titans Race estão encerradas.</p>
+        <Link href="/" className="mt-6 inline-block text-orange-300 underline">Voltar ao site</Link>
+      </div>
+    );
+  }
 
   if (!modality) {
     return (

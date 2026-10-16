@@ -1,5 +1,7 @@
 "use client";
 
+import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+
 import { motion } from "framer-motion";
 import { CalendarDays, MapPin } from "lucide-react";
 import { EVENT } from "@/config/event";
@@ -12,6 +14,7 @@ const DELETING_SPEED = 55;
 const PAUSE_FULL = 1100;
 
 export default function Hero() {
+  const closed = useRegistrationClosed();
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -134,6 +137,12 @@ export default function Hero() {
               </p>
             </motion.div>
 
+            {closed && (
+              <p role="status" className="mt-8 rounded-2xl border border-orange-500/40 bg-black/70 p-5 text-xl font-bold text-orange-400">
+                Inscrições encerradas
+              </p>
+            )}
+
             {/* CTA */}
             <motion.div
               className="mt-8 flex flex-col gap-3 sm:flex-row"
@@ -145,7 +154,7 @@ export default function Hero() {
                 href="#inscricoes"
                 className="inline-flex items-center justify-center rounded-full bg-orange-500 px-10 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-black shadow-[0_14px_40px_rgba(0,0,0,0.8)] transition hover:bg-orange-400 hover:-translate-y-[1px]"
               >
-                Quero viver isso
+                {closed ? "Inscrições encerradas" : "Quero viver isso"}
               </a>
 
               <a
