@@ -16,13 +16,13 @@ function load(file, mocks = {}) {
 const schedule = load('src/config/registration.ts');
 const cutoff = Date.parse(schedule.REGISTRATION_CLOSES_AT);
 
-test('schedule is October 16 at 00:01 in Brasilia, UTC-3', () => {
-  assert.equal(new Date(cutoff).toISOString(), '2026-10-16T03:01:00.000Z');
+test('schedule is October 23 at midnight in Brasilia, UTC-3', () => {
+  assert.equal(new Date(cutoff).toISOString(), '2026-10-23T03:00:00.000Z');
 });
-test('registrations remain open through 00:00:59.999', () => {
+test('registrations remain open through October 22 at 23:59:59.999', () => {
   assert.equal(schedule.registrationsAreClosed(cutoff - 1), false);
 });
-test('registrations close exactly at 00:01 and remain closed', () => {
+test('registrations close exactly at midnight on October 23 and remain closed', () => {
   assert.equal(schedule.registrationsAreClosed(cutoff), true);
   assert.equal(schedule.registrationsAreClosed(cutoff + 86400000), true);
 });
