@@ -37,6 +37,7 @@ type ParticipantForm = {
 
 type CheckoutScreenProps = {
   initialModality: Modality | null;
+  inviteToken?: string;
 };
 
 function formatCurrency(cents: number): string {
@@ -142,8 +143,9 @@ function normalizeCoupon(code: string) {
   return normalized.length > 0 ? normalized : null;
 }
 
-export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
-  const closed = useRegistrationClosed();
+export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenProps) {
+  const publicClosed = useRegistrationClosed();
+  const closed = publicClosed && !inviteToken;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [modality, setModality] = useState<Modality | null>(initialModality);
   const [tickets, setTickets] = useState<number>(1);
@@ -262,7 +264,7 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
     try {
       const res = await fetch("/api/coupons/preview", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(inviteToken ? { "x-registration-invite": inviteToken } : {}) },
         body: JSON.stringify({
           code,
           modalityId: modality.id,
@@ -535,7 +537,8 @@ export function CheckoutScreen({ initialModality }: CheckoutScreenProps) {
           <Step1ModalityTickets
             modality={modality}
             tickets={tickets}
-            setTickets={setTickets}
+            setTickets={inviteToken ? () => {} : setTickets}
+            locked={!!inviteToken}
           />
         )}
 
@@ -802,10 +805,12 @@ function Step1ModalityTickets({
   modality,
   tickets,
   setTickets,
+  locked = false,
 }: {
   modality: Modality;
   tickets: number;
   setTickets: (v: number) => void;
+  locked?: boolean;
 }) {
   return (
     <motion.div
@@ -826,6 +831,7 @@ function Step1ModalityTickets({
           <button
             type="button"
             onClick={() => setTickets(Math.max(1, tickets - 1))}
+            disabled={locked || tickets <= 1}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black text-lg text-zinc-200 hover:bg-white/5"
           >
             −
@@ -836,6 +842,7 @@ function Step1ModalityTickets({
           <button
             type="button"
             onClick={() => setTickets(tickets + 1)}
+            disabled={locked}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black text-lg text-zinc-200 hover:bg-white/5"
           >
             +

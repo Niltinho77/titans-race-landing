@@ -37,6 +37,7 @@ model Order {
   stripeSessionId       String?       @unique
   stripePaymentIntentId String?
   participants          Participant[]
+  registrationInvite    RegistrationInvite?
 
   // PagBank
   pagbankCheckoutId    String? @unique
@@ -64,6 +65,19 @@ model Order {
   @@index([campaign])
   @@index([source])
   @@index([paidAt])
+}
+
+model RegistrationInvite {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  label      String
+  modalityId String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+  claimedAt  DateTime?
+  orderId    String?  @unique
+  order      Order?   @relation(fields: [orderId], references: [id])
 }
 
 model Participant {

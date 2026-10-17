@@ -52,6 +52,7 @@ export default function PortalHeader({
               >
                 Métricas
               </Link>
+              <Link href="/admin/convites" className="border border-white/15 px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-100 hover:bg-white/5 sm:px-4 sm:text-[11px] sm:tracking-[0.18em]">Convites</Link>
             </>
           )}
           <button

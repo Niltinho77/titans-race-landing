@@ -49,5 +49,6 @@ data/backups/
 public/sorteio/semana/
 
 # Private recovery previews contain contact information.
+.tmp/
 .tmp/recovery/
 .tmp/edition1-campaign/

@@ -18,6 +18,7 @@ import {
 } from "@/lib/asaas";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { cleanOrderAttribution, type OrderAttributionInput } from "@/lib/orderAttribution";
+import { claimRegistrationInvite, isInviteToken, INVITE_ERROR } from "@/lib/registrationInvites";
 
 type ExtraType = "camisa" | "luva" | "meia";
 
@@ -83,8 +84,13 @@ function getBaseUrl(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (registrationsAreClosed()) {
+  const inviteToken = req.headers?.get("x-registration-invite") ?? null;
+  if (registrationsAreClosed() && !inviteToken) {
     return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
+  }
+
+  if (inviteToken !== null && !isInviteToken(inviteToken)) {
+    return NextResponse.json({ error: INVITE_ERROR }, { status: 403 });
   }
 
   let createdOrderId: string | null = null;
@@ -270,32 +276,36 @@ export async function POST(req: Request) {
         },
     };
 
-    const order = (isComplimentary || isExternalPayment)
-      ? await prisma.$transaction(async (tx) => {
-          const claimedCoupon = await tx.coupon.updateMany({
-            where: {
-              code: appliedCouponCode!,
-              active: true,
-              ...(typeof appliedCouponMaxUses === "number"
-                ? { usedCount: { lt: appliedCouponMaxUses } }
-                : {}),
-            },
-            data: { usedCount: { increment: 1 } },
-          });
-
-          if (claimedCoupon.count !== 1) {
-            throw new Error("Cupom esgotado.");
-          }
-
-          return tx.order.create({
-            data: orderData,
-            include: { participants: true },
-          });
-        })
-      : await prisma.order.create({
-          data: orderData,
-          include: { participants: true },
+    const order = await prisma.$transaction(async (tx) => {
+      const inviteHash = inviteToken
+        ? await claimRegistrationInvite(tx, inviteToken, body.modalityId, body.tickets)
+        : null;
+      if (isComplimentary || isExternalPayment) {
+        const claimedCoupon = await tx.coupon.updateMany({
+          where: {
+            code: appliedCouponCode!,
+            active: true,
+            ...(typeof appliedCouponMaxUses === "number"
+              ? { usedCount: { lt: appliedCouponMaxUses } }
+              : {}),
+          },
+          data: { usedCount: { increment: 1 } },
         });
+        if (claimedCoupon.count !== 1) throw new Error("Cupom esgotado.");
+      }
+
+      const created = await tx.order.create({
+        data: orderData,
+        include: { participants: true },
+      });
+      if (inviteHash) {
+        await tx.registrationInvite.update({
+          where: { tokenHash: inviteHash },
+          data: { orderId: created.id },
+        });
+      }
+      return created;
+    });
 
     createdOrderId = order.id;
 
@@ -427,7 +437,7 @@ export async function POST(req: Request) {
             ? error.message
             : "Não foi possível iniciar o pagamento com o Asaas.",
       },
-      { status: 500 }
+      { status: error instanceof Error && error.message === INVITE_ERROR ? 403 : 500 }
     );
   }
 }

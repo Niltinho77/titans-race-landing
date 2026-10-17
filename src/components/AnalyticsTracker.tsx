@@ -27,7 +27,7 @@ type Attribution = {
 };
 
 function shouldTrackPath(path: string) {
-  return !path.startsWith("/admin") && !path.startsWith("/portal");
+  return !path.startsWith("/admin") && !path.startsWith("/portal") && !path.startsWith("/convite/");
 }
 
 function getSessionId() {
@@ -86,6 +86,7 @@ function getAttribution(searchParams?: URLSearchParams): Attribution {
 
 export function getAnalyticsContext() {
   if (typeof window === "undefined") return {};
+  if (window.location.pathname.startsWith("/convite/")) return {};
   const attribution = getAttribution();
   return {
     sessionId: getSessionId(),
