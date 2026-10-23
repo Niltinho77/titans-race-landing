@@ -14,23 +14,17 @@ function load(file, mocks = {}) {
   return exports;
 }
 const schedule = load('src/config/registration.ts');
-const cutoff = Date.parse(schedule.REGISTRATION_CLOSES_AT);
-
-test('schedule is October 23 at midnight in Brasilia, UTC-3', () => {
-  assert.equal(new Date(cutoff).toISOString(), '2026-10-23T03:00:00.000Z');
-});
-test('registrations remain open through October 22 at 23:59:59.999', () => {
-  assert.equal(schedule.registrationsAreClosed(cutoff - 1), false);
-});
-test('registrations close exactly at midnight on October 23 and remain closed', () => {
-  assert.equal(schedule.registrationsAreClosed(cutoff), true);
-  assert.equal(schedule.registrationsAreClosed(cutoff + 86400000), true);
+test('reopened registrations have no automatic cutoff', () => {
+  assert.equal(schedule.REGISTRATION_CLOSES_AT, null);
+  for (const date of ['2026-10-22T23:59:59-03:00', '2026-10-23T00:00:00-03:00', '2026-10-24T12:00:00-03:00']) {
+    assert.equal(schedule.registrationsAreClosed(Date.parse(date)), false);
+  }
 });
 for (const gateway of ['start', 'start-asaas', 'start-mp', 'start-pagbank']) {
   test(`${gateway} refuses registration at cutoff before reading payload or accessing payments/database`, async () => {
     const fail = () => { throw Error('Unexpected side effect after closing'); };
     const route = load(`src/app/api/checkout/${gateway}/route.ts`, {
-      '@/config/registration': { ...schedule, registrationsAreClosed: () => schedule.registrationsAreClosed(cutoff) },
+      '@/config/registration': { ...schedule, registrationsAreClosed: () => true },
       'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status ?? 200 }) } },
       '@/lib/prisma': { prisma: new Proxy({}, { get: fail }) },
     });

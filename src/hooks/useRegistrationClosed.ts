@@ -4,7 +4,9 @@ import { useSyncExternalStore } from "react";
 import { REGISTRATION_CLOSES_AT, registrationsAreClosed } from "@/config/registration";
 
 function subscribe(notify: () => void) {
-  const remaining = Date.parse(REGISTRATION_CLOSES_AT) - Date.now();
+  const remaining = REGISTRATION_CLOSES_AT === null
+    ? 0
+    : Date.parse(REGISTRATION_CLOSES_AT) - Date.now();
   const timeout = remaining > 0
     ? window.setTimeout(notify, Math.min(remaining, 2_147_483_647))
     : undefined;

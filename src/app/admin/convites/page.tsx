@@ -13,7 +13,7 @@ export default async function InvitesPage() {
   return <main className="min-h-screen bg-black text-zinc-100">
     <PortalHeader email={user.email} role={user.role} />
     <div className="mx-auto max-w-5xl px-4 py-10"><h1 className="text-3xl font-bold">Convites de inscrição</h1>
-      <p className="mb-8 mt-3 text-zinc-400">As inscrições públicas permanecem fechadas. Cada convite permite um pedido: individual, dupla ou quarteto, conforme a modalidade.</p>
+      <p className="mb-8 mt-3 text-zinc-400">Cada convite permite um pedido: individual, dupla ou quarteto, conforme a modalidade.</p>
       <InviteManager invites={invites.map(i => ({ ...i, expiresAt: i.expiresAt.toISOString(), claimedAt: i.claimedAt?.toISOString() ?? null, revokedAt: i.revokedAt?.toISOString() ?? null }))} />
     </div>
   </main>;
