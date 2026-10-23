@@ -264,7 +264,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     try {
       const res = await fetch("/api/coupons/preview", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(inviteToken ? { "x-registration-invite": inviteToken } : {}) },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code,
           modalityId: modality.id,
@@ -460,7 +460,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
 
       const res = await fetch("/api/checkout/start-asaas", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(inviteToken ? { "x-registration-invite": inviteToken } : {}) },
         body: JSON.stringify(payload),
       });
 

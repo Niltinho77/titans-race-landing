@@ -5,10 +5,10 @@ const ts = require('typescript');
 const { readFileSync } = require('node:fs');
 const vm = require('node:vm');
 
-function load(file, mocks = {}) {
+function load(file, mocks = {}, globals = {}) {
   const exports = {};
   const code = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  vm.runInNewContext(code, { exports, require: name => mocks[name] ?? require(name), Date, Error, Map, Set, URL, process: { env: {} }, console: { error() {} } });
+  vm.runInNewContext(code, { exports, require: name => mocks[name] ?? require(name), Date, Error, Map, Set, URL, process: { env: {} }, console: { error() {} }, ...globals });
   return exports;
 }
 const helpers = load('src/lib/registrationInvites.ts');
@@ -62,6 +62,57 @@ test('public checkout remains blocked without reading participant data', async (
 test('valid invitation permits one quartet and links it to one payment', async () => {
   const s = setup(); const response = await s.route.POST(s.request());
   assert.equal(response.status, 200); assert.equal(s.orders, 1); assert.equal(s.gatewayCalls, 1); assert.equal(s.linkedOrder, 'order-one');
+});
+
+test('finishing the invitation form sends its token and opens payment after public closing', async () => {
+  const s = setup();
+  let stateIndex = 0;
+  let sentToken;
+  const { participants } = await s.request().json();
+  const browser = { location: { href: '' } };
+  const { CheckoutScreen } = load('src/components/checkout/CheckoutScreen.tsx', {
+    react: {
+      useState: initial => {
+        const index = stateIndex++;
+        return [index === 0 ? 3 : index === 3 ? participants.map(p => ({ ...p, birthDate: '01/01/1990', extras: [] })) : index === 4 ? true : initial, () => {}];
+      },
+      useEffect: () => {}, useMemo: fn => fn(),
+    },
+    '@/hooks/useRegistrationClosed': { useRegistrationClosed: () => true },
+    '@/config/checkout': checkout,
+    '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
+    '@/lib/analytics': { trackAnalyticsEvent: () => {} },
+    '@/components/AnalyticsTracker': { getAnalyticsContext: () => ({}) },
+    'framer-motion': { motion: { div: 'div' } },
+    'next/link': { default: 'a' },
+  }, {
+    window: browser,
+    fetch: async (url, options) => {
+      assert.equal(url, '/api/checkout/start-asaas');
+      sentToken = options.headers['x-registration-invite'];
+      const response = await s.route.POST(s.request(JSON.parse(options.body), sentToken ?? null));
+      assert.equal(response.status, 200);
+      return { ok: true, json: async () => response.body };
+    },
+  });
+  const tree = CheckoutScreen({ initialModality: checkout.getModalityById('equipes'), inviteToken: s.token });
+  function findFinish(node) {
+    if (!node || typeof node !== 'object') return null;
+    if (node.type === 'button' && node.props?.children === 'Finalizar inscrição') return node.props.onClick;
+    for (const child of [node.props?.children].flat(Infinity)) {
+      const found = findFinish(child);
+      if (found) return found;
+    }
+    return null;
+  }
+  const finish = findFinish(tree);
+  assert.equal(typeof finish, 'function');
+  await finish();
+  await new Promise(setImmediate);
+  assert.equal(sentToken, s.token);
+  assert.equal(s.orders, 1);
+  assert.equal(s.gatewayCalls, 1);
+  assert.equal(browser.location.href, 'https://asaas.example/pay');
 });
 test('concurrent use of the same link creates only one order and one charge', async () => {
   const s = setup(); const results = await Promise.all([s.route.POST(s.request()), s.route.POST(s.request())]);
