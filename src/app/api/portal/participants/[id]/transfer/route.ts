@@ -26,7 +26,6 @@ function validateTransfer(body: unknown) {
   const email = typeof input.email === "string" ? normalizeEmail(input.email) : "";
   const city = typeof input.city === "string" ? input.city.trim() : "";
   const state = typeof input.state === "string" ? input.state.trim().toUpperCase().slice(0, 2) : "";
-  const tshirtSize = typeof input.tshirtSize === "string" ? input.tshirtSize.trim() : "";
   const emergencyName = typeof input.emergencyName === "string" ? input.emergencyName.trim() : "";
   const emergencyPhone =
     typeof input.emergencyPhone === "string"
@@ -40,7 +39,6 @@ function validateTransfer(body: unknown) {
   if (birthDate.length !== 10) return { error: "Informe a data de nascimento." as const };
   if (phone.length !== 11) return { error: "Informe um telefone válido." as const };
   if (!email.includes("@") || !email.includes(".")) return { error: "Informe um e-mail válido." as const };
-  if (!tshirtSize) return { error: "Informe o tamanho da camiseta." as const };
   if (!termsAccepted) return { error: "O novo participante precisa aceitar os termos." as const };
 
   return {
@@ -52,7 +50,7 @@ function validateTransfer(body: unknown) {
       email,
       city: city || null,
       state: state || null,
-      tshirtSize,
+      // Preserve the existing shirt size when transferring registration.
       emergencyName: emergencyName || null,
       emergencyPhone: emergencyPhone || null,
       healthInfo: healthInfo || null,

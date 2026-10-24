@@ -6,7 +6,6 @@ type ParticipantFormState = {
   phone: string;
   city: string;
   state: string;
-  tshirtSize: string;
   emergencyName: string;
   emergencyPhone: string;
   healthInfo: string;
@@ -20,29 +19,11 @@ type TransferState = {
   email: string;
   city: string;
   state: string;
-  tshirtSize: string;
   emergencyName: string;
   emergencyPhone: string;
   healthInfo: string;
   termsAccepted: boolean;
 };
-
-const TSHIRT_SIZES = [
-  "Camiseta PP",
-  "Camiseta P",
-  "Camiseta M",
-  "Camiseta G",
-  "Camiseta GG",
-  "Baby Look - PP",
-  "Baby Look - P",
-  "Baby Look - M",
-  "Baby Look - G",
-  "Baby Look - GG",
-  "Infantil 8",
-  "Infantil 10",
-  "Infantil 12",
-  "Infantil 14",
-];
 
 export default function ParticipantPortalForm({
   participantId,
@@ -50,10 +31,17 @@ export default function ParticipantPortalForm({
   changesOpen,
 }: {
   participantId: string;
-  initial: ParticipantFormState;
+  initial: ParticipantFormState & { tshirtSize: string };
   changesOpen: boolean;
 }) {
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState<ParticipantFormState>(() => ({
+    phone: initial.phone,
+    city: initial.city,
+    state: initial.state,
+    emergencyName: initial.emergencyName,
+    emergencyPhone: initial.emergencyPhone,
+    healthInfo: initial.healthInfo,
+  }));
   const [transfer, setTransfer] = useState<TransferState>({
     fullName: "",
     cpf: "",
@@ -62,7 +50,6 @@ export default function ParticipantPortalForm({
     email: "",
     city: "",
     state: "",
-    tshirtSize: initial.tshirtSize,
     emergencyName: "",
     emergencyPhone: "",
     healthInfo: "",
@@ -136,7 +123,7 @@ export default function ParticipantPortalForm({
           <Field label="Telefone / WhatsApp" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
           <Field label="Cidade" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
           <Field label="UF" value={form.state} onChange={(v) => setForm({ ...form, state: v.toUpperCase().slice(0, 2) })} />
-          <Select label="Tamanho da camiseta" value={form.tshirtSize} onChange={(v) => setForm({ ...form, tshirtSize: v })} />
+          <LockedShirtSize value={initial.tshirtSize} />
           <Field label="Contato de emergência" value={form.emergencyName} onChange={(v) => setForm({ ...form, emergencyName: v })} />
           <Field label="Telefone do contato" value={form.emergencyPhone} onChange={(v) => setForm({ ...form, emergencyPhone: v })} />
         </div>
@@ -166,7 +153,7 @@ export default function ParticipantPortalForm({
           Transferência de inscrição
         </p>
         <p className="mt-2 text-xs text-zinc-400">
-          A transferência mantém pedido, modalidade, pagamento e extras. Os dados do participante atual serão substituídos.
+          A transferência mantém pedido, modalidade, pagamento, extras e tamanho da camiseta. Os dados do participante atual serão substituídos.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -177,7 +164,7 @@ export default function ParticipantPortalForm({
           <Field label="E-mail" value={transfer.email} onChange={(v) => setTransfer({ ...transfer, email: v })} type="email" />
           <Field label="Cidade" value={transfer.city} onChange={(v) => setTransfer({ ...transfer, city: v })} />
           <Field label="UF" value={transfer.state} onChange={(v) => setTransfer({ ...transfer, state: v.toUpperCase().slice(0, 2) })} />
-          <Select label="Tamanho da camiseta" value={transfer.tshirtSize} onChange={(v) => setTransfer({ ...transfer, tshirtSize: v })} />
+          <LockedShirtSize value={initial.tshirtSize} />
           <Field label="Contato de emergência" value={transfer.emergencyName} onChange={(v) => setTransfer({ ...transfer, emergencyName: v })} />
           <Field label="Telefone do contato" value={transfer.emergencyPhone} onChange={(v) => setTransfer({ ...transfer, emergencyPhone: v })} />
         </div>
@@ -252,29 +239,16 @@ function Field({
   );
 }
 
-function Select({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function LockedShirtSize({ value }: { value: string }) {
   return (
-    <label className="block text-xs text-zinc-400">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full border border-white/10 bg-black/60 px-3 py-3 text-sm text-zinc-100 outline-none focus:border-orange-500 sm:py-2 sm:text-xs"
-      >
-        {TSHIRT_SIZES.map((size) => (
-          <option key={size} value={size}>
-            {size}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="text-xs text-zinc-400">
+      Tamanho da camiseta
+      <p className="mt-1 border border-white/10 bg-black/60 px-3 py-3 text-sm text-zinc-100 sm:py-2 sm:text-xs">
+        {value}
+      </p>
+      <p className="mt-1 text-xs text-yellow-100">
+        As alterações de tamanho de camiseta pelo portal foram encerradas.
+      </p>
+    </div>
   );
 }

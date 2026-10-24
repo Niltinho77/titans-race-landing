@@ -21,7 +21,7 @@ function editableData(body: unknown) {
   if (typeof input.phone === "string") data.phone = onlyDigits(input.phone).slice(0, 11);
   if (typeof input.city === "string") data.city = input.city.trim() || null;
   if (typeof input.state === "string") data.state = input.state.trim().toUpperCase().slice(0, 2) || null;
-  if (typeof input.tshirtSize === "string") data.tshirtSize = input.tshirtSize.trim();
+  // Shirt sizes are locked in the portal, including requests from older clients.
   if (typeof input.emergencyName === "string") data.emergencyName = input.emergencyName.trim() || null;
   if (typeof input.emergencyPhone === "string") {
     data.emergencyPhone = onlyDigits(input.emergencyPhone).slice(0, 11) || null;
