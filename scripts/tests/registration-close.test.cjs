@@ -22,11 +22,21 @@ test('registrations are closed from October 23 in Brasilia', () => {
   assert.equal(schedule.registrationsAreClosed(cutoff + 86400000), true);
   assert.equal(schedule.registrationsAreClosed(), true);
 });
+test('extra lot reopens public registration without shirts and closes manually', () => {
+  assert.equal(schedule.EXTRA_LOT.active, true);
+  assert.equal(schedule.EXTRA_LOT.announcedSpots, 10);
+  assert.equal(schedule.EXTRA_LOT.shirtLabel, 'Sem camiseta');
+  assert.equal(schedule.publicRegistrationsAreClosed(), false);
+  const closedSchedule = load('src/config/registration.ts');
+  closedSchedule.EXTRA_LOT.active = false;
+  assert.equal(closedSchedule.publicRegistrationsAreClosed(), true);
+});
+const closedSchedule = { ...schedule, EXTRA_LOT: { ...schedule.EXTRA_LOT, active: false }, publicRegistrationsAreClosed: () => true };
 for (const gateway of ['start', 'start-asaas', 'start-mp', 'start-pagbank']) {
   test(`${gateway} refuses registration at cutoff before reading payload or accessing payments/database`, async () => {
     const fail = () => { throw Error('Unexpected side effect after closing'); };
     const route = load(`src/app/api/checkout/${gateway}/route.ts`, {
-      '@/config/registration': schedule,
+      '@/config/registration': closedSchedule,
       'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status ?? 200 }) } },
       '@/lib/prisma': { prisma: new Proxy({}, { get: fail }) },
     });
@@ -43,6 +53,7 @@ for (const closed of [false, true]) {
     const mocks = {
       '@/hooks/useRegistrationClosed': { useRegistrationClosed: () => closed },
       '@/config/checkout': load('src/config/checkout.ts'),
+      '@/config/registration': schedule,
       'framer-motion': { motion: new Proxy({}, { get: () => 'div' }) },
       'lucide-react': { Lock: () => null, Flame: () => null },
     };
@@ -58,7 +69,11 @@ for (const closed of [false, true]) {
       assert.doesNotMatch(lots, /Aberto agora|Último lote aberto|inscrições abertas/);
     } else {
       assert.equal((grid.match(/href="\/checkout/g) || []).length, 5);
-      assert.match(lots, /Aberto agora/);
+      assert.match(grid, /lote extra sem camiseta/);
+      assert.match(lots, /Lote Extra<\/span> com/);
+      assert.match(lots, /10 vagas/);
+      assert.match(lots, /não incluem camiseta/);
+      assert.doesNotMatch(lots, /Aberto agora/);
     }
   });
 }

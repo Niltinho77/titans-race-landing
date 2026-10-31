@@ -35,7 +35,7 @@ function setup({ expired = false, revoked = false, used = false, modality = 'equ
   };
   const route = load('src/app/api/checkout/start-asaas/route.ts', {
     'next/server': json, '@/lib/prisma': { prisma: db }, '@/config/checkout': checkout,
-    '@/config/registration': { registrationsAreClosed: () => true, REGISTRATION_CLOSED_MESSAGE: 'Inscrições encerradas' },
+    '@/config/registration': { registrationsAreClosed: () => true, publicRegistrationsAreClosed: () => true, EXTRA_LOT: { active: false }, REGISTRATION_CLOSED_MESSAGE: 'Inscrições encerradas' },
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/registrationInvites': helpers, '@/lib/email': {}, '@/lib/orderAttribution': { cleanOrderAttribution: () => ({}) },
     '@/lib/asaas': {
@@ -79,6 +79,7 @@ test('finishing the invitation form sends its token and opens payment after publ
       useEffect: () => {}, useMemo: fn => fn(),
     },
     '@/hooks/useRegistrationClosed': { useRegistrationClosed: () => true },
+    '@/config/registration': { EXTRA_LOT: { active: false } },
     '@/config/checkout': checkout,
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/analytics': { trackAnalyticsEvent: () => {} },

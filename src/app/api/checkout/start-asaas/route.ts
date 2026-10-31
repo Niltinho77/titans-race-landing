@@ -1,4 +1,4 @@
-import { registrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
+import { EXTRA_LOT, publicRegistrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start-asaas/route.ts
 
@@ -85,7 +85,7 @@ function getBaseUrl(req: Request) {
 
 export async function POST(req: Request) {
   const inviteToken = req.headers?.get("x-registration-invite") ?? null;
-  if (registrationsAreClosed() && !inviteToken) {
+  if (publicRegistrationsAreClosed() && !inviteToken) {
     return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
   }
 
@@ -128,6 +128,18 @@ export async function POST(req: Request) {
         {
           error: `Quantidade de participantes inválida para a modalidade ${modality.name}.`,
         },
+        { status: 400 }
+      );
+    }
+
+    if (
+      EXTRA_LOT.active &&
+      body.participants.some((participant) =>
+        (participant.extras ?? []).length > 0
+      )
+    ) {
+      return NextResponse.json(
+        { error: `O ${EXTRA_LOT.name} não inclui camiseta nem itens extras.` },
         { status: 400 }
       );
     }
@@ -258,7 +270,7 @@ export async function POST(req: Request) {
             email: participant.email.trim().toLowerCase(),
             city: participant.city?.trim() || null,
             state: participant.state?.trim().toUpperCase() || null,
-            tshirtSize: participant.tshirtSize,
+            tshirtSize: EXTRA_LOT.active ? EXTRA_LOT.shirtLabel : participant.tshirtSize,
             emergencyName: participant.emergencyName?.trim() || null,
             emergencyPhone: participant.emergencyPhone
               ? normalizePhone(participant.emergencyPhone)

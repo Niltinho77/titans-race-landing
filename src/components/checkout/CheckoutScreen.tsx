@@ -2,6 +2,7 @@
 "use client";
 
 import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+import { EXTRA_LOT } from "@/config/registration";
 
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { useEffect, useMemo, useState } from "react";
@@ -137,6 +138,9 @@ function getParticipantsPerTicket(modalityId: ModalityId) {
   if (modalityId === "equipes") return 4;
   return 1;
 }
+
+// No lote extra não há camisa, luva nem meia: nem no kit, nem como extra.
+const EXTRAS_AVAILABLE = !EXTRA_LOT.active;
 
 function normalizeCoupon(code: string) {
   const normalized = code.trim().toUpperCase();
@@ -449,7 +453,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
           phone: p.phone,
           email: p.email,
           city: p.city,
-          tshirtSize: p.tshirtSize,
+          tshirtSize: EXTRA_LOT.active ? EXTRA_LOT.shirtLabel : p.tshirtSize,
           healthInfo: p.healthInfo,
           extras: p.extras,
         })),
@@ -526,10 +530,17 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         </p>
       </div>
 
+      {EXTRA_LOT.active && (
+        <p className="mt-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-100">
+          <span className="font-semibold">{EXTRA_LOT.name}</span> · vagas limitadas.
+          Esta inscrição <span className="font-semibold">não inclui camiseta nem itens extras</span>.
+        </p>
+      )}
+
       <div className="mt-5 flex flex-wrap gap-2 text-[11px] text-zinc-400">
         <StepBadge label="Modalidade & ingressos" active={step === 1} number={1} />
         <StepBadge label="Dados dos participantes" active={step === 2} number={2} />
-        <StepBadge label="Extras & termos" active={step === 3} number={3} />
+        <StepBadge label={EXTRAS_AVAILABLE ? "Extras & termos" : "Termos"} active={step === 3} number={3} />
       </div>
 
       <div className="mt-6 space-y-7">
@@ -644,12 +655,14 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
                 {formatCurrency(ticketsTotal)}
               </span>
             </p>
-            <p className="text-sm">
-              Extras:{" "}
-              <span className="font-semibold text-white">
-                {formatCurrency(extrasTotal)}
-              </span>
-            </p>
+            {EXTRAS_AVAILABLE && (
+              <p className="text-sm">
+                Extras:{" "}
+                <span className="font-semibold text-white">
+                  {formatCurrency(extrasTotal)}
+                </span>
+              </p>
+            )}
             <p className="text-sm">
               Subtotal:{" "}
               <span className="font-semibold text-white">
@@ -968,14 +981,16 @@ function Step2Participants({
                 />
               </div>
 
-              <div className="mt-4">
-                <Select
-                  label="Tamanho da camiseta"
-                  value={participant.tshirtSize}
-                  onChange={(v) => onChange(index, "tshirtSize", v)}
-                  options={DEFAULT_TSHIRT_SIZES}
-                />
-              </div>
+              {!EXTRA_LOT.active && (
+                <div className="mt-4">
+                  <Select
+                    label="Tamanho da camiseta"
+                    value={participant.tshirtSize}
+                    onChange={(v) => onChange(index, "tshirtSize", v)}
+                    options={DEFAULT_TSHIRT_SIZES}
+                  />
+                </div>
+              )}
 
               <div className="mt-4">
                 <label className="text-xs text-zinc-400">
@@ -1022,15 +1037,16 @@ function Step3ExtrasAndTerms({
       className="space-y-6"
     >
       <h2 className="heading-adventure text-xl text-white md:text-2xl">
-        Extras & termos
+        {EXTRAS_AVAILABLE ? "Extras & termos" : "Termos"}
       </h2>
 
       <p className="text-sm text-zinc-300">
-        Opcionalmente, adicione itens extras para cada participante. Em seguida,
-        leia e aceite o regulamento e o termo de responsabilidade para concluir
-        o pedido.
+        {EXTRAS_AVAILABLE
+          ? "Opcionalmente, adicione itens extras para cada participante. Em seguida, leia e aceite o regulamento e o termo de responsabilidade para concluir o pedido."
+          : `O ${EXTRA_LOT.name} não inclui camiseta nem itens extras. Leia e aceite o regulamento e o termo de responsabilidade para concluir o pedido.`}
       </p>
 
+      {EXTRAS_AVAILABLE && (
       <div className="space-y-4">
         {participants.map((participant, index) => (
           <div
@@ -1102,6 +1118,7 @@ function Step3ExtrasAndTerms({
           </div>
         ))}
       </div>
+      )}
 
       <div className={`mt-4 rounded-2xl border bg-black/70 p-4 text-xs text-zinc-300 ${
         showErrors && !termsAccepted

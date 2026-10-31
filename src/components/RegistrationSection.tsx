@@ -2,6 +2,7 @@
 "use client";
 
 import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+import { EXTRA_LOT } from "@/config/registration";
 
 import { motion } from "framer-motion";
 import { Lock, Flame } from "lucide-react";
@@ -45,6 +46,8 @@ const OPEN_LOT_ID = "loteFinal";
 const OPEN_LOT_NAME = "Último Lote";
 
 function getLotVisualState(lotId: string, closed: boolean) {
+  // Com o lote extra aberto, todos os lotes regulares aparecem esgotados.
+  if (EXTRA_LOT.active) return "soldout";
   if (closed && lotId === OPEN_LOT_ID) return "closed";
   if (SOLD_OUT_LOT_IDS.includes(lotId)) return "soldout";
   if (lotId === OPEN_LOT_ID) return "open";
@@ -71,12 +74,25 @@ export function RegistrationSection() {
             </p>
 
             <h2 className="mt-3 heading-adventure text-3xl text-white md:text-5xl">
-              {closed ? "Inscrições encerradas" : "Último lote aberto"}
+              {closed
+                ? "Inscrições encerradas"
+                : EXTRA_LOT.active
+                ? `${EXTRA_LOT.name} aberto`
+                : "Último lote aberto"}
             </h2>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-300 md:text-base">
               {closed ? (
                 "As inscrições para esta edição da Titans Race estão encerradas. Nos vemos na arena!"
+              ) : EXTRA_LOT.active ? (
+                <>
+                  Todos os lotes esgotaram. Abrimos um{" "}
+                  <span className="font-semibold text-white">{EXTRA_LOT.name}</span> com
+                  apenas{" "}
+                  <span className="font-semibold text-white">{EXTRA_LOT.announcedSpots} vagas</span>.
+                  Atenção: as inscrições deste lote{" "}
+                  <span className="font-semibold text-white">não incluem camiseta nem itens extras</span>.
+                </>
               ) : (
                 <>
                   Os lotes anteriores encerraram. O{" "}

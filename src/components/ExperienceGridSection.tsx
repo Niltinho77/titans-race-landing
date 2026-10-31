@@ -2,6 +2,7 @@
 "use client";
 
 import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+import { EXTRA_LOT } from "@/config/registration";
 
 import { motion } from "framer-motion";
 import { MODALITIES } from "@/config/checkout";
@@ -104,7 +105,11 @@ export function ExperienceGridSection() {
             modalidades & experiências
           </span>
           <span className="text-slate-500">
-            {closed ? "Inscrições encerradas" : "escolha sua modalidade • último lote"}
+            {closed
+              ? "Inscrições encerradas"
+              : EXTRA_LOT.active
+              ? `escolha sua modalidade • ${EXTRA_LOT.name.toLowerCase()} sem camiseta`
+              : "escolha sua modalidade • último lote"}
           </span>
         </div>
 

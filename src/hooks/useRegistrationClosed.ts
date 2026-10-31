@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { REGISTRATION_CLOSES_AT, registrationsAreClosed } from "@/config/registration";
+import { REGISTRATION_CLOSES_AT, publicRegistrationsAreClosed } from "@/config/registration";
 
 function subscribe(notify: () => void) {
   const remaining = REGISTRATION_CLOSES_AT === null
@@ -23,5 +23,5 @@ function subscribe(notify: () => void) {
 }
 
 export function useRegistrationClosed() {
-  return useSyncExternalStore(subscribe, registrationsAreClosed, () => false);
+  return useSyncExternalStore(subscribe, publicRegistrationsAreClosed, () => false);
 }

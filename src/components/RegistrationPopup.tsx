@@ -1,12 +1,14 @@
 "use client";
 
 import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+import { EXTRA_LOT } from "@/config/registration";
 
 import Image from "next/image";
 import { ArrowUpRight, MessageCircle, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-const SESSION_KEY = "titans-registration-last-lot-v2";
+// Chave nova para o aviso do lote extra aparecer também a quem já viu o anterior.
+const SESSION_KEY = EXTRA_LOT.active ? "titans-registration-extra-lot-v1" : "titans-registration-last-lot-v2";
 
 export function RegistrationPopup() {
   const closed = useRegistrationClosed();
@@ -105,13 +107,19 @@ export function RegistrationPopup() {
         <div className="relative flex flex-col justify-center px-7 pb-7 pt-2 sm:py-12 sm:pl-6 sm:pr-9">
           <p className="mb-5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-orange-400">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-500" aria-hidden="true" />
-            Último lote aberto
+            {EXTRA_LOT.active ? `${EXTRA_LOT.name} aberto` : "Último lote aberto"}
           </p>
           <h2 id="registration-popup-title" className="heading-adventure text-[34px] leading-[1.12] sm:text-[42px]">
-            ÚLTIMO LOTE.<br />A HORA É<br /><span className="text-orange-500">AGORA.</span>
+            {EXTRA_LOT.active ? (
+              <>{EXTRA_LOT.announcedSpots} VAGAS.<br />ÚLTIMA<br /><span className="text-orange-500">CHANCE.</span></>
+            ) : (
+              <>ÚLTIMO LOTE.<br />A HORA É<br /><span className="text-orange-500">AGORA.</span></>
+            )}
           </h2>
           <p id="registration-popup-description" className="mt-5 max-w-sm text-sm leading-relaxed text-zinc-300">
-            Chegamos ao último lote da Titans Race. Esta é a última oportunidade de se inscrever nesta edição. Garanta sua inscrição antes do encerramento e venha superar seus limites.
+            {EXTRA_LOT.active
+              ? `Os lotes esgotaram, mas abrimos um ${EXTRA_LOT.name} com apenas ${EXTRA_LOT.announcedSpots} vagas. Atenção: as inscrições deste lote não incluem camiseta nem itens extras.`
+              : "Chegamos ao último lote da Titans Race. Esta é a última oportunidade de se inscrever nesta edição. Garanta sua inscrição antes do encerramento e venha superar seus limites."}
           </p>
           <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
             <p className="text-xs leading-relaxed text-emerald-100">
