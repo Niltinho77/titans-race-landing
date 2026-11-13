@@ -168,7 +168,14 @@ export function portalBaseUrl() {
   );
 }
 
+// Bloqueio manual: com `true`, atletas não podem editar dados nem transferir inscrições
+// pelo portal (a modalidade nunca é alterável por lá). Admins continuam podendo.
+// Para reabrir, mude para `false` (o prazo de PORTAL_CHANGES_CLOSE_AT volta a valer).
+export const PORTAL_CHANGES_LOCKED = true;
+
 export function changesAreOpen() {
+  if (PORTAL_CHANGES_LOCKED) return false;
+
   const raw = process.env.PORTAL_CHANGES_CLOSE_AT?.trim();
   if (!raw) return true;
 
