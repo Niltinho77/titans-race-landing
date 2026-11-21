@@ -31,6 +31,7 @@ function InViewVideo({ src, poster }: { src: string; poster: string }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           if (!video.src) video.src = src;
+          video.muted = true;
           video.play().catch(() => {});
         } else {
           video.pause();
@@ -60,7 +61,7 @@ export function GallerySection() {
   return (
     <section id="galeria" className="relative bg-[#050505] px-4 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div>
           <motion.h2
             className="heading-adventure text-4xl leading-none text-white md:text-6xl"
             initial={{ opacity: 0, y: 16 }}
@@ -72,16 +73,6 @@ export function GallerySection() {
             <span className="text-orange-500">nunca esquece.</span>
           </motion.h2>
 
-          <div className="flex gap-8">
-            <div>
-              <p className="heading-adventure text-4xl text-white md:text-5xl">+400</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Titans em 2 edições</p>
-            </div>
-            <div>
-              <p className="heading-adventure text-4xl text-white md:text-5xl">97%</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">alcance orgânico</p>
-            </div>
-          </div>
         </div>
 
         <div className="mt-10 grid auto-rows-[150px] grid-cols-2 gap-2 md:auto-rows-[190px] md:grid-flow-dense md:grid-cols-4 md:gap-3">

@@ -5,6 +5,7 @@ import { usePublicLotStatus as useLotStatus } from "@/hooks/useRegistrationClose
 import { motion } from "framer-motion";
 import { ArrowDown, CalendarDays, MapPin } from "lucide-react";
 import { EVENT } from "@/config/event";
+import { AutoplayVideo } from "@/components/AutoplayVideo";
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(cents / 100);
@@ -96,29 +97,20 @@ export default function Hero() {
         </motion.div>
 
         {/* Vídeo: fundo de tela cheia no celular, "reel" ao lado no desktop */}
-        <motion.div
+        {/* Sem animação de entrada: o Safari só dá autoplay em vídeo visível desde o carregamento. */}
+        <div
           className="absolute inset-0 -z-10 md:relative md:inset-auto md:z-0 md:aspect-[9/16] md:w-[300px] md:overflow-hidden md:rounded-[28px] md:border md:border-white/15 md:shadow-[0_30px_90px_rgba(0,0,0,0.8)] lg:w-[340px]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <video
+          <AutoplayVideo
             className="h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+            src="/videos/ed2-muro.mp4"
             poster="/videos/ed2-muro-poster.jpg"
-            aria-hidden="true"
-          >
-            <source src="/videos/ed2-muro.mp4" type="video/mp4" />
-          </video>
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 md:from-black/50 md:via-transparent md:to-transparent" />
           <p className="absolute bottom-4 left-4 hidden text-[10px] font-semibold uppercase tracking-[0.24em] text-white/80 md:block">
             2ª edição · nov/2026
           </p>
-        </motion.div>
+        </div>
       </div>
 
       <a
