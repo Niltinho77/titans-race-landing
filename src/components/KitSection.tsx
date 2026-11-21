@@ -2,12 +2,12 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { GlassWater, Gift, Hash, Medal, Shirt } from "lucide-react";
+import { GlassWater, Gift, Medal, Shirt, Watch } from "lucide-react";
 
 const ITEMS = [
   { icon: Medal, title: "Medalha finisher", detail: "Para quem cruzar a linha de chegada" },
   { icon: Shirt, title: "Camiseta oficial", detail: "Inscrições até 14/02" },
-  { icon: Hash, title: "Número de peito", detail: "Sua identificação na prova" },
+  { icon: Watch, title: "Tatuagem numerada e pulseira", detail: "Sua identificação na prova" },
   { icon: Gift, title: "Itens dos patrocinadores", detail: "Brindes das marcas parceiras" },
   { icon: GlassWater, title: "Água e fruta", detail: "No pós-prova" },
 ];

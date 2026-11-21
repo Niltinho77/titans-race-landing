@@ -11,8 +11,8 @@ const FAQ: { q: string; a: ReactNode }[] = [
     q: "Qual a idade mínima?",
     a: (
       <>
-        Solo, Duplas e Quartetos: 16 anos completos até o dia da prova. Diversão: a partir de 13 anos. Kids: de 2 a 13
-        anos. Menores de 18 precisam do{" "}
+        Solo, Duplas e Quartetos: 16 anos completos até o dia da prova. Diversão: qualquer idade, com o acompanhamento
+        do responsável. Kids: de 2 a 13 anos. Menores de 18 precisam do{" "}
         <a href="/termo-responsabilidade-menor.pdf" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline">
           termo de responsabilidade
         </a>{" "}
@@ -22,7 +22,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Qual a distância e como são os obstáculos?",
-    a: "Solo, Duplas e Quartetos: de 6 a 8 km, com cronometragem e punições. Diversão: de 4 a 6 km, sem cronômetro e com obstáculos opcionais. Kids: pista própria, curta e segura. No caminho: muros, cordas, redes, pneus, rampas, lama e água.",
+    a: "O percurso tem de 5 a 6 km, com muros, cordas, redes, pneus, rampas, lama e água. Solo, Duplas e Quartetos têm cronometragem; na Diversão não há cronômetro e os obstáculos são opcionais. O percurso Kids tem cerca de 1 km, em pista própria e segura.",
   },
   {
     q: "Que horas é a largada?",
@@ -30,7 +30,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "O que preciso levar?",
-    a: "Para retirar o kit: documento com foto, termo de responsabilidade assinado e o comprovante de inscrição (impresso ou no celular). Vá com roupa e tênis que possam sujar e leve uma muda de roupa para depois.",
+    a: "Para retirar o kit: documento com foto e o termo de responsabilidade assinado. Vá com roupa e tênis que possam sujar e leve uma muda de roupa para depois.",
   },
   {
     q: "Até quando a inscrição inclui camiseta?",
@@ -51,10 +51,6 @@ const FAQ: { q: string; a: ReactNode }[] = [
   {
     q: "Posso cancelar e pedir reembolso?",
     a: "Sim, em até 7 dias após a compra (direito de arrependimento das compras online). Depois desse prazo não há reembolso, mas você pode transferir a inscrição para outra pessoa.",
-  },
-  {
-    q: "E se a prova não acontecer?",
-    a: "A prova precisa de no mínimo 150 inscritos até 14/02/2027. Se esse número não for atingido, a prova é cancelada e o valor pago é devolvido. Se houver adiamento por clima ou força maior, sua inscrição vale automaticamente para a nova data.",
   },
 ];
 
