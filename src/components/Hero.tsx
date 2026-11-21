@@ -1,218 +1,133 @@
 "use client";
 
-import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
+import { usePublicLotStatus as useLotStatus } from "@/hooks/useRegistrationClosed";
 
 import { motion } from "framer-motion";
-import { CalendarDays, MapPin } from "lucide-react";
+import { ArrowDown, CalendarDays, MapPin } from "lucide-react";
 import { EVENT } from "@/config/event";
-import { useEffect, useState } from "react";
 
-const WORDS = ["CORRER", "SUPERAR", "VENCER", "SER UM TITAN"];
-
-const TYPING_SPEED = 90;
-const DELETING_SPEED = 55;
-const PAUSE_FULL = 1100;
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(cents / 100);
+}
 
 export default function Hero() {
-  const closed = useRegistrationClosed();
-  const [index, setIndex] = useState(0);
-  const [subIndex, setSubIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [blink, setBlink] = useState(true);
+  const { phase, current, next } = useLotStatus();
 
-  useEffect(() => {
-    const current = WORDS[index];
+  const status =
+    phase === "open" && current?.veteransOnly
+      ? `${current.name} · exclusiva até ${current.lastDayLabel}`
+      : phase === "open" && current
+      ? `${current.name} · ${formatCurrency(current.adultPrice)} até ${current.lastDayLabel}`
+      : phase === "upcoming" && next
+      ? `${next.name} · ${next.periodLabel}`
+      : "Inscrições encerradas";
 
-    if (!isDeleting && subIndex === current.length) {
-      const timeout = setTimeout(() => setIsDeleting(true), PAUSE_FULL);
-      return () => clearTimeout(timeout);
-    }
-
-    if (isDeleting && subIndex === 0) {
-      const timeout = setTimeout(() => {
-        setIsDeleting(false);
-        setIndex((prev) => (prev + 1) % WORDS.length);
-      }, TYPING_SPEED);
-      return () => clearTimeout(timeout);
-    }
-
-    const timeout = setTimeout(() => {
-      setSubIndex((prev) => prev + (isDeleting ? -1 : 1));
-    }, isDeleting ? DELETING_SPEED : TYPING_SPEED);
-
-    return () => clearTimeout(timeout);
-  }, [subIndex, isDeleting, index]);
-
-  useEffect(() => {
-    const interval = setInterval(() => setBlink((prev) => !prev), 450);
-    return () => clearInterval(interval);
-  }, []);
-
-  const currentText = WORDS[index].substring(0, subIndex);
+  const primary =
+    phase === "open"
+      ? { href: "#inscricoes", label: "Garantir minha vaga" }
+      : { href: "#lotes", label: phase === "upcoming" ? "Ver lotes e preços" : "Ver informações" };
 
   return (
-    <section
-      id="inicio"
-      className="relative flex min-h-[92vh] items-center overflow-hidden"
-    >
-      {/* Vídeo de fundo */}
-      <video
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        src="/videos/1202.mov"
-        autoPlay
-        loop
-        muted
-        playsInline
+    <section id="inicio" className="relative isolate flex min-h-[100svh] items-end overflow-hidden bg-black md:items-center">
+      {/* Fundo do desktop: foto da 2ª edição (não é baixada no celular) */}
+      <div
+        className="absolute inset-0 -z-20 hidden bg-cover bg-center md:block"
+        style={{ backgroundImage: "url(/images/ed2/hero-muro.webp)" }}
+        aria-hidden="true"
       />
+      <div className="absolute inset-0 -z-10 hidden bg-gradient-to-r from-black via-black/85 to-black/40 md:block" aria-hidden="true" />
 
-      {/* Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-black/95" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,92,12,0.20)_0,_transparent_55%)]" />
+      <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-28 md:grid md:grid-cols-[1fr_auto] md:items-center md:gap-12 md:pb-20">
+        <motion.div
+          className="relative z-10"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-orange-400">
+            {EVENT.editionLabel} · corrida de obstáculos
+          </p>
 
-      {/* Conteúdo */}
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-28 pb-14 md:pt-32 md:pb-16">
-        <div className="flex flex-col gap-12 md:flex-row md:items-center">
-          {/* Texto principal */}
-          <div className="flex-1">
-            <motion.p
-              className="mb-3 text-[11px] uppercase tracking-[0.32em] text-slate-300"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-            >
-              2ª edição • a volta dos titans
-            </motion.p>
+          <h1 className="heading-adventure mt-4 text-[4.5rem] leading-[0.85] text-white sm:text-8xl md:text-[8.5rem]">
+            TITANS
+            <br />
+            RACE
+          </h1>
 
-            <motion.h1
-              className="heading-adventure text-4xl text-white sm:text-5xl md:text-7xl"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.05 }}
-            >
-              TITANS RACE
-            </motion.h1>
+          <p className="mt-5 font-titan text-lg uppercase tracking-[0.2em] text-orange-500 md:text-2xl">
+            Corra • Supere • Vença
+          </p>
 
-            {/* Slogan principal */}
-            <motion.div
-              className="mt-5"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.15 }}
-            >
-              <p className="font-titan text-base uppercase tracking-[0.28em] text-orange-500 sm:text-xl md:text-2xl">
-                CORRA • SUPERE • VENÇA
-              </p>
-            </motion.div>
-
-            <div className="mt-6 flex flex-col gap-3 border-l-2 border-orange-500 pl-4">
-              <p className="flex items-center gap-2 text-base font-semibold text-white sm:text-lg">
-                <CalendarDays className="h-5 w-5 shrink-0 text-orange-400" aria-hidden="true" />
-                <time dateTime={EVENT.date}>{EVENT.dateLabel}</time>
-              </p>
-              <a href="#local" className="flex items-start gap-2 rounded-sm text-sm leading-relaxed text-slate-200 transition hover:text-orange-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" aria-hidden="true" />
-                <span>{EVENT.venue}<span className="block text-xs text-slate-400">{EVENT.city} · Ver localização</span></span>
-              </a>
-            </div>
-
-            {/* Texto de impacto */}
-            <motion.div
-              className="mt-6 max-w-2xl"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.25 }}
-            >
-              <p className="text-sm leading-relaxed text-slate-300 md:text-base">
-                A primeira edição marcou o início. A segunda vem para provar que
-                a Titans Race não é só uma corrida — é um chamado para quem tem
-                coragem de sair da zona de conforto e decidir{" "}
-                <span className="ml-1 font-titan text-lg uppercase tracking-[0.14em] text-orange-500 sm:text-2xl">
-                  {currentText}
-                </span>
-                <span
-                  className={`ml-1 inline-block h-[1.2em] w-[2px] bg-orange-500 ${
-                    blink ? "opacity-100" : "opacity-0"
-                  } transition-opacity`}
-                />
-              </p>
-            </motion.div>
-
-            {closed && (
-              <p role="status" className="mt-8 rounded-2xl border border-orange-500/40 bg-black/70 p-5 text-xl font-bold text-orange-400">
-                Inscrições encerradas
-              </p>
-            )}
-
-            {/* CTA */}
-            <motion.div
-              className="mt-8 flex flex-col gap-3 sm:flex-row"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.35 }}
-            >
-              <a
-                href="#inscricoes"
-                className="inline-flex items-center justify-center rounded-full bg-orange-500 px-10 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-black shadow-[0_14px_40px_rgba(0,0,0,0.8)] transition hover:bg-orange-400 hover:-translate-y-[1px]"
-              >
-                {closed ? "Inscrições encerradas" : "Quero viver isso"}
-              </a>
-
-              <a
-                href="/regulamento.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-full border border-white/30 px-10 py-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/90 transition hover:bg-white/5"
-              >
-                Ver regulamento
-              </a>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              className="mt-8 grid max-w-xl grid-cols-3 gap-4 rounded-2xl border border-white/10 bg-black/60 px-5 py-4 text-[11px] text-slate-200 backdrop-blur-md"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-            >
-              <div>
-                <p className="text-slate-400">Edição</p>
-                <p className="mt-1 text-sm font-semibold text-white">2ª edição</p>
-              </div>
-              <div>
-                <p className="text-slate-400">Essência</p>
-                <p className="mt-1 text-sm font-semibold text-white">
-                  força e superação
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-400">Experiência</p>
-                <p className="mt-1 text-sm font-semibold text-white">
-                  adrenalina real
-                </p>
-              </div>
-            </motion.div>
+          <div className="mt-6 flex flex-col gap-2 text-sm text-zinc-200 sm:flex-row sm:gap-6 md:text-base">
+            <span className="inline-flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-orange-400" aria-hidden="true" />
+              <time dateTime={EVENT.date}>{EVENT.dateLabel}</time>
+            </span>
+            <a href="#local" className="inline-flex items-center gap-2 hover:text-orange-300">
+              <MapPin className="h-4 w-4 text-orange-400" aria-hidden="true" />
+              {EVENT.city}
+            </a>
           </div>
 
-          {/* Card lateral */}
-          <motion.div
-            className="flex flex-1 justify-center md:justify-end"
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+          <p
+            role="status"
+            className="mt-6 inline-flex items-center gap-2 rounded-full border border-orange-500/40 bg-black/60 px-4 py-2 text-xs font-semibold text-orange-200 backdrop-blur"
           >
-            <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-black/70 p-5 backdrop-blur-md shadow-[0_20px_60px_rgba(0,0,0,0.85)]">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-400">
-                mais que uma corrida
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-100">
-                A Titans Race retorna maior, mais forte e ainda mais marcante.
-                Uma experiência criada para desafiar o corpo, testar a mente e
-                entregar ao atleta a sensação de conquista de verdade.
-              </p>
-            </div>
-          </motion.div>
-        </div>
+            <span className="h-2 w-2 rounded-full bg-orange-500" aria-hidden="true" />
+            {status}
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <a
+              href={primary.href}
+              className="inline-flex min-h-12 items-center justify-center rounded-full bg-orange-500 px-8 text-xs font-bold uppercase tracking-[0.18em] text-black transition hover:bg-orange-400"
+            >
+              {primary.label}
+            </a>
+            <a
+              href="/regulamento.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/25 px-8 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/10"
+            >
+              Regulamento
+            </a>
+          </div>
+        </motion.div>
+
+        {/* Vídeo: fundo de tela cheia no celular, "reel" ao lado no desktop */}
+        <motion.div
+          className="absolute inset-0 -z-10 md:relative md:inset-auto md:z-0 md:aspect-[9/16] md:w-[300px] md:overflow-hidden md:rounded-[28px] md:border md:border-white/15 md:shadow-[0_30px_90px_rgba(0,0,0,0.8)] lg:w-[340px]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <video
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster="/videos/ed2-muro-poster.jpg"
+            aria-hidden="true"
+          >
+            <source src="/videos/ed2-muro.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 md:from-black/50 md:via-transparent md:to-transparent" />
+          <p className="absolute bottom-4 left-4 hidden text-[10px] font-semibold uppercase tracking-[0.24em] text-white/80 md:block">
+            2ª edição · nov/2026
+          </p>
+        </motion.div>
       </div>
+
+      <a
+        href="#inscricoes"
+        aria-label="Rolar para as modalidades"
+        className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 text-white/50 transition hover:text-white md:block"
+      >
+        <ArrowDown className="h-5 w-5 animate-bounce" />
+      </a>
     </section>
   );
 }

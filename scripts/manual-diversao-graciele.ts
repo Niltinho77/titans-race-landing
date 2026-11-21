@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getModalityById, ModalityId } from "@/config/checkout";
+import { getPricingLot, getTicketPrice } from "@/config/lots";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
 // ✅ Cupom (desconto APENAS em ingressos)
@@ -106,7 +107,7 @@ async function main() {
   if (phone.length !== 11) throw new Error("Telefone inválido.");
   if (!email.includes("@")) throw new Error("Email inválido.");
 
-  const ticketsAmount = modality.basePrice * INPUT.tickets; // só ingressos
+  const ticketsAmount = getTicketPrice(modality.id, getPricingLot()) * INPUT.tickets; // só ingressos
   const extrasAmount = 0;
 
   // ✅ busca cupom FORA da transação (evita estourar timeout do tx)

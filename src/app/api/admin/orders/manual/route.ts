@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { EXTRAS, getModalityById, ExtraType, ModalityId } from "@/config/checkout";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { getPricingLot, getTicketPrice } from "@/config/lots";
 
 export const runtime = "nodejs";
 
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
 
     // -------------------- Cálculo valores --------------------
     // ingressos (bruto)
-    const ticketsAmountRaw = modality.basePrice * body.tickets;
+    const ticketsAmountRaw = getTicketPrice(modality.id, getPricingLot()) * body.tickets;
 
     // extras
     const extrasAmount = body.participants.reduce((total, participant) => {

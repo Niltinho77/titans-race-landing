@@ -1,8 +1,15 @@
 // src/components/checkout/CheckoutScreen.tsx
 "use client";
 
-import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
-import { EXTRA_LOT } from "@/config/registration";
+import { useLotStatus } from "@/hooks/useRegistrationClosed";
+import {
+  getParticipantsPerTicket,
+  getPricingLot,
+  getStartDayLabel,
+  getTicketPrice,
+  getVeteranDiscount,
+  NO_SHIRT_LABEL,
+} from "@/config/lots";
 
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { useEffect, useMemo, useState } from "react";
@@ -133,14 +140,6 @@ const DEFAULT_TSHIRT_SIZES = [
   "Infantil 14",
 ];
 
-function getParticipantsPerTicket(modalityId: ModalityId) {
-  if (modalityId === "duplas") return 2;
-  if (modalityId === "equipes") return 4;
-  return 1;
-}
-
-// No lote extra não há camisa, luva nem meia: nem no kit, nem como extra.
-const EXTRAS_AVAILABLE = !EXTRA_LOT.active;
 
 function normalizeCoupon(code: string) {
   const normalized = code.trim().toUpperCase();
@@ -148,8 +147,13 @@ function normalizeCoupon(code: string) {
 }
 
 export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenProps) {
-  const publicClosed = useRegistrationClosed();
-  const closed = publicClosed && !inviteToken;
+  const lotStatus = useLotStatus();
+  const closed = lotStatus.phase !== "open" && !inviteToken;
+  // Convites fora da janela de venda usam o próximo lote (ou o último), como no servidor.
+  const lot = lotStatus.current ?? getPricingLot();
+  const veteransOnly = lot.veteransOnly && !inviteToken;
+  // No Lote Extra não há camisa, luva nem meia: nem no kit, nem como extra.
+  const EXTRAS_AVAILABLE = lot.includesShirt;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [modality, setModality] = useState<Modality | null>(initialModality);
   const [tickets, setTickets] = useState<number>(1);
@@ -166,6 +170,10 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
+
+  // Veteranos (1ª e 2ª edição) reconhecidos pelo CPF no servidor.
+  const [veteranFlags, setVeteranFlags] = useState<boolean[]>([]);
+  const [veteranCheckKey, setVeteranCheckKey] = useState("");
 
   useEffect(() => {
     if (!modality && initialModality) {
@@ -200,8 +208,53 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     });
   }, [step, modality, tickets, participantsCount]);
 
+  const cpfKey = participants.map((p) => onlyDigits(p.cpf)).join(",");
+  const veteranCount = useMemo(() => {
+    const seen = new Set<string>();
+    participants.forEach((p, index) => {
+      if (veteranFlags[index] && veteranCheckKey === cpfKey) seen.add(onlyDigits(p.cpf));
+    });
+    return seen.size;
+  }, [participants, veteranFlags, veteranCheckKey, cpfKey]);
+  const veteranCheckPending = veteranCheckKey !== cpfKey;
+  const allVeterans =
+    !veteranCheckPending && participants.length > 0 && veteranCount === participants.length;
+
+  useEffect(() => {
+    if (!modality || participants.length === 0) return;
+    const cpfs = cpfKey.split(",");
+    if (!cpfs.some((cpf) => cpf.length === 11)) {
+      setVeteranFlags(cpfs.map(() => false));
+      setVeteranCheckKey(cpfKey);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch("/api/checkout/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modalityId: modality.id, tickets, cpfs }),
+        });
+        const data = await res.json().catch(() => null);
+        if (cancelled) return;
+        setVeteranFlags(res.ok && Array.isArray(data?.veteranFlags) ? data.veteranFlags : cpfs.map(() => false));
+      } catch {
+        if (!cancelled) setVeteranFlags(cpfs.map(() => false));
+      } finally {
+        if (!cancelled) setVeteranCheckKey(cpfKey);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cpfKey, modality?.id, tickets]);
+
   const {
     ticketsTotal,
+    veteranDiscountTotal,
     extrasTotal,
     grandTotal,
     discountTotal,
@@ -212,6 +265,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     if (!modality) {
       return {
         ticketsTotal: 0,
+        veteranDiscountTotal: 0,
         extrasTotal: 0,
         grandTotal: 0,
         discountTotal: 0,
@@ -221,10 +275,13 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       };
     }
 
-    const ticketsTotalCalc = tickets * modality.basePrice;
+    const ticketsTotalCalc = tickets * getTicketPrice(modality.id, lot);
+    const veteranDiscountCalc = isExternalPaymentCoupon(appliedCoupon)
+      ? 0
+      : getVeteranDiscount(modality.id, lot, veteranCount);
 
     let extrasTotalCalc = 0;
-    for (const participant of participants) {
+    for (const participant of lot.includesShirt ? participants : []) {
       for (const extra of participant.extras) {
         const config = EXTRAS.find((e) => e.id === extra.type);
         if (!config) continue;
@@ -234,7 +291,8 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     }
 
     const subtotal = ticketsTotalCalc + extrasTotalCalc;
-    const discount = Math.min(discountAmount || 0, subtotal);
+    const couponDiscount = Math.min(discountAmount || 0, Math.max(0, ticketsTotalCalc - veteranDiscountCalc));
+    const discount = Math.min(veteranDiscountCalc + couponDiscount, subtotal);
     const subtotalAfterDiscount = Math.max(0, subtotal - discount);
     const { totalWithFee, feeAmount } = isExternalPaymentCoupon(appliedCoupon)
       ? { totalWithFee: subtotalAfterDiscount, feeAmount: 0 }
@@ -242,6 +300,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
 
     return {
       ticketsTotal: ticketsTotalCalc,
+      veteranDiscountTotal: veteranDiscountCalc,
       extrasTotal: extrasTotalCalc,
       grandTotal: subtotal,
       discountTotal: discount,
@@ -249,7 +308,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       feeAmount,
       grandTotalWithFee: totalWithFee,
     };
-  }, [modality, tickets, participants, discountAmount, appliedCoupon]);
+  }, [modality, tickets, participants, discountAmount, appliedCoupon, lot, veteranCount]);
 
   const applyCoupon = async () => {
     const code = normalizeCoupon(couponCode);
@@ -272,8 +331,8 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         body: JSON.stringify({
           code,
           modalityId: modality.id,
-          subtotal: grandTotal,
-          discountBase: ticketsTotal,
+          subtotal: grandTotal - veteranDiscountTotal,
+          discountBase: ticketsTotal - veteranDiscountTotal,
         }),
       });
 
@@ -310,7 +369,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       setCouponError("O carrinho mudou. Aplique o cupom novamente.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets, participantsCount, extrasTotal, modality?.id]);
+  }, [tickets, participantsCount, extrasTotal, modality?.id, veteranCount, lot.id]);
 
   useEffect(() => {
     if (!participantsCount) {
@@ -337,8 +396,19 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   if (closed) {
     return (
       <div role="status" className="rounded-3xl border border-orange-500/30 bg-black/70 px-6 py-12 text-center text-zinc-200">
-        <h1 className="heading-adventure text-3xl text-orange-400">Inscrições encerradas</h1>
-        <p className="mt-4">As inscrições para esta edição da Titans Race estão encerradas.</p>
+        {lotStatus.phase === "upcoming" && lotStatus.next ? (
+          <>
+            <h1 className="heading-adventure text-3xl text-orange-400">Inscrições em breve</h1>
+            <p className="mt-4">
+              {lotStatus.next.name}: abre em {getStartDayLabel(lotStatus.next)}. {lotStatus.next.hook}.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="heading-adventure text-3xl text-orange-400">Inscrições encerradas</h1>
+            <p className="mt-4">As inscrições para esta edição da Titans Race estão encerradas.</p>
+          </>
+        )}
         <Link href="/" className="mt-6 inline-block text-orange-300 underline">Voltar ao site</Link>
       </div>
     );
@@ -413,6 +483,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
 
   const canGoToStep3 =
     participants.length > 0 &&
+    (!veteransOnly || allVeterans) &&
     participants.every((p) => {
       return (
         p.fullName.trim().length > 3 &&
@@ -453,9 +524,9 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
           phone: p.phone,
           email: p.email,
           city: p.city,
-          tshirtSize: EXTRA_LOT.active ? EXTRA_LOT.shirtLabel : p.tshirtSize,
+          tshirtSize: EXTRAS_AVAILABLE ? p.tshirtSize : NO_SHIRT_LABEL,
           healthInfo: p.healthInfo,
-          extras: p.extras,
+          extras: EXTRAS_AVAILABLE ? p.extras : [],
         })),
         termsAccepted,
         couponCode: normalizedCoupon,
@@ -530,9 +601,18 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         </p>
       </div>
 
-      {EXTRA_LOT.active && (
+      {(
+        <p className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-200">
+          <span className="font-semibold text-orange-300">{lot.name}</span> · válido até {lot.lastDayLabel}.
+          {veteransOnly
+            ? " Exclusivo para quem correu a 1ª e a 2ª edição: todos os CPFs do pedido precisam ser de veteranos."
+            : ""}
+        </p>
+      )}
+
+      {!EXTRAS_AVAILABLE && (
         <p className="mt-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-100">
-          <span className="font-semibold">{EXTRA_LOT.name}</span> · vagas limitadas.
+          <span className="font-semibold">{lot.name}</span>
           Esta inscrição <span className="font-semibold">não inclui camiseta nem itens extras</span>.
         </p>
       )}
@@ -556,6 +636,10 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         {step === 2 && (
           <Step2Participants
             modality={modality}
+            veteransOnly={veteransOnly}
+            veteranDiscount={lot.veteranDiscount}
+            veteranFlags={veteranCheckPending ? [] : veteranFlags}
+            includesShirt={EXTRAS_AVAILABLE}
             participants={participants}
             onChange={handleParticipantChange}
             showErrors={showErrors}
@@ -565,6 +649,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         {step === 3 && (
           <>
             <Step3ExtrasAndTerms
+              extrasAvailable={EXTRAS_AVAILABLE}
               participants={participants}
               onToggleExtra={handleExtraToggle}
               onChangeSize={handleExtraSizeChange}
@@ -672,8 +757,16 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
 
             {discountTotal > 0 && (
               <>
+                {veteranDiscountTotal > 0 && (
+                  <p className="text-sm">
+                    Desconto veterano ({veteranCount}):{" "}
+                    <span className="font-semibold text-emerald-300">
+                      -{formatCurrency(veteranDiscountTotal)}
+                    </span>
+                  </p>
+                )}
                 <p className="text-sm">
-                  Desconto:{" "}
+                  Desconto total:{" "}
                   <span className="font-semibold text-emerald-300">
                     -{formatCurrency(discountTotal)}
                   </span>
@@ -876,11 +969,19 @@ function Step1ModalityTickets({
 
 function Step2Participants({
   modality,
+  veteransOnly,
+  veteranDiscount,
+  veteranFlags,
+  includesShirt,
   participants,
   onChange,
   showErrors,
 }: {
   modality: Modality;
+  veteransOnly: boolean;
+  veteranDiscount: number;
+  veteranFlags: boolean[];
+  includesShirt: boolean;
   participants: ParticipantForm[];
   onChange: (index: number, field: keyof ParticipantForm, value: string) => void;
   showErrors: boolean;
@@ -896,6 +997,13 @@ function Step2Participants({
       <h2 className="heading-adventure text-xl text-white md:text-2xl">
         Dados dos participantes
       </h2>
+
+      {veteransOnly && (
+        <p className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-100">
+          Pré-venda exclusiva para veteranos: conferimos se cada CPF correu a 1ª e a 2ª edição da Titans Race.
+          Se algum CPF não for reconhecido, a inscrição fica disponível para todos a partir de 27/11.
+        </p>
+      )}
 
       <p className="text-sm text-zinc-300">
         Preencha os dados de cada participante.
@@ -944,8 +1052,15 @@ function Step2Participants({
                   onChange={(v) => onChange(index, "cpf", formatCPF(v))}
                   maxLength={14}
                   inputMode="numeric"
-                  error={showErrors && !isValidCPF(participant.cpf)}
-                  errorMessage="Informe os 11 dígitos do CPF."
+                  error={
+                    (showErrors && !isValidCPF(participant.cpf)) ||
+                    (veteransOnly && isValidCPF(participant.cpf) && veteranFlags[index] === false)
+                  }
+                  errorMessage={
+                    isValidCPF(participant.cpf)
+                      ? "CPF não encontrado entre os atletas que correram a 1ª e a 2ª edição."
+                      : "Informe os 11 dígitos do CPF."
+                  }
                 />
                 <Input
                   label="Data de nascimento"
@@ -981,7 +1096,14 @@ function Step2Participants({
                 />
               </div>
 
-              {!EXTRA_LOT.active && (
+              {isValidCPF(participant.cpf) && veteranFlags[index] === true && (
+                <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                  Veterano da 1ª e da 2ª edição reconhecido.
+                  {veteranDiscount > 0 ? ` Desconto de ${formatCurrency(veteranDiscount)} aplicado.` : ""}
+                </p>
+              )}
+
+              {includesShirt && (
                 <div className="mt-4">
                   <Select
                     label="Tamanho da camiseta"
@@ -1012,6 +1134,7 @@ function Step2Participants({
 }
 
 function Step3ExtrasAndTerms({
+  extrasAvailable: EXTRAS_AVAILABLE,
   participants,
   onToggleExtra,
   onChangeSize,
@@ -1019,6 +1142,7 @@ function Step3ExtrasAndTerms({
   setTermsAccepted,
   showErrors,
 }: {
+  extrasAvailable: boolean;
   participants: ParticipantForm[];
   onToggleExtra: (
     participantIndex: number,
@@ -1043,7 +1167,7 @@ function Step3ExtrasAndTerms({
       <p className="text-sm text-zinc-300">
         {EXTRAS_AVAILABLE
           ? "Opcionalmente, adicione itens extras para cada participante. Em seguida, leia e aceite o regulamento e o termo de responsabilidade para concluir o pedido."
-          : `O ${EXTRA_LOT.name} não inclui camiseta nem itens extras. Leia e aceite o regulamento e o termo de responsabilidade para concluir o pedido.`}
+          : `O Lote Extra não inclui camiseta nem itens extras. Leia e aceite o regulamento e o termo de responsabilidade para concluir o pedido.`}
       </p>
 
       {EXTRAS_AVAILABLE && (

@@ -1,4 +1,5 @@
-import { registrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
+import { legacyCheckoutIsClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
+import { getPricingLot, getTicketPrice } from "@/config/lots";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start/route.ts
 import { NextRequest, NextResponse } from "next/server";
@@ -55,7 +56,7 @@ function applyStripeFee(amountCents: number) {
 }
 
 export async function POST(req: NextRequest) {
-  if (registrationsAreClosed()) {
+  if (legacyCheckoutIsClosed()) {
     return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
   }
 
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 💰 Valor base (ingressos)
-    const ticketsAmount = modality.basePrice * body.tickets;
+    const ticketsAmount = getTicketPrice(modality.id, getPricingLot()) * body.tickets;
 
     // 💰 Valor dos extras
     const extrasAmount = body.participants.reduce((total, participant) => {

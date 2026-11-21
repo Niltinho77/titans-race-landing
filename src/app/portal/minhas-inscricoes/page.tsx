@@ -5,6 +5,7 @@ import PortalHeader from "@/components/portal/PortalHeader";
 import EventCountdown from "@/components/portal/EventCountdown";
 import PortalDocuments from "@/components/portal/PortalDocuments";
 import { getModalityById } from "@/config/checkout";
+import { EVENT } from "@/config/event";
 import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export default async function MyRegistrationsPage() {
               {primaryName}
             </p>
             <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-300">
-              Sua inscri&ccedil;&atilde;o est&aacute; confirmada. A arena Titans espera por voc&ecirc; em 15 de novembro.
+              Sua inscri&ccedil;&atilde;o est&aacute; confirmada. A arena Titans espera por voc&ecirc; em {EVENT.shortDateLabel}.
             </p>
           </div>
 

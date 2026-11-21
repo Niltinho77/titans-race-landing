@@ -1,8 +1,8 @@
 // src/components/ExperienceGridSection.tsx
 "use client";
 
-import { useRegistrationClosed } from "@/hooks/useRegistrationClosed";
-import { EXTRA_LOT } from "@/config/registration";
+import { usePublicLotStatus as useLotStatus } from "@/hooks/useRegistrationClosed";
+import { getStartDayLabel, getTicketPrice } from "@/config/lots";
 
 import { motion } from "framer-motion";
 import { MODALITIES } from "@/config/checkout";
@@ -23,7 +23,7 @@ const tilesBase: Tile[] = [
     title: "KIDS",
     subtitle: "Os primeiros passos de um Titan.",
     location: "",
-    image: "/images/kids.jpg",
+    image: "/images/ed2/kids-mae-filho.webp",
     href: "/checkout?modality=kids",
     className: "md:col-span-2 md:row-span-2",
   },
@@ -32,7 +32,7 @@ const tilesBase: Tile[] = [
     title: "DUPLAS",
     subtitle: "Sozinho é difícil. Juntos é impossível parar.",
     location: "",
-    image: "/images/duplas.jpg",
+    image: "/images/ed2/lama-dupla.webp",
     href: "/checkout?modality=duplas",
     className: "md:col-span-2 md:row-span-1",
   },
@@ -41,7 +41,7 @@ const tilesBase: Tile[] = [
     title: "SOLO",
     subtitle: "Você contra você. Sem desculpas.",
     location: "",
-    image: "/images/competicao.jpg",
+    image: "/images/ed2/salto-muro.webp",
     href: "/checkout?modality=competicao",
     className: "md:col-span-1 md:row-span-2",
   },
@@ -50,7 +50,7 @@ const tilesBase: Tile[] = [
     title: "DIVERSÃO",
     subtitle: "Lama, risada e histórias pra contar.",
     location: "",
-    image: "/images/diversao.jpg",
+    image: "/images/ed2/atleta-vibra.webp",
     href: "/checkout?modality=diversao",
     className: "md:col-span-1 md:row-span-2",
   },
@@ -59,7 +59,7 @@ const tilesBase: Tile[] = [
     title: "QUARTETOS",
     subtitle: "4 pessoas. Um desafio. Uma conquista.",
     location: "",
-    image: "/images/equipes.jpg",
+    image: "/images/ed2/quarteto.webp",
     href: "/checkout?modality=equipes",
   },
   {
@@ -67,7 +67,7 @@ const tilesBase: Tile[] = [
     title: "ENTRAR EM CONTATO",
     subtitle: "Tire suas dúvidas e venha participar",
     location: "WhatsApp Oficial",
-    image: "/images/contato.jpg",
+    image: "/images/ed2/high-five.webp",
     href: "https://wa.me/5555992234690?text=Olá!%20Gostaria%20de%20mais%20informações",
   },
 ];
@@ -83,12 +83,15 @@ function formatCurrency(cents: number) {
 function getPriceLabel(modalityId: string) {
   if (modalityId === "duplas") return "por dupla";
   if (modalityId === "equipes") return "por quarteto";
+  if (modalityId === "kids") return "por criança";
   return "por participante";
 }
 
 export function ExperienceGridSection() {
-  const closed = useRegistrationClosed();
-  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"]; // Último lote aberto
+  const { phase, current, next } = useLotStatus();
+  const closed = phase !== "open";
+  const priceLot = current ?? next;
+  const ENABLED_TILES = ["kids", "duplas", "equipes", "competicao", "diversao"];
 
   const isTileEnabled = (tile: Tile) =>
     (!closed && ENABLED_TILES.includes(tile.id)) || tile.id === "contato";
@@ -96,31 +99,30 @@ export function ExperienceGridSection() {
   return (
     <section
       id="inscricoes"
-      className="relative bg-black px-4 py-10 md:px-0 md:py-0"
+      className="relative bg-[#050505] px-4 pb-10 pt-16 md:pb-16 md:pt-24"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-4 py-4 md:py-10">
-        {/* Header */}
-        <div className="hidden items-center justify-between text-xs text-slate-300 md:flex">
-          <span className="tracking-[0.28em] uppercase text-slate-400">
-            modalidades & experiências
-          </span>
-          <span className="text-slate-500">
-            {closed
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-400">Modalidades</p>
+            <h2 className="heading-adventure mt-2 text-4xl text-white md:text-6xl">Escolha seu desafio</h2>
+          </div>
+          <p role="status" className="text-sm text-zinc-400">
+            {phase === "ended"
               ? "Inscrições encerradas"
-              : EXTRA_LOT.active
-              ? `escolha sua modalidade • ${EXTRA_LOT.name.toLowerCase()} sem camiseta`
-              : "escolha sua modalidade • último lote"}
-          </span>
+              : phase === "upcoming" && next
+              ? `Inscrições abrem em ${getStartDayLabel(next)} · ${next.name}`
+              : current?.veteransOnly
+              ? `${current.name} até ${current.lastDayLabel} · exclusiva para quem correu a 1ª e a 2ª edição`
+              : `${current?.name} até ${current?.lastDayLabel}${current && !current.includesShirt ? " · sem camiseta" : ""}`}
+          </p>
         </div>
 
-        {closed && (
-          <h2 role="status" className="heading-adventure py-5 text-center text-3xl text-orange-400 md:text-5xl">
-            Inscrições encerradas
-          </h2>
-        )}
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 gap-4 md:min-h-[100vh] md:grid-cols-4 md:grid-rows-3 md:grid-flow-dense">
+        <p className="-mt-1 text-xs text-zinc-500 md:hidden" aria-hidden="true">Deslize para o lado →</p>
+
+        {/* Celular: cartões deslizantes (swipe). Desktop: mosaico. */}
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:min-h-[100vh] md:grid-flow-dense md:grid-cols-4 md:grid-rows-3 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
           {tilesBase.map((tile, index) => {
             const enabled = isTileEnabled(tile);
             const modality = MODALITIES.find((item) => item.id === tile.id);
@@ -129,10 +131,9 @@ export function ExperienceGridSection() {
               <motion.div
                 key={tile.id}
                 className={`
-                  group relative flex min-h-[260px] overflow-hidden rounded-2xl
+                  group relative flex h-[440px] w-[78%] shrink-0 snap-start overflow-hidden rounded-3xl md:h-auto md:w-auto
                   border border-slate-700/60 bg-black/60
                   shadow-[0_18px_50px_rgba(0,0,0,0.9)]
-                  sm:min-h-[300px]
                   md:min-h-0 md:rounded-3xl
                   ${enabled ? "" : "cursor-not-allowed opacity-95"}
                   ${tile.className ?? ""}
@@ -158,8 +159,15 @@ export function ExperienceGridSection() {
                   />
                 )}
 
-                {/* Overlay para modalidades ainda fechadas */}
-                {!enabled && (
+                {/* Antes de abrir: selo discreto, sem cobrir a foto */}
+                {!enabled && phase === "upcoming" && tile.id !== "contato" && (
+                  <span className="absolute right-3 top-3 z-20 rounded-full border border-white/20 bg-black/70 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white backdrop-blur">
+                    em breve
+                  </span>
+                )}
+
+                {/* Overlay para modalidades encerradas */}
+                {!enabled && phase !== "upcoming" && (
                   <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-3 backdrop-blur-[2px] sm:p-4">
                     <div className="w-full max-w-[92%] rounded-2xl border border-orange-500/25 bg-black/55 px-3 py-3 text-center sm:max-w-[420px] sm:px-5 sm:py-5 md:rounded-3xl">
                       <p className="text-[9px] uppercase tracking-[0.24em] text-orange-300/90 sm:text-[10px]">
@@ -167,7 +175,7 @@ export function ExperienceGridSection() {
                       </p>
 
                       <p className="mt-2 heading-adventure text-lg leading-tight text-white xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl">
-                        {closed ? "INSCRIÇÕES ENCERRADAS" : "LOTE ESGOTADO"}
+                        INSCRIÇÕES ENCERRADAS
                       </p>
 
                       <p className="mx-auto mt-2 max-w-[28ch] text-[10px] leading-relaxed text-slate-200/90 sm:text-[11px] md:text-xs">
@@ -202,10 +210,10 @@ export function ExperienceGridSection() {
                       {tile.title}
                     </h3>
 
-                    {modality && (
+                    {modality && priceLot && phase !== "ended" && (
                       <p className="mt-3 flex flex-wrap items-baseline gap-x-2 text-white drop-shadow-lg">
                         <span className="text-lg font-black text-orange-400 sm:text-xl">
-                          {formatCurrency(modality.basePrice)}
+                          {formatCurrency(getTicketPrice(modality.id, priceLot))}
                         </span>
                         <span className="text-[10px] uppercase tracking-[0.14em] text-slate-200">
                           {getPriceLabel(modality.id)}

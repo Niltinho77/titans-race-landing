@@ -17,7 +17,7 @@ export function Footer() {
         <div className="flex items-center gap-6 text-zinc-400">
           <Link
             href="/regulamento"
-            className="transition-colors hover:text-[#F5E04E]"
+            className="transition-colors hover:text-orange-400"
           >
             Regulamento Oficial
           </Link>
@@ -26,7 +26,7 @@ export function Footer() {
 
           <Link
             href="/politica-de-privacidade"
-            className="transition-colors hover:text-[#F5E04E]"
+            className="transition-colors hover:text-orange-400"
           >
             Política de Privacidade
           </Link>
@@ -35,7 +35,7 @@ export function Footer() {
 
       {/* Linha inferior opcional */}
       <div className="mt-4 text-center text-[11px] text-zinc-600">
-        Evento oficial Titans Race · Corrida com obstáculos · Superação e Aventura
+        @titansraceoficial · Corra • Supere • Vença
       </div>
     </footer>
   );

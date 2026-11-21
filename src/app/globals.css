@@ -45,3 +45,27 @@ body {
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
 }
+
+/* Faixa rolante (CORRA • SUPERE • VENÇA) */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #050505;
+}

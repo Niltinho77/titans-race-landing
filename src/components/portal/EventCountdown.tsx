@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { EVENT } from "@/config/event";
 
-const TARGET = new Date("2026-11-15T00:00:00-03:00").getTime();
+const TARGET = new Date(EVENT.startsAtIso).getTime();
 
 function getRemaining() {
   const diff = Math.max(0, TARGET - Date.now());

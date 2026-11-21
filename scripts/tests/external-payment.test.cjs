@@ -12,6 +12,9 @@ function load(file, mocks = {}) {
 }
 const config = load('src/config/externalPayment.ts');
 const checkout = load('src/config/checkout.ts');
+const { loadLots, loadLotPricing } = require('./_lotMocks.cjs');
+const lots = loadLots(); // Lote 1: R$ 148 por pessoa
+const lotPricing = loadLotPricing(lots);
 
 async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed = 1, modalityId = 'competicao', couponModalityId = 'competicao' } = {}) {
   const writes = [];
@@ -24,7 +27,9 @@ async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed 
   };
   const route = load('src/app/api/checkout/start-asaas/route.ts', {
     '@/config/externalPayment': config,
-    '@/config/registration': { registrationsAreClosed: () => false, publicRegistrationsAreClosed: () => false, EXTRA_LOT: { active: false } },
+    '@/config/registration': { publicRegistrationsAreClosed: () => false, registrationClosedMessage: () => 'Inscrições encerradas' },
+    '@/config/lots': lots,
+    '@/lib/lotPricing': lotPricing,
     '@/config/checkout': checkout,
     '@/lib/prisma': { prisma: db },
     'next/server': { NextResponse: { json: (body, options) => ({ body, status: options?.status ?? 200 }) } },
@@ -45,7 +50,7 @@ test('external registration records received payment, consumes coupon and skips 
   const order = result.writes[0];
   assert.equal(order.status, 'PAID');
   assert.equal(order.asaasPaymentStatus, 'EXTERNAL_PAID');
-  assert.equal(order.totalAmountWithFee, 18000);
+  assert.equal(order.totalAmountWithFee, 14800);
   assert.equal(order.discountAmount, 0);
   assert.equal(order.feeAmount, 0);
   assert.ok(order.paidAt instanceof Date);
@@ -59,7 +64,7 @@ test('Diversão external coupon records the correct price and skips online colle
   const order = result.writes[0];
   assert.equal(order.status, 'PAID');
   assert.equal(order.asaasPaymentStatus, 'EXTERNAL_PAID');
-  assert.equal(order.totalAmountWithFee, 17500);
+  assert.equal(order.totalAmountWithFee, 14800);
   assert.equal(order.discountAmount, 0);
   assert.equal(order.feeAmount, 0);
   assert.equal(result.gatewayCalls, 0);
@@ -78,7 +83,7 @@ test('Luiz Augusto Diversão coupon uses the external payment flow', async () =>
   assert.equal(result.response.status, 200);
   assert.equal(result.response.body.externalPayment, true);
   assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
-  assert.equal(result.writes[0].totalAmountWithFee, checkout.getModalityById('diversao').basePrice);
+  assert.equal(result.writes[0].totalAmountWithFee, lots.getTicketPrice('diversao', lots.getCurrentLot()));
   assert.equal(result.writes[0].discountAmount, 0);
   assert.equal(result.gatewayCalls, 0);
 });
@@ -96,7 +101,7 @@ test('Potyra Diversão records external payment, preserves price and charges no 
   assert.equal(result.response.body.externalPayment, true);
   assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
   assert.equal(result.writes[0].status, 'PAID');
-  assert.equal(result.writes[0].totalAmountWithFee, checkout.getModalityById('diversao').basePrice);
+  assert.equal(result.writes[0].totalAmountWithFee, lots.getTicketPrice('diversao', lots.getCurrentLot()));
   assert.equal(result.writes[0].discountAmount, 0);
   assert.equal(result.writes[0].feeAmount, 0);
   assert.equal(result.gatewayCalls, 0);
@@ -112,7 +117,7 @@ test('Marilia Solo coupon records external payment with one use and no online ch
   assert.equal(result.response.status, 200);
   assert.equal(result.response.body.externalPayment, true);
   assert.equal(result.writes[0].asaasPaymentStatus, 'EXTERNAL_PAID');
-  assert.equal(result.writes[0].totalAmountWithFee, checkout.getModalityById('competicao').basePrice);
+  assert.equal(result.writes[0].totalAmountWithFee, lots.getTicketPrice('competicao', lots.getCurrentLot()));
   assert.equal(result.writes[0].discountAmount, 0);
   assert.equal(result.writes[0].feeAmount, 0);
   assert.equal(result.gatewayCalls, 0);

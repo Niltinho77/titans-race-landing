@@ -1,4 +1,6 @@
-import { EXTRA_LOT, publicRegistrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
+import { publicRegistrationsAreClosed, registrationClosedMessage } from "@/config/registration";
+import { getLotStatus, getParticipantsPerTicket, getPricingLot, NO_SHIRT_LABEL } from "@/config/lots";
+import { quoteTickets } from "@/lib/lotPricing";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start-asaas/route.ts
 
@@ -64,12 +66,6 @@ function calculateFee(amountCents: number) {
   return { totalWithFee, feeAmount };
 }
 
-function getParticipantsPerTicket(modalityId: ModalityId) {
-  if (modalityId === "duplas") return 2;
-  if (modalityId === "equipes") return 4;
-  return 1;
-}
-
 function normalizeCoupon(code?: string | null) {
   const normalized = code?.trim().toUpperCase() ?? "";
   return normalized.length > 0 ? normalized : null;
@@ -86,7 +82,7 @@ function getBaseUrl(req: Request) {
 export async function POST(req: Request) {
   const inviteToken = req.headers?.get("x-registration-invite") ?? null;
   if (publicRegistrationsAreClosed() && !inviteToken) {
-    return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
+    return NextResponse.json({ error: registrationClosedMessage() }, { status: 403 });
   }
 
   if (inviteToken !== null && !isInviteToken(inviteToken)) {
@@ -132,19 +128,39 @@ export async function POST(req: Request) {
       );
     }
 
+    // Convites fora da janela de venda usam o lote seguinte (ou o último).
+    const lot = getLotStatus().current ?? getPricingLot();
+    const quote = await quoteTickets({
+      modalityId: body.modalityId,
+      tickets: body.tickets,
+      cpfs: body.participants.map((participant) => participant.cpf),
+      lot,
+    });
+
+    if (lot.veteransOnly && !inviteToken && !quote.allVeterans) {
+      return NextResponse.json(
+        {
+          error:
+            `A ${lot.name} é exclusiva para quem correu a 1ª e a 2ª edição da Titans Race. ` +
+            "Todos os CPFs do pedido precisam ser de veteranos. As inscrições abertas a todos começam em 27/11.",
+        },
+        { status: 403 }
+      );
+    }
+
     if (
-      EXTRA_LOT.active &&
+      !lot.includesShirt &&
       body.participants.some((participant) =>
         (participant.extras ?? []).length > 0
       )
     ) {
       return NextResponse.json(
-        { error: `O ${EXTRA_LOT.name} não inclui camiseta nem itens extras.` },
+        { error: `O ${lot.name} não inclui camiseta nem itens extras.` },
         { status: 400 }
       );
     }
 
-    const ticketsAmount = body.tickets * modality.basePrice;
+    const ticketsAmount = quote.ticketsAmount;
 
     let extrasAmount = 0;
 
@@ -159,6 +175,8 @@ export async function POST(req: Request) {
     }
 
     const subtotal = ticketsAmount + extrasAmount;
+    let veteranDiscountAmount = quote.veteranDiscountAmount;
+    const ticketsAfterVeteran = Math.max(0, ticketsAmount - veteranDiscountAmount);
     const couponCode = normalizeCoupon(body.couponCode);
 
     let discountAmount = 0;
@@ -209,7 +227,7 @@ export async function POST(req: Request) {
         );
       }
 
-      if (coupon.minSubtotal && subtotal < coupon.minSubtotal) {
+      if (coupon.minSubtotal && subtotal - veteranDiscountAmount < coupon.minSubtotal) {
         return NextResponse.json(
           { error: "Subtotal mínimo não atingido para este cupom." },
           { status: 400 }
@@ -217,13 +235,13 @@ export async function POST(req: Request) {
       }
 
       if (coupon.type === "PERCENT") {
-        discountAmount = Math.round(ticketsAmount * (coupon.amount / 100));
+        discountAmount = Math.round(ticketsAfterVeteran * (coupon.amount / 100));
       } else {
         discountAmount = coupon.amount;
       }
 
       // A cortesia cobre a inscrição, não os produtos extras.
-      discountAmount = Math.min(discountAmount, ticketsAmount);
+      discountAmount = Math.min(discountAmount, ticketsAfterVeteran);
       appliedCouponCode = coupon.code;
       appliedCouponMaxUses = coupon.maxUses;
     }
@@ -233,7 +251,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Pagamento por fora permite uma inscrição por cupom, sem produtos extras. Combine os extras diretamente com a organização." }, { status: 400 });
     }
     // This coupon bypasses online collection; the organizer has already received the registration payment.
-    if (isExternalPayment) discountAmount = 0;
+    if (isExternalPayment) {
+      discountAmount = 0;
+      veteranDiscountAmount = 0;
+    }
+    // discountAmount guarda o total descontado: veterano + cupom.
+    discountAmount += veteranDiscountAmount;
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
     const { totalWithFee, feeAmount } = calculateFee(discountedTotalAmount);
     const isComplimentary =
@@ -257,6 +280,8 @@ export async function POST(req: Request) {
         totalAmountWithFee: isExternalPayment ? subtotal : totalWithFee,
 
         couponCode: appliedCouponCode,
+        lotId: lot.id,
+        veteranDiscountAmount,
         asaasPaymentStatus: isExternalPayment ? "EXTERNAL_PAID" : isComplimentary ? "COMPLIMENTARY" : null,
         paidAt: (isComplimentary || isExternalPayment) ? new Date() : null,
         ...attribution,
@@ -270,7 +295,7 @@ export async function POST(req: Request) {
             email: participant.email.trim().toLowerCase(),
             city: participant.city?.trim() || null,
             state: participant.state?.trim().toUpperCase() || null,
-            tshirtSize: EXTRA_LOT.active ? EXTRA_LOT.shirtLabel : participant.tshirtSize,
+            tshirtSize: lot.includesShirt ? participant.tshirtSize : NO_SHIRT_LABEL,
             emergencyName: participant.emergencyName?.trim() || null,
             emergencyPhone: participant.emergencyPhone
               ? normalizePhone(participant.emergencyPhone)

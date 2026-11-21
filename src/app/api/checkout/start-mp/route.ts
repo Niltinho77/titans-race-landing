@@ -1,4 +1,5 @@
-import { registrationsAreClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
+import { legacyCheckoutIsClosed, REGISTRATION_CLOSED_MESSAGE } from "@/config/registration";
+import { getPricingLot, getTicketPrice } from "@/config/lots";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -162,7 +163,7 @@ async function reserveBibNumbers(
 }
 
 export async function POST(req: NextRequest) {
-  if (registrationsAreClosed()) {
+  if (legacyCheckoutIsClosed()) {
     return NextResponse.json({ error: REGISTRATION_CLOSED_MESSAGE }, { status: 403 });
   }
 
@@ -209,7 +210,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ totais brutos
-    const ticketsAmount = modality.basePrice * body.tickets;
+    const ticketsAmount = getTicketPrice(modality.id, getPricingLot()) * body.tickets;
 
     const extrasAmount = body.participants.reduce((total, participant) => {
       const extrasSum = (participant.extras ?? []).reduce((sub, extra) => {

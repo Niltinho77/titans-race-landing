@@ -9,7 +9,7 @@ export function LocationSection() {
   return (
     <section
       id="local"
-      className="relative border-t border-white/5 bg-black px-4 py-20 md:py-28"
+      className="relative bg-[#050505] px-4 py-20 md:py-28"
     >
       <div className="mx-auto max-w-6xl">
         {/* Título */}
@@ -20,7 +20,7 @@ export function LocationSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          Local & Estrutura
+          Local & estrutura
         </motion.h2>
 
         <motion.p
@@ -68,16 +68,17 @@ export function LocationSection() {
         <div className="mt-10 grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
           {/* IMAGEM PRINCIPAL */}
           <motion.div
-            className="relative flex h-60 items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-black p-5 md:h-72"
+            className="relative h-60 overflow-hidden rounded-3xl border border-white/10 bg-black md:h-72"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
             <img
-              src="/images/pag_usuario2.png"
-              alt="Titans Race II — Corra, Supere, Vença"
-              className="h-full w-full max-w-[240px] object-contain"
+              src="/images/ed2/rede-topo.webp"
+              alt="Atletas no topo da rede de cordas na 2ª edição"
+              className="h-full w-full object-cover"
+              loading="lazy"
             />
           </motion.div>
 

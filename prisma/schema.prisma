@@ -61,10 +61,21 @@ model Order {
   landingPage        String?
   paidAt             DateTime?
 
+  // Lote vigente no momento do pedido e desconto de veterano (incluído em discountAmount).
+  lotId                 String?
+  veteranDiscountAmount Int?
+
   @@index([analyticsSessionId])
   @@index([campaign])
   @@index([source])
   @@index([paidAt])
+}
+
+// CPFs (só dígitos) que correram a 1ª e a 2ª edição. Libera a pré-venda e o desconto de veterano.
+// Populado por scripts/edition3-veterans/import.mjs. Não é apagado pelo reset de edição.
+model VeteranAthlete {
+  cpf       String   @id
+  createdAt DateTime @default(now())
 }
 
 model RegistrationInvite {

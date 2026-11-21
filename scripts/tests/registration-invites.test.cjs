@@ -13,6 +13,9 @@ function load(file, mocks = {}, globals = {}) {
 }
 const helpers = load('src/lib/registrationInvites.ts');
 const checkout = load('src/config/checkout.ts');
+const { loadLots, loadLotPricing } = require('./_lotMocks.cjs');
+const lots = loadLots('2027-03-10T12:00:00-03:00'); // inscrições públicas encerradas
+const lotPricing = loadLotPricing(lots);
 const json = { NextResponse: { json: (body, options) => ({ body, status: options?.status ?? 200 }) } };
 
 function setup({ expired = false, revoked = false, used = false, modality = 'equipes', failGateway = false } = {}) {
@@ -35,7 +38,8 @@ function setup({ expired = false, revoked = false, used = false, modality = 'equ
   };
   const route = load('src/app/api/checkout/start-asaas/route.ts', {
     'next/server': json, '@/lib/prisma': { prisma: db }, '@/config/checkout': checkout,
-    '@/config/registration': { registrationsAreClosed: () => true, publicRegistrationsAreClosed: () => true, EXTRA_LOT: { active: false }, REGISTRATION_CLOSED_MESSAGE: 'Inscrições encerradas' },
+    '@/config/registration': { publicRegistrationsAreClosed: () => true, registrationClosedMessage: () => 'Inscrições encerradas' },
+    '@/config/lots': lots, '@/lib/lotPricing': lotPricing,
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/registrationInvites': helpers, '@/lib/email': {}, '@/lib/orderAttribution': { cleanOrderAttribution: () => ({}) },
     '@/lib/asaas': {
@@ -78,8 +82,8 @@ test('finishing the invitation form sends its token and opens payment after publ
       },
       useEffect: () => {}, useMemo: fn => fn(),
     },
-    '@/hooks/useRegistrationClosed': { useRegistrationClosed: () => true },
-    '@/config/registration': { EXTRA_LOT: { active: false } },
+    '@/hooks/useRegistrationClosed': { useLotStatus: () => ({ phase: 'ended', current: null, next: null }) },
+    '@/config/lots': lots,
     '@/config/checkout': checkout,
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/analytics': { trackAnalyticsEvent: () => {} },

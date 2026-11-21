@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { getModalityById, ModalityId } from "@/config/checkout";
+import { getPricingLot, getTicketPrice } from "@/config/lots";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
 // ===================== CONFIG RÁPIDA =====================
@@ -158,7 +159,7 @@ async function main() {
   }
 
   // ========= TOTAIS =========
-  const ticketsAmount = modality.basePrice * TICKETS; // 66000
+  const ticketsAmount = getTicketPrice(modality.id, getPricingLot()) * TICKETS; // 66000
   const extrasAmount = 0;
 
   const discountTicketsOnly = Math.round(

@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 import { Footer } from "@/components/Footer";
 import { NavBar } from "@/components/NavBar";
-import { SponsorsPageClient } from "@/components/sponsorship/SponsorsPageClient";
+import { SponsorContact } from "@/components/sponsorship/SponsorContact";
 
 export const metadata: Metadata = {
-  title: "Patrocine a Titans Race II",
+  title: "Seja um patrocinador | Titans Race",
   description:
-    "Oportunidades comerciais para marcas parceiras da Titans Race II em Alegrete/RS.",
+    "Quer associar sua marca à Titans Race em Alegrete/RS? Fale com a organização.",
 };
 
+// A página comercial completa (SponsorsPageClient) fica guardada para edições futuras.
 export default function PatrocinadoresPage() {
   return (
     <>
       <NavBar />
-      <SponsorsPageClient />
+      <SponsorContact />
       <Footer />
     </>
   );
