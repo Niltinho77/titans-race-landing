@@ -1,13 +1,34 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Vídeo de fundo que toca sozinho no celular.
 // O React não escreve o atributo `muted` no HTML do servidor, e o Safari/Chrome só deixam
 // tocar sozinho vídeo mudo. Aqui garantimos o mudo e chamamos play(); se o celular estiver
 // em modo economia (que bloqueia autoplay), tentamos de novo no primeiro toque ou rolagem.
-export function AutoplayVideo({ src, poster, className }: { src: string; poster: string; className?: string }) {
+// `minWidth`: só cria o vídeo em telas a partir dessa largura (o celular não baixa o arquivo).
+export function AutoplayVideo({
+  src,
+  poster,
+  className,
+  minWidth,
+}: {
+  src: string;
+  poster: string;
+  className?: string;
+  minWidth?: number;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
+  const [enabled, setEnabled] = useState(!minWidth);
+
+  useEffect(() => {
+    if (!minWidth) return;
+    const query = window.matchMedia(`(min-width: ${minWidth}px)`);
+    const update = () => setEnabled(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, [minWidth]);
 
   useEffect(() => {
     const video = ref.current;
@@ -38,7 +59,9 @@ export function AutoplayVideo({ src, poster, className }: { src: string; poster:
       events.forEach((name) => window.removeEventListener(name, onInteraction));
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <video

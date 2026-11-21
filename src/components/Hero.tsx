@@ -101,10 +101,28 @@ export default function Hero() {
         <div
           className="absolute inset-0 -z-10 md:relative md:inset-auto md:z-0 md:aspect-[9/16] md:w-[300px] md:overflow-hidden md:rounded-[28px] md:border md:border-white/15 md:shadow-[0_30px_90px_rgba(0,0,0,0.8)] lg:w-[340px]"
         >
+          {/* Celular: animação em imagem (WebP animado). Imagem anima sempre, mesmo no modo economia
+              de bateria e dentro do Instagram/WhatsApp, onde o vídeo automático é bloqueado. */}
+          <picture>
+            {/* No desktop, um pixel vazio: evita baixar a animação do celular */}
+            <source media="(min-width: 768px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+            src="/videos/ed2-muro-mobile.webp"
+            alt=""
+            aria-hidden="true"
+            fetchPriority="high"
+            decoding="async"
+            className="h-full w-full bg-black bg-cover bg-center object-cover md:hidden"
+            style={{ backgroundImage: "url(/videos/ed2-muro-mobile-poster.jpg)" }}
+            />
+          </picture>
+          {/* Desktop: vídeo em boa qualidade no card ao lado do título */}
           <AutoplayVideo
-            className="h-full w-full object-cover"
+            className="hidden h-full w-full object-cover md:block"
             src="/videos/ed2-muro.mp4"
             poster="/videos/ed2-muro-poster.jpg"
+            minWidth={768}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 md:from-black/50 md:via-transparent md:to-transparent" />
           <p className="absolute bottom-4 left-4 hidden text-[10px] font-semibold uppercase tracking-[0.24em] text-white/80 md:block">
