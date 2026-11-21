@@ -175,8 +175,10 @@ export async function POST(req: Request) {
     }
 
     const subtotal = ticketsAmount + extrasAmount;
+    // Descontos por pessoa: veterano e grupo (10+ atletas), sem acumular.
     let veteranDiscountAmount = quote.veteranDiscountAmount;
-    const ticketsAfterVeteran = Math.max(0, ticketsAmount - veteranDiscountAmount);
+    let peopleDiscountAmount = quote.peopleDiscountAmount;
+    const ticketsAfterVeteran = Math.max(0, ticketsAmount - peopleDiscountAmount);
     const couponCode = normalizeCoupon(body.couponCode);
 
     let discountAmount = 0;
@@ -227,7 +229,7 @@ export async function POST(req: Request) {
         );
       }
 
-      if (coupon.minSubtotal && subtotal - veteranDiscountAmount < coupon.minSubtotal) {
+      if (coupon.minSubtotal && subtotal - peopleDiscountAmount < coupon.minSubtotal) {
         return NextResponse.json(
           { error: "Subtotal mínimo não atingido para este cupom." },
           { status: 400 }
@@ -254,9 +256,10 @@ export async function POST(req: Request) {
     if (isExternalPayment) {
       discountAmount = 0;
       veteranDiscountAmount = 0;
+      peopleDiscountAmount = 0;
     }
-    // discountAmount guarda o total descontado: veterano + cupom.
-    discountAmount += veteranDiscountAmount;
+    // discountAmount guarda o total descontado: veterano + grupo + cupom.
+    discountAmount += peopleDiscountAmount;
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
     const { totalWithFee, feeAmount } = calculateFee(discountedTotalAmount);
     const isComplimentary =

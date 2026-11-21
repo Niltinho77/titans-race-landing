@@ -36,7 +36,7 @@ async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = 
     '@/lib/registrationInvites': {},
   });
   const participants = cpfs.map((cpf) => ({ fullName: 'Atleta Teste', cpf, phone: '55999999999', email: 'a@example.test', birthDate: '01/01/1990', tshirtSize: 'Camiseta M', extras }));
-  const response = await route.POST({ url: 'https://titans.example/api', headers: { get: () => null }, json: async () => ({ modalityId, tickets: 1, termsAccepted: true, participants }) });
+  const response = await route.POST({ url: 'https://titans.example/api', headers: { get: () => null }, json: async () => ({ modalityId, tickets: cpfs.length / ({ duplas: 2, equipes: 4 }[modalityId] ?? 1), termsAccepted: true, participants }) });
   return { response, order: writes[0] };
 }
 
@@ -80,4 +80,30 @@ test('Lote Extra: sem desconto, sem camiseta e sem extras', async () => {
   assert.equal(order.participants.create[0].tshirtSize, 'Sem camiseta');
   const withExtra = await run({ iso: '2027-02-20T10:00:00-03:00', extras: [{ type: 'luva', size: 'M', quantity: 1 }] });
   assert.equal(withExtra.response.status, 400);
+});
+
+const many = (n, veterans = 0) => Array.from({ length: n }, (_, i) => (i < veterans ? VETERAN : String(30000000000 + i)));
+
+test('grupo de 10+ atletas ganha R$ 10 por pessoa', async () => {
+  const ten = await run({ iso: '2026-12-10T10:00:00-03:00', cpfs: many(10) });
+  assert.equal(ten.response.status, 200);
+  assert.equal(ten.order.ticketsAmount, 148000);
+  assert.equal(ten.order.discountedTotalAmount, 138000);
+  const nine = await run({ iso: '2026-12-10T10:00:00-03:00', cpfs: many(9) });
+  assert.equal(nine.order.discountedTotalAmount, 9 * 14800);
+  const quartets = await run({ iso: '2026-12-10T10:00:00-03:00', modalityId: 'equipes', cpfs: many(12) });
+  assert.equal(quartets.order.discountedTotalAmount, 12 * 14800 - 12 * 1000);
+});
+
+test('desconto de grupo não acumula com o de veterano', async () => {
+  const { order } = await run({ iso: '2026-12-10T10:00:00-03:00', cpfs: many(10, 1) });
+  assert.equal(order.discountedTotalAmount, 148000 - 10000);
+  assert.equal(order.veteranDiscountAmount, 0);
+});
+
+test('desconto de grupo vale na Black Week e no Lote Extra', async () => {
+  const bw = await run({ iso: '2026-11-28T10:00:00-03:00', cpfs: many(10) });
+  assert.equal(bw.order.discountedTotalAmount, 10 * 12800 - 10000);
+  const extra = await run({ iso: '2027-02-20T10:00:00-03:00', cpfs: many(10) });
+  assert.equal(extra.order.discountedTotalAmount, 10 * 18800 - 10000);
 });

@@ -9,6 +9,8 @@ import { Footer } from "@/components/Footer";
 import { RegistrationPopup } from "@/components/RegistrationPopup";
 import { GallerySection } from "@/components/GallerySection";
 import { MobileCtaBar } from "@/components/MobileCtaBar";
+import { KitSection } from "@/components/KitSection";
+import { FaqSection } from "@/components/FaqSection";
 
 // Regenera a página a cada minuto para acompanhar a virada dos lotes.
 export const revalidate = 60;
@@ -22,7 +24,9 @@ export default function HomePage() {
       <ExperienceGridSection />
       <GallerySection />
       <RegistrationSection />
+      <KitSection />
       <LocationSection />
+      <FaqSection />
       <ContactSection />
       <Footer />
       <RegistrationPopup />

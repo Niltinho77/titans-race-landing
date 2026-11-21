@@ -38,7 +38,7 @@ export function MobileCtaBar() {
           </p>
           <p className="heading-adventure text-2xl leading-none text-white">
             {formatCurrency(lot.adultPrice)}
-            <span className="ml-1 font-sans text-[11px] font-normal tracking-normal text-zinc-400">por pessoa</span>
+            <span className="ml-1 font-sans text-[11px] font-normal tracking-normal text-zinc-400">+ taxa · por pessoa</span>
           </p>
         </div>
         <a

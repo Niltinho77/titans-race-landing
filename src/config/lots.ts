@@ -195,3 +195,33 @@ export function getVeteranDiscount(
   const perPerson = Math.min(lot.veteranDiscount, getPersonPrice(modalityId, lot));
   return perPerson * Math.max(0, veteranCount);
 }
+
+// Grupos e assessorias: a partir de 10 atletas no mesmo pedido, desconto por pessoa.
+// Não acumula com o desconto de veterano (cada pessoa recebe o maior dos dois).
+export const GROUP_DISCOUNT = {
+  minParticipants: 10,
+  perPerson: 1000, // centavos
+};
+
+export function groupDiscountApplies(lot: Lot, participants: number) {
+  return !lot.veteransOnly && participants >= GROUP_DISCOUNT.minParticipants;
+}
+
+// Descontos por pessoa do pedido (veterano e grupo), em centavos.
+export function getPeopleDiscount(
+  modalityId: ModalityId | string,
+  lot: Lot,
+  participants: number,
+  veterans: number,
+) {
+  const cap = getPersonPrice(modalityId, lot);
+  const veteranEach = Math.min(lot.veteranDiscount, cap);
+  if (!groupDiscountApplies(lot, participants)) {
+    const veteran = veteranEach * Math.max(0, veterans);
+    return { veteran, group: 0, total: veteran };
+  }
+  const groupEach = Math.min(GROUP_DISCOUNT.perPerson, cap);
+  const group = groupEach * participants;
+  const veteran = Math.max(0, veteranEach - groupEach) * Math.max(0, veterans);
+  return { veteran, group, total: group + veteran };
+}

@@ -7,7 +7,8 @@ import {
   getPricingLot,
   getStartDayLabel,
   getTicketPrice,
-  getVeteranDiscount,
+  getPeopleDiscount,
+  GROUP_DISCOUNT,
   NO_SHIRT_LABEL,
 } from "@/config/lots";
 
@@ -255,6 +256,8 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   const {
     ticketsTotal,
     veteranDiscountTotal,
+    veteranOnlyDiscount,
+    groupDiscountTotal,
     extrasTotal,
     grandTotal,
     discountTotal,
@@ -266,6 +269,8 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       return {
         ticketsTotal: 0,
         veteranDiscountTotal: 0,
+        veteranOnlyDiscount: 0,
+        groupDiscountTotal: 0,
         extrasTotal: 0,
         grandTotal: 0,
         discountTotal: 0,
@@ -276,9 +281,10 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     }
 
     const ticketsTotalCalc = tickets * getTicketPrice(modality.id, lot);
-    const veteranDiscountCalc = isExternalPaymentCoupon(appliedCoupon)
-      ? 0
-      : getVeteranDiscount(modality.id, lot, veteranCount);
+    const people = isExternalPaymentCoupon(appliedCoupon)
+      ? { veteran: 0, group: 0, total: 0 }
+      : getPeopleDiscount(modality.id, lot, participantsCount, veteranCount);
+    const veteranDiscountCalc = people.total;
 
     let extrasTotalCalc = 0;
     for (const participant of lot.includesShirt ? participants : []) {
@@ -301,6 +307,8 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     return {
       ticketsTotal: ticketsTotalCalc,
       veteranDiscountTotal: veteranDiscountCalc,
+      veteranOnlyDiscount: people.veteran,
+      groupDiscountTotal: people.group,
       extrasTotal: extrasTotalCalc,
       grandTotal: subtotal,
       discountTotal: discount,
@@ -308,7 +316,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       feeAmount,
       grandTotalWithFee: totalWithFee,
     };
-  }, [modality, tickets, participants, discountAmount, appliedCoupon, lot, veteranCount]);
+  }, [modality, tickets, participants, discountAmount, appliedCoupon, lot, veteranCount, participantsCount]);
 
   const applyCoupon = async () => {
     const code = normalizeCoupon(couponCode);
@@ -757,11 +765,19 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
 
             {discountTotal > 0 && (
               <>
-                {veteranDiscountTotal > 0 && (
+                {groupDiscountTotal > 0 && (
+                  <p className="text-sm">
+                    Desconto grupo ({participantsCount} atletas):{" "}
+                    <span className="font-semibold text-emerald-300">
+                      -{formatCurrency(groupDiscountTotal)}
+                    </span>
+                  </p>
+                )}
+                {veteranOnlyDiscount > 0 && (
                   <p className="text-sm">
                     Desconto veterano ({veteranCount}):{" "}
                     <span className="font-semibold text-emerald-300">
-                      -{formatCurrency(veteranDiscountTotal)}
+                      -{formatCurrency(veteranOnlyDiscount)}
                     </span>
                   </p>
                 )}
@@ -961,6 +977,10 @@ function Step1ModalityTickets({
             : modality.id === "equipes"
             ? "Para equipes: cada ingresso corresponde a 4 participantes."
             : "Quantidade de ingressos para esta modalidade."}
+        </p>
+        <p className="mt-2 text-[11px] text-emerald-300/90">
+          Grupo ou assessoria? A partir de {GROUP_DISCOUNT.minParticipants} atletas no mesmo pedido, cada um ganha{" "}
+          {formatCurrency(GROUP_DISCOUNT.perPerson)} de desconto.
         </p>
       </div>
     </motion.div>

@@ -18,7 +18,7 @@ export default function Hero() {
     phase === "open" && current?.veteransOnly
       ? `${current.name} · exclusiva até ${current.lastDayLabel}`
       : phase === "open" && current
-      ? `${current.name} · ${formatCurrency(current.adultPrice)} até ${current.lastDayLabel}`
+      ? `${current.name} · ${formatCurrency(current.adultPrice)} + taxa até ${current.lastDayLabel}`
       : phase === "upcoming" && next
       ? `${next.name} · ${next.periodLabel}`
       : "Inscrições encerradas";

@@ -2,8 +2,8 @@ import { prisma } from "@/lib/prisma";
 import type { ModalityId } from "@/config/checkout";
 import {
   getParticipantsPerTicket,
+  getPeopleDiscount,
   getTicketPrice,
-  getVeteranDiscount,
   type Lot,
 } from "@/config/lots";
 
@@ -30,7 +30,9 @@ export type LotQuote = {
   ticketsAmount: number; // bruto, sem desconto
   veteranFlags: boolean[];
   veteranCount: number;
-  veteranDiscountAmount: number;
+  veteranDiscountAmount: number; // parte do desconto que vem do veterano
+  groupDiscountAmount: number; // parte do desconto de grupo (10+ atletas)
+  peopleDiscountAmount: number; // veterano + grupo
   allVeterans: boolean;
 };
 
@@ -54,12 +56,15 @@ export async function quoteTickets(params: {
   });
 
   const expected = tickets * getParticipantsPerTicket(modalityId);
+  const discount = getPeopleDiscount(modalityId, lot, expected, veteranCount);
   return {
     lotId: lot.id,
     ticketsAmount: tickets * getTicketPrice(modalityId, lot),
     veteranFlags,
     veteranCount,
-    veteranDiscountAmount: getVeteranDiscount(modalityId, lot, veteranCount),
+    veteranDiscountAmount: discount.veteran,
+    groupDiscountAmount: discount.group,
+    peopleDiscountAmount: discount.total,
     // Todos os participantes precisam ser veteranos distintos.
     allVeterans: cpfs.length === expected && veteranCount === expected,
   };

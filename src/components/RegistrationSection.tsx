@@ -3,10 +3,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Shirt } from "lucide-react";
+import { Shirt, Users } from "lucide-react";
 
 import { usePublicLotStatus } from "@/hooks/useRegistrationClosed";
-import { PUBLIC_LOTS, type Lot, type LotId } from "@/config/lots";
+import { GROUP_DISCOUNT, PUBLIC_LOTS, type Lot, type LotId } from "@/config/lots";
 
 const CHART_LABEL: Partial<Record<LotId, string>> = {
   blackWeek: "27 nov–2 dez",
@@ -129,6 +129,7 @@ export function RegistrationSection() {
                     >
                       {formatPrice(lot.adultPrice)}
                     </span>
+                    <span className={`mt-0.5 text-[8px] font-medium md:text-[10px] ${isCurrent ? "text-black/70" : "text-zinc-500"}`}>+ taxa</span>
                     {!lot.includesShirt && (
                       <span className="mt-2 flex flex-col items-center text-[9px] font-semibold uppercase leading-tight text-zinc-400 md:text-[10px]">
                         <Shirt className="h-4 w-4" aria-hidden="true" />
@@ -149,8 +150,31 @@ export function RegistrationSection() {
         </div>
 
         <p className="mt-4 text-center text-xs text-zinc-500">
-          Valor por pessoa · Kids a partir de {formatPrice(kidsFrom)} · Duplas e quartetos pagam por atleta
+          Valor por pessoa + taxa de serviço · Kids a partir de {formatPrice(kidsFrom)} · Duplas e quartetos pagam por atleta
         </p>
+
+        {/* Grupos e assessorias */}
+        <div className="mt-8 flex flex-col gap-4 rounded-3xl border border-emerald-500/25 bg-emerald-500/[0.07] p-5 sm:flex-row sm:items-center md:p-6">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-black">
+            <Users className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <div className="flex-1">
+            <p className="heading-adventure text-2xl text-white md:text-3xl">
+              Grupo ou assessoria? <span className="text-emerald-400">{formatPrice(GROUP_DISCOUNT.perPerson)} off por atleta</span>
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              A partir de {GROUP_DISCOUNT.minParticipants} atletas no mesmo pedido, o desconto entra sozinho no checkout.
+            </p>
+          </div>
+          <a
+            href="https://wa.me/5555992234690?text=Ol%C3%A1!%20Quero%20inscrever%20um%20grupo%20na%20Titans%20Race."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-emerald-400/50 px-5 text-xs font-bold uppercase tracking-[0.14em] text-emerald-300 transition hover:bg-emerald-500/10"
+          >
+            Falar sobre grupo
+          </a>
+        </div>
       </div>
     </section>
   );

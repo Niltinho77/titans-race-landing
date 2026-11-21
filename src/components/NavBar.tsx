@@ -33,7 +33,8 @@ export function NavBar() {
   const links: NavItem[] = [
     { href: H("#inscricoes"), label: "Modalidades" },
     { href: H("#lotes"), label: "Lotes" },
-    { href: H("#galeria"), label: "2ª edição" },
+    { href: H("#kit"), label: "Kit" },
+    { href: H("#faq"), label: "Dúvidas" },
     { href: H("#local"), label: "Local" },
     { href: H("#contato"), label: "Contato" },
     { href: "/patrocinadores", label: "Patrocine" },

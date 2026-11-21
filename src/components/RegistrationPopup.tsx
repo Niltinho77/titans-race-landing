@@ -127,12 +127,12 @@ export function RegistrationPopup() {
           </h2>
           <p id="registration-popup-description" className="mt-5 max-w-sm text-sm leading-relaxed text-zinc-300">
             {current.veteransOnly
-              ? `Pré-venda exclusiva para quem correu a 1ª e a 2ª edição: ${formatCurrency(current.adultPrice)} por pessoa até ${current.lastDayLabel}. Para todos, as inscrições abrem em 27/11 com a Black Week.`
+              ? `Pré-venda exclusiva para quem correu a 1ª e a 2ª edição: ${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Para todos, as inscrições abrem em 27/11 com a Black Week.`
               : isLast
               ? `Último lote da Titans Race, sem camiseta. As inscrições encerram em ${current.lastDayLabel}, uma semana antes da prova.`
               : isLastWithShirt
-              ? `${formatCurrency(current.adultPrice)} por pessoa até ${current.lastDayLabel}. Depois disso, as inscrições seguem sem camiseta.`
-              : `${current.name}: ${current.hook.toLowerCase()}. ${formatCurrency(current.adultPrice)} por pessoa até ${current.lastDayLabel}. Depois disso o preço sobe.`}
+              ? `${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Depois disso, as inscrições seguem sem camiseta.`
+              : `${current.name}: ${current.hook.toLowerCase()}. ${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Depois disso o preço sobe.`}
           </p>
           <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
             <p className="text-xs leading-relaxed text-emerald-100">

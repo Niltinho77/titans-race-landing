@@ -218,6 +218,7 @@ export function ExperienceGridSection() {
                         <span className="text-[10px] uppercase tracking-[0.14em] text-slate-200">
                           {getPriceLabel(modality.id)}
                         </span>
+                        <span className="basis-full text-[10px] text-slate-300/80">+ taxa de serviço</span>
                       </p>
                     )}
 
