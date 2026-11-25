@@ -104,6 +104,7 @@ test('installment order charges the installment fee and opens an installment che
   assert.equal(order.feeAmount, expected.feeAmount);
   assert.equal(result.asaasCalls[0].installments, 6);
   assert.equal(result.asaasCalls[0].items[0].value, expected.totalWithFee / 100);
+  assert.ok(result.asaasCalls[0].items[0].name.length <= 30);
 });
 
 test('rejects invalid or too many installments without creating an order', async () => {
@@ -122,4 +123,25 @@ test('complimentary order ignores installments', async () => {
   assert.equal(result.writes[0].installmentCount, null);
   assert.equal(result.writes[0].totalAmountWithFee, 0);
   assert.equal(result.asaasCalls.length, 0);
+});
+
+test('Asaas checkout body follows the API rules for installments', async () => {
+  const bodies = [];
+  const code = ts.transpileModule(readFileSync('src/lib/asaas.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const asaas = {};
+  vm.runInNewContext(code, {
+    exports: asaas, require, console, URL,
+    process: { env: { ASAAS_API_BASE_URL: 'https://asaas.test/v3', ASAAS_API_KEY: 'key' } },
+    fetch: async (_url, init) => { bodies.push(JSON.parse(init.body)); return { ok: true, json: async () => ({ id: 'chk', link: 'https://asaas.test/c' }) }; },
+  });
+  const input = (installments) => ({ installments, externalReference: 'o', successUrl: 'https://s', cancelUrl: 'https://c', expiredUrl: 'https://e', items: [{ name: 'Titans Race - Quartetos com nome bem longo', description: 'Pedido o', quantity: 1, value: 10 }] });
+  await asaas.createAsaasCheckout(input(6));
+  await asaas.createAsaasCheckout(input(1));
+  // Asaas exige DETACHED junto com INSTALLMENT e nome do item com até 30 caracteres.
+  assert.deepEqual(bodies[0].chargeTypes, ['DETACHED', 'INSTALLMENT']);
+  assert.deepEqual(bodies[0].installment, { maxInstallmentCount: 6 });
+  assert.deepEqual(bodies[0].billingTypes, ['CREDIT_CARD']);
+  assert.deepEqual(bodies[1].chargeTypes, ['DETACHED']);
+  assert.deepEqual(bodies[1].billingTypes, ['PIX', 'CREDIT_CARD']);
+  for (const body of bodies) assert.ok(body.items[0].name.length <= 30);
 });

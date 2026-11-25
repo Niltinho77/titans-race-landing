@@ -420,10 +420,7 @@ export async function POST(req: Request) {
       expiredUrl: `${baseUrl}/checkout/pendente?orderId=${order.id}`,
       items: [
         {
-          name:
-            installments > 1
-              ? `Titans Race - ${modality.name} (até ${installments}x no cartão)`
-              : `Titans Race - ${modality.name}`,
+          name: `Titans Race - ${modality.name}`,
           description: `Pedido ${order.id}`,
           quantity: 1,
           value: centsToAsaasValue(totalWithFee),

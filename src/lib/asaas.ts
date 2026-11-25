@@ -85,7 +85,8 @@ export async function createAsaasCheckout(input: AsaasCreateCheckoutInput) {
 
   const body: Record<string, unknown> = {
   billingTypes: isInstallment ? ["CREDIT_CARD"] : ["PIX", "CREDIT_CARD"],
-  chargeTypes: isInstallment ? ["INSTALLMENT"] : ["DETACHED"],
+  // O Asaas só aceita INSTALLMENT junto com DETACHED.
+  chargeTypes: isInstallment ? ["DETACHED", "INSTALLMENT"] : ["DETACHED"],
   ...(isInstallment ? { installment: { maxInstallmentCount: installments } } : {}),
   minutesToExpire: input.minutesToExpire ?? 24 * 60,
   externalReference: input.externalReference,
@@ -95,7 +96,8 @@ export async function createAsaasCheckout(input: AsaasCreateCheckoutInput) {
     expiredUrl: input.expiredUrl,
     autoRedirect: true,
   },
-  items: input.items,
+  // O Asaas aceita no máximo 30 caracteres no nome do item.
+  items: input.items.map((item) => ({ ...item, name: item.name.slice(0, 30) })),
 };
 
 if (input.customerData) {
