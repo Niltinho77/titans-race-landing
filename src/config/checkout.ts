@@ -89,11 +89,66 @@ export const EXTRAS: ExtraConfig[] = [
   },
 ];
 
-// taxa repassada ao cliente no checkout
+// taxa repassada ao cliente no checkout (pagamento à vista: PIX ou cartão 1x)
 export const PAYMENT_FEE = {
   percent: 0.0399, // 3,99%
   fixed: 39, // R$ 0,39 em centavos
 };
+
+// Parcelamento no cartão pelo checkout do Asaas. O atleta escolhe em quantas
+// vezes quer pagar e paga todo o custo extra do parcelamento: a taxa maior do
+// cartão parcelado e a antecipação (receber tudo de uma vez em vez de mês a mês).
+// Assim a organização recebe o mesmo que numa venda à vista.
+// Confira as taxas do seu contrato no painel do Asaas (Menu do usuário > Taxas)
+// e ajuste os valores abaixo se mudarem.
+export const INSTALLMENTS = {
+  maxCount: 6, // limite para não alongar o recebimento nem o custo de antecipação
+  minInstallmentValue: 500, // o Asaas exige parcela mínima de R$ 5,00
+  // Taxa do cartão parcelado por faixa: à vista + 0,5 p.p. em 2–6x e + 1 p.p. em
+  // 7–12x, a mesma diferença da tabela do Asaas.
+  feeTiers: [
+    { upTo: 6, percent: 0.0449, fixed: 39 },
+    { upTo: 12, percent: 0.0499, fixed: 39 },
+  ],
+  // Custo da antecipação no Asaas, por mês adiantado (1,25% = taxa pública).
+  anticipationMonthlyRate: 0.0125,
+};
+
+// A parcela k cai ~32 dias depois do mês k; antecipar todas adianta, em média,
+// (n + 1) / 2 meses mais os 2 dias de compensação.
+function averageMonthsAnticipated(installments: number) {
+  return (installments + 1) / 2 + 2 / 30;
+}
+
+export function getPaymentFee(installments = 1) {
+  if (installments <= 1) return PAYMENT_FEE;
+  const tier =
+    INSTALLMENTS.feeTiers.find((item) => installments <= item.upTo) ??
+    INSTALLMENTS.feeTiers[INSTALLMENTS.feeTiers.length - 1];
+  const anticipation =
+    INSTALLMENTS.anticipationMonthlyRate * averageMonthsAnticipated(installments);
+  return { percent: tier.percent + anticipation, fixed: tier.fixed };
+}
+
+export function calculatePaymentFee(amountCents: number, installments = 1) {
+  if (amountCents <= 0) {
+    return { totalWithFee: 0, feeAmount: 0 };
+  }
+
+  const fee = getPaymentFee(installments);
+  const totalWithFee = Math.round((amountCents + fee.fixed) / (1 - fee.percent));
+  return { totalWithFee, feeAmount: totalWithFee - amountCents };
+}
+
+// Maior número de parcelas possível para este valor líquido (1 = só à vista).
+export function getMaxInstallments(amountCents: number) {
+  let max = 1;
+  for (let count = 2; count <= INSTALLMENTS.maxCount; count++) {
+    const { totalWithFee } = calculatePaymentFee(amountCents, count);
+    if (totalWithFee / count >= INSTALLMENTS.minInstallmentValue) max = count;
+  }
+  return max;
+}
 
 export function getModalityById(id?: string | null): Modality | null {
   if (!id) return null;

@@ -22,6 +22,8 @@ type AsaasCreateCheckoutInput = {
   cancelUrl: string;
   expiredUrl: string;
   minutesToExpire?: number;
+  // > 1: checkout só no cartão, parcelado em até esse número de vezes.
+  installments?: number;
 };
 
 type AsaasCheckoutResponse = {
@@ -78,9 +80,13 @@ export async function createAsaasCheckout(input: AsaasCreateCheckoutInput) {
   const apiBaseUrl = getAsaasApiBaseUrl();
   const apiKey = getAsaasApiKey();
 
+  const installments = input.installments ?? 1;
+  const isInstallment = installments > 1;
+
   const body: Record<string, unknown> = {
-  billingTypes: ["PIX", "CREDIT_CARD"],
-  chargeTypes: ["DETACHED"],
+  billingTypes: isInstallment ? ["CREDIT_CARD"] : ["PIX", "CREDIT_CARD"],
+  chargeTypes: isInstallment ? ["INSTALLMENT"] : ["DETACHED"],
+  ...(isInstallment ? { installment: { maxInstallmentCount: installments } } : {}),
   minutesToExpire: input.minutesToExpire ?? 24 * 60,
   externalReference: input.externalReference,
   callback: {

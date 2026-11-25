@@ -3,7 +3,8 @@
 import { usePublicLotStatus as useLotStatus } from "@/hooks/useRegistrationClosed";
 
 import Image from "next/image";
-import { ArrowUpRight, MessageCircle, X } from "lucide-react";
+import { ArrowUpRight, CreditCard, X } from "lucide-react";
+import { INSTALLMENTS } from "@/config/checkout";
 import { useEffect, useRef } from "react";
 
 function formatCurrency(cents: number) {
@@ -134,19 +135,11 @@ export function RegistrationPopup() {
               ? `${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Depois disso, as inscrições seguem sem camiseta.`
               : `${current.name}: ${current.hook.toLowerCase()}. ${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Depois disso o preço sobe.`}
           </p>
-          <div className="mt-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+            <CreditCard size={20} className="shrink-0 text-emerald-300" aria-hidden="true" />
             <p className="text-xs leading-relaxed text-emerald-100">
-              Precisa parcelar o pagamento? Fale com a organização pelo WhatsApp para combinar as condições.
+              Parcele em até <span className="font-semibold">{INSTALLMENTS.maxCount}x no cartão</span>, direto no site. É só escolher na hora de finalizar a inscrição.
             </p>
-            <a
-              href="https://wa.me/5555992234690?text=Ol%C3%A1%21%20Gostaria%20de%20fazer%20minha%20inscri%C3%A7%C3%A3o%20parcelada%20na%20Titans%20Race.%20Podem%20me%20ajudar%3F"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-black transition hover:bg-emerald-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
-            >
-              <MessageCircle size={17} aria-hidden="true" />
-              Parcelar pelo WhatsApp
-            </a>
           </div>
           <a
             href="#inscricoes"

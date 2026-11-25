@@ -446,6 +446,11 @@ export default async function AdminInscricoesPage() {
                                   {isExternalPaymentOrder(order) && (
                                     <span className="rounded-full border border-orange-500/40 px-2 py-1 text-xs text-orange-300">Pagamento por fora · {statusLabel(order.status)}</span>
                                   )}
+                                  {(order.installmentCount ?? 0) > 1 && (
+                                    <span className="inline-flex rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">
+                                      Cartão {order.installmentCount}x
+                                    </span>
+                                  )}
                                   {isComplimentaryOrder(order) && (
                                     <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
                                       Gratuita

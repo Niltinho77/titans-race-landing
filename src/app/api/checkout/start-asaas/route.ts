@@ -10,7 +10,8 @@ import {
   EXTRAS,
   ModalityId,
   getModalityById,
-  PAYMENT_FEE,
+  calculatePaymentFee,
+  getMaxInstallments,
 } from "@/config/checkout";
 import {
   centsToAsaasValue,
@@ -52,19 +53,8 @@ type CheckoutPayload = {
   termsAccepted: boolean;
   couponCode?: string | null;
   attribution?: OrderAttributionInput;
+  installments?: number;
 };
-
-function calculateFee(amountCents: number) {
-  if (amountCents <= 0) {
-    return { totalWithFee: 0, feeAmount: 0 };
-  }
-
-  const bruto = (amountCents + PAYMENT_FEE.fixed) / (1 - PAYMENT_FEE.percent);
-  const totalWithFee = Math.round(bruto);
-  const feeAmount = totalWithFee - amountCents;
-
-  return { totalWithFee, feeAmount };
-}
 
 function normalizeCoupon(code?: string | null) {
   const normalized = code?.trim().toUpperCase() ?? "";
@@ -261,9 +251,26 @@ export async function POST(req: Request) {
     // discountAmount guarda o total descontado: veterano + grupo + cupom.
     discountAmount += peopleDiscountAmount;
     const discountedTotalAmount = Math.max(0, subtotal - discountAmount);
-    const { totalWithFee, feeAmount } = calculateFee(discountedTotalAmount);
     const isComplimentary =
       appliedCouponCode !== null && discountedTotalAmount === 0;
+
+    // Parcelamento no cartão: só para pedidos cobrados online.
+    const requestedInstallments = body.installments ?? 1;
+    if (!Number.isInteger(requestedInstallments) || requestedInstallments < 1) {
+      return NextResponse.json({ error: "Número de parcelas inválido." }, { status: 400 });
+    }
+    const installments =
+      isComplimentary || isExternalPayment ? 1 : requestedInstallments;
+    if (installments > getMaxInstallments(discountedTotalAmount)) {
+      return NextResponse.json(
+        { error: "Número de parcelas indisponível para este valor." },
+        { status: 400 }
+      );
+    }
+    const { totalWithFee, feeAmount } = calculatePaymentFee(
+      discountedTotalAmount,
+      installments
+    );
 
     const teamMode = body.modalityId === "equipes";
     const attribution = cleanOrderAttribution(body.attribution);
@@ -283,6 +290,7 @@ export async function POST(req: Request) {
         totalAmountWithFee: isExternalPayment ? subtotal : totalWithFee,
 
         couponCode: appliedCouponCode,
+        installmentCount: installments > 1 ? installments : null,
         lotId: lot.id,
         veteranDiscountAmount,
         asaasPaymentStatus: isExternalPayment ? "EXTERNAL_PAID" : isComplimentary ? "COMPLIMENTARY" : null,
@@ -406,12 +414,16 @@ export async function POST(req: Request) {
     const checkout = await createAsaasCheckout({
       externalReference: order.id,
       minutesToExpire: 24 * 60,
+      installments,
       successUrl: `${baseUrl}/checkout/sucesso?orderId=${order.id}`,
       cancelUrl: `${baseUrl}/checkout/falha?orderId=${order.id}`,
       expiredUrl: `${baseUrl}/checkout/pendente?orderId=${order.id}`,
       items: [
         {
-          name: `Titans Race - ${modality.name}`,
+          name:
+            installments > 1
+              ? `Titans Race - ${modality.name} (até ${installments}x no cartão)`
+              : `Titans Race - ${modality.name}`,
           description: `Pedido ${order.id}`,
           quantity: 1,
           value: centsToAsaasValue(totalWithFee),

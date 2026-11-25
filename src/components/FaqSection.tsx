@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { GROUP_DISCOUNT } from "@/config/lots";
+import { INSTALLMENTS } from "@/config/checkout";
 
 const reais = (cents: number) => `R$ ${Math.round(cents / 100)}`;
 
@@ -42,7 +43,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Como posso pagar?",
-    a: "Pix ou cartão de crédito, direto no site. Quer parcelar? Fale com a organização pelo WhatsApp.",
+    a: `Pix ou cartão de crédito, direto no site. No cartão, dá para parcelar em até ${INSTALLMENTS.maxCount}x: é só escolher as parcelas na hora de finalizar a inscrição.`,
   },
   {
     q: "Posso transferir minha inscrição para outra pessoa?",

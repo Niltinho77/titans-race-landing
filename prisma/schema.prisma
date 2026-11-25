@@ -65,6 +65,9 @@ model Order {
   lotId                 String?
   veteranDiscountAmount Int?
 
+  // Parcelas escolhidas no checkout (cartão parcelado). Nulo = à vista.
+  installmentCount Int?
+
   @@index([analyticsSessionId])
   @@index([campaign])
   @@index([source])

@@ -20,6 +20,8 @@ import {
   ExtraType,
   Modality,
   ModalityId,
+  calculatePaymentFee,
+  getMaxInstallments,
 } from "@/config/checkout";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -54,20 +56,6 @@ function formatCurrency(cents: number): string {
     style: "currency",
     currency: "BRL",
   }).format(cents / 100);
-}
-
-// taxa repassada ao comprador
-const PAYMENT_FEE_PERCENT = 0.0399; // 3,99%
-const PAYMENT_FEE_FIXED = 39; // R$ 0,39 em centavos
-
-function calculateFee(amountCents: number) {
-  if (amountCents <= 0) {
-    return { totalWithFee: 0, feeAmount: 0 };
-  }
-  const bruto = (amountCents + PAYMENT_FEE_FIXED) / (1 - PAYMENT_FEE_PERCENT);
-  const totalWithFee = Math.round(bruto);
-  const feeAmount = totalWithFee - amountCents;
-  return { totalWithFee, feeAmount };
 }
 
 const onlyDigits = (value: string) => value.replace(/\D/g, "");
@@ -172,6 +160,9 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
+  // 1 = à vista (PIX ou cartão). > 1 = cartão parcelado.
+  const [installments, setInstallments] = useState<number>(1);
+
   // Veteranos (1ª ou 2ª edição) reconhecidos pelo CPF no servidor.
   const [veteranFlags, setVeteranFlags] = useState<boolean[]>([]);
   const [veteranCheckKey, setVeteranCheckKey] = useState("");
@@ -264,6 +255,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     totalAfterDiscount,
     feeAmount,
     grandTotalWithFee,
+    maxInstallments,
   } = useMemo(() => {
     if (!modality) {
       return {
@@ -277,6 +269,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         totalAfterDiscount: 0,
         feeAmount: 0,
         grandTotalWithFee: 0,
+        maxInstallments: 1,
       };
     }
 
@@ -300,9 +293,12 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     const couponDiscount = Math.min(discountAmount || 0, Math.max(0, ticketsTotalCalc - veteranDiscountCalc));
     const discount = Math.min(veteranDiscountCalc + couponDiscount, subtotal);
     const subtotalAfterDiscount = Math.max(0, subtotal - discount);
-    const { totalWithFee, feeAmount } = isExternalPaymentCoupon(appliedCoupon)
+    const isExternal = isExternalPaymentCoupon(appliedCoupon);
+    const maxInstallmentsCalc = isExternal ? 1 : getMaxInstallments(subtotalAfterDiscount);
+    const chosenInstallments = Math.min(installments, maxInstallmentsCalc);
+    const { totalWithFee, feeAmount } = isExternal
       ? { totalWithFee: subtotalAfterDiscount, feeAmount: 0 }
-      : calculateFee(subtotalAfterDiscount);
+      : calculatePaymentFee(subtotalAfterDiscount, chosenInstallments);
 
     return {
       ticketsTotal: ticketsTotalCalc,
@@ -315,8 +311,12 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       totalAfterDiscount: subtotalAfterDiscount,
       feeAmount,
       grandTotalWithFee: totalWithFee,
+      maxInstallments: maxInstallmentsCalc,
     };
-  }, [modality, tickets, participants, discountAmount, appliedCoupon, lot, veteranCount, participantsCount]);
+  }, [modality, tickets, participants, discountAmount, appliedCoupon, lot, veteranCount, participantsCount, installments]);
+
+  // Se o valor cair (cupom, menos ingressos), as parcelas escolhidas podem deixar de existir.
+  const effectiveInstallments = Math.min(installments, maxInstallments);
 
   const applyCoupon = async () => {
     const code = normalizeCoupon(couponCode);
@@ -516,6 +516,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
       tickets,
       participantsCount,
       totalWithFee: grandTotalWithFee,
+      installments: effectiveInstallments,
     });
 
     try {
@@ -539,6 +540,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         termsAccepted,
         couponCode: normalizedCoupon,
         attribution: getAnalyticsContext(),
+        installments: effectiveInstallments,
       };
 
       const res = await fetch("/api/checkout/start-asaas", {
@@ -562,6 +564,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         tickets,
         participantsCount,
         totalWithFee: grandTotalWithFee,
+        installments: effectiveInstallments,
       });
 
       if (data.checkoutUrl) {
@@ -713,6 +716,15 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
                 inconsistências.
               </p>
             </div>
+
+            {maxInstallments > 1 && (
+              <PaymentOptions
+                amountCents={totalAfterDiscount}
+                maxInstallments={maxInstallments}
+                installments={effectiveInstallments}
+                setInstallments={setInstallments}
+              />
+            )}
           </>
         )}
       </div>
@@ -799,6 +811,15 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
                 {formatCurrency(grandTotalWithFee)}
               </span>
             </p>
+            {effectiveInstallments > 1 && (
+              <p className="text-sm">
+                No cartão:{" "}
+                <span className="font-semibold text-orange-400">
+                  {effectiveInstallments}x de{" "}
+                  {formatCurrency(Math.ceil(grandTotalWithFee / effectiveInstallments))}
+                </span>
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -867,6 +888,95 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PaymentOptions({
+  amountCents,
+  maxInstallments,
+  installments,
+  setInstallments,
+}: {
+  amountCents: number;
+  maxInstallments: number;
+  installments: number;
+  setInstallments: (v: number) => void;
+}) {
+  const upfront = calculatePaymentFee(amountCents, 1).totalWithFee;
+  const options = Array.from({ length: maxInstallments - 1 }, (_, i) => i + 2);
+  const isInstallment = installments > 1;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-white/10 bg-black/70 p-4 text-xs text-zinc-300">
+      <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">
+        Forma de pagamento
+      </p>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label
+          className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 ${
+            !isInstallment ? "border-orange-500 bg-orange-500/10" : "border-white/10 bg-black/60"
+          }`}
+        >
+          <input
+            type="radio"
+            name="payment-option"
+            checked={!isInstallment}
+            onChange={() => setInstallments(1)}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block font-semibold text-zinc-100">À vista</span>
+            <span className="block text-[11px] text-zinc-400">
+              PIX ou cartão em 1x · {formatCurrency(upfront)}
+            </span>
+          </span>
+        </label>
+
+        <label
+          className={`flex cursor-pointer items-start gap-2 rounded-xl border p-3 ${
+            isInstallment ? "border-orange-500 bg-orange-500/10" : "border-white/10 bg-black/60"
+          }`}
+        >
+          <input
+            type="radio"
+            name="payment-option"
+            checked={isInstallment}
+            onChange={() => setInstallments(Math.min(3, maxInstallments))}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block font-semibold text-zinc-100">Parcelado no cartão</span>
+            <span className="block text-[11px] text-zinc-400">
+              Em até {maxInstallments}x
+            </span>
+          </span>
+        </label>
+      </div>
+
+      {isInstallment && (
+        <div className="mt-3">
+          <label className="text-[11px] text-zinc-400" htmlFor="installments">
+            Número de parcelas
+          </label>
+          <select
+            id="installments"
+            value={installments}
+            onChange={(e) => setInstallments(Number(e.target.value))}
+            className="mt-1 w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-orange-500"
+          >
+            {options.map((count) => {
+              const total = calculatePaymentFee(amountCents, count).totalWithFee;
+              return (
+                <option key={count} value={count}>
+                  {count}x de {formatCurrency(Math.ceil(total / count))} (total {formatCurrency(total)})
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
     </div>
   );
 }
