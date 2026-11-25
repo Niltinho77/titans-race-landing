@@ -113,7 +113,7 @@ export function ExperienceGridSection() {
               : phase === "upcoming" && next
               ? `Inscrições abrem em ${getStartDayLabel(next)} · ${next.name}`
               : current?.veteransOnly
-              ? `${current.name} até ${current.lastDayLabel} · exclusiva para quem correu a 1ª e a 2ª edição`
+              ? `${current.name} até ${current.lastDayLabel} · exclusiva para quem correu a 1ª ou a 2ª edição`
               : `${current?.name} até ${current?.lastDayLabel}${current && !current.includesShirt ? " · sem camiseta" : ""}`}
           </p>
         </div>

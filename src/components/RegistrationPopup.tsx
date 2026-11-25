@@ -127,7 +127,7 @@ export function RegistrationPopup() {
           </h2>
           <p id="registration-popup-description" className="mt-5 max-w-sm text-sm leading-relaxed text-zinc-300">
             {current.veteransOnly
-              ? `Pré-venda exclusiva para quem correu a 1ª e a 2ª edição: ${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Para todos, as inscrições abrem em 27/11 com a Black Week.`
+              ? `Pré-venda exclusiva para quem correu a 1ª ou a 2ª edição: ${formatCurrency(current.adultPrice)} + taxa de serviço por pessoa até ${current.lastDayLabel}. Para todos, as inscrições abrem em 27/11 com a Black Week.`
               : isLast
               ? `Último lote da Titans Race, sem camiseta. As inscrições encerram em ${current.lastDayLabel}, uma semana antes da prova.`
               : isLastWithShirt

@@ -172,7 +172,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
 
-  // Veteranos (1ª e 2ª edição) reconhecidos pelo CPF no servidor.
+  // Veteranos (1ª ou 2ª edição) reconhecidos pelo CPF no servidor.
   const [veteranFlags, setVeteranFlags] = useState<boolean[]>([]);
   const [veteranCheckKey, setVeteranCheckKey] = useState("");
 
@@ -609,15 +609,6 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         </p>
       </div>
 
-      {(
-        <p className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-200">
-          <span className="font-semibold text-orange-300">{lot.name}</span> · válido até {lot.lastDayLabel}.
-          {veteransOnly
-            ? " Exclusivo para quem correu a 1ª e a 2ª edição: todos os CPFs do pedido precisam ser de veteranos."
-            : ""}
-        </p>
-      )}
-
       {!EXTRAS_AVAILABLE && (
         <p className="mt-4 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-100">
           <span className="font-semibold">{lot.name}</span>
@@ -1018,13 +1009,6 @@ function Step2Participants({
         Dados dos participantes
       </h2>
 
-      {veteransOnly && (
-        <p className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-100">
-          Pré-venda exclusiva para veteranos: conferimos se cada CPF correu a 1ª e a 2ª edição da Titans Race.
-          Se algum CPF não for reconhecido, a inscrição fica disponível para todos a partir de 27/11.
-        </p>
-      )}
-
       <p className="text-sm text-zinc-300">
         Preencha os dados de cada participante.
         {modality.id === "duplas" &&
@@ -1078,7 +1062,7 @@ function Step2Participants({
                   }
                   errorMessage={
                     isValidCPF(participant.cpf)
-                      ? "CPF não encontrado entre os atletas que correram a 1ª e a 2ª edição."
+                      ? "CPF não encontrado entre os atletas que correram a 1ª ou a 2ª edição."
                       : "Informe os 11 dígitos do CPF."
                   }
                 />
@@ -1118,7 +1102,7 @@ function Step2Participants({
 
               {isValidCPF(participant.cpf) && veteranFlags[index] === true && (
                 <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-                  Veterano da 1ª e da 2ª edição reconhecido.
+                  Veterano da Titans Race reconhecido.
                   {veteranDiscount > 0 ? ` Desconto de ${formatCurrency(veteranDiscount)} aplicado.` : ""}
                 </p>
               )}

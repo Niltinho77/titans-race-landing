@@ -80,7 +80,7 @@ test('antes da pré-venda: nada de veteranos no site, anuncia a Black Week', () 
 test('durante a pré-venda: aparece no site como exclusiva dos veteranos', () => {
   const { grid, lots } = renderHome('2026-11-25T12:00:00-03:00');
   assert.equal((grid.match(/href="\/checkout/g) || []).length, 5);
-  assert.match(grid, /exclusiva para quem correu a 1ª e a 2ª edição/);
+  assert.match(grid, /exclusiva para quem correu a 1ª ou a 2ª edição/);
   assert.match(lots, /Pré-venda Veteranos aberta · Black Week abre em/);
 });
 

@@ -141,7 +141,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            `A ${lot.name} é exclusiva para quem correu a 1ª e a 2ª edição da Titans Race. ` +
+            `A ${lot.name} é exclusiva para quem correu a 1ª ou a 2ª edição da Titans Race. ` +
             "Todos os CPFs do pedido precisam ser de veteranos. As inscrições abertas a todos começam em 27/11.",
         },
         { status: 403 }

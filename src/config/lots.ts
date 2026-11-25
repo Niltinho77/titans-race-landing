@@ -22,7 +22,7 @@ export type Lot = {
   endsAt: string;
   adultPrice: number; // centavos por pessoa (Solo, Diversão, Duplas, Quartetos)
   kidsPrice: number; // centavos por criança
-  veteransOnly: boolean; // só CPFs que correram a 1ª e a 2ª edição
+  veteransOnly: boolean; // só CPFs que correram a 1ª ou a 2ª edição
   veteranDiscount: number; // centavos de desconto por veterano
   includesShirt: boolean; // false = sem camiseta e sem itens extras (camisas pedidas à fábrica em 15/02)
   shortName: string; // rótulo curto para o gráfico de preços
@@ -33,7 +33,7 @@ export const LOTS: Lot[] = [
   {
     id: "preVendaVeteranos",
     name: "Pré-venda Veteranos",
-    hook: "Exclusiva para quem correu a 1ª e a 2ª edição",
+    hook: "Exclusiva para quem correu a 1ª ou a 2ª edição",
     periodLabel: "25 e 26/11",
     lastDayLabel: "26/11",
     startsAt: "2026-11-25T00:00:00-03:00",

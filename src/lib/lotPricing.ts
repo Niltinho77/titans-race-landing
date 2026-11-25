@@ -11,7 +11,7 @@ export function onlyCpfDigits(value: unknown) {
   return String(value ?? "").replace(/\D/g, "");
 }
 
-// Devolve, na mesma ordem, se cada CPF correu a 1ª e a 2ª edição.
+// Devolve, na mesma ordem, se cada CPF correu a 1ª ou a 2ª edição.
 export async function getVeteranFlags(cpfs: unknown[]): Promise<boolean[]> {
   const normalized = cpfs.map(onlyCpfDigits);
   const valid = Array.from(new Set(normalized.filter((cpf) => cpf.length === 11)));

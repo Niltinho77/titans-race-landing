@@ -1,12 +1,12 @@
-// Popula a tabela VeteranAthlete com os CPFs que correram a 1ª E a 2ª edição.
+// Popula a tabela VeteranAthlete com os CPFs que correram a 1ª OU a 2ª edição.
 //
-// 1ª edição: pedidos PAID do backup titans_backup.dump (lido com pg_restore, nada é restaurado no banco).
-// 2ª edição: pedidos PAID do banco atual (DATABASE_URL em .env).
+// 1ª edição: pedidos PAID do backup titans_backup.dump.
+// 2ª edição: pedidos PAID do backup data/backups/titans_race_edicao2_backup_2026-11-21.dump
+// (o banco foi zerado depois dele). Os backups são lidos com pg_restore; nada é restaurado no banco.
 //
 //   node scripts/edition3-veterans/import.mjs            # só mostra as contagens
-//   node scripts/edition3-veterans/import.mjs --write    # grava no banco (idempotente)
+//   node scripts/edition3-veterans/import.mjs --write    # grava no banco (idempotente, só adiciona)
 //
-// Rode ANTES do reset da edição: depois dele, os pedidos da 2ª edição saem do banco.
 // O script não imprime CPF, nome nem contato.
 
 import { spawnSync } from "node:child_process";
@@ -17,7 +17,8 @@ import { parseEnv } from "node:util";
 const require = createRequire(import.meta.url);
 const { PrismaClient } = require("@prisma/client");
 
-const BACKUP = "titans_backup.dump";
+const FIRST_EDITION_BACKUP = "titans_backup.dump";
+const SECOND_EDITION_BACKUP = "data/backups/titans_race_edicao2_backup_2026-11-21.dump";
 
 export function normalizeCpf(value) {
   const cpf = String(value ?? "").replace(/\D/g, "");
@@ -63,13 +64,13 @@ function findPgRestore() {
   throw new Error("pg_restore 17+ não encontrado. Defina PG_RESTORE_BIN com o executável correto.");
 }
 
-function loadFirstEditionCpfs() {
+function loadPaidCpfsFromBackup(backup) {
   const restored = spawnSync(
     findPgRestore(),
-    ["--data-only", "--table=Order", "--table=Participant", "--file=-", BACKUP],
-    { encoding: "utf8", maxBuffer: 20 * 1024 * 1024 },
+    ["--data-only", "--table=Order", "--table=Participant", "--file=-", backup],
+    { encoding: "utf8", maxBuffer: 100 * 1024 * 1024 },
   );
-  if (restored.status !== 0) throw new Error(`Não foi possível ler ${BACKUP}: ${restored.stderr.trim()}`);
+  if (restored.status !== 0) throw new Error(`Não foi possível ler ${backup}: ${restored.stderr.trim()}`);
   const paidOrders = new Set(
     parseCopy(restored.stdout, "Order").filter((order) => order.status === "PAID").map((order) => order.id),
   );
@@ -81,31 +82,25 @@ function loadFirstEditionCpfs() {
   );
 }
 
-async function loadSecondEditionCpfs(db) {
-  const participants = await db.participant.findMany({
-    where: { order: { status: "PAID" } },
-    select: { cpf: true },
-  });
-  return new Set(participants.map((participant) => normalizeCpf(participant.cpf)).filter(Boolean));
-}
-
 const write = process.argv.includes("--write");
 const env = parseEnv(await readFile(".env", "utf8"));
 if (!env.DATABASE_URL) throw new Error("DATABASE_URL não configurada em .env.");
 const db = new PrismaClient({ datasources: { db: { url: env.DATABASE_URL } } });
 
 try {
-  const first = loadFirstEditionCpfs();
-  const second = await loadSecondEditionCpfs(db);
-  const veterans = [...second].filter((cpf) => first.has(cpf));
+  const first = loadPaidCpfsFromBackup(FIRST_EDITION_BACKUP);
+  const second = loadPaidCpfsFromBackup(SECOND_EDITION_BACKUP);
+  const veterans = [...new Set([...first, ...second])];
 
   const summary = {
     firstEditionPaidCpfs: first.size,
     secondEditionPaidCpfs: second.size,
-    ranBothEditions: veterans.length,
+    ranBothEditions: [...second].filter((cpf) => first.has(cpf)).length,
+    ranAnyEdition: veterans.length,
   };
 
   if (write) {
+    summary.alreadyInTable = await db.veteranAthlete.count();
     const result = await db.veteranAthlete.createMany({
       data: veterans.map((cpf) => ({ cpf })),
       skipDuplicates: true,
