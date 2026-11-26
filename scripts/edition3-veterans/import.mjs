@@ -1,11 +1,12 @@
-// Popula a tabela VeteranAthlete com os CPFs que correram a 1ª OU a 2ª edição.
+// Popula a tabela VeteranAthlete com os CPFs que correram a 1ª OU a 2ª edição (liberam a pré-venda)
+// e marca bothEditions em quem correu as duas (só esses ganham o desconto de veterano).
 //
 // 1ª edição: pedidos PAID do backup titans_backup.dump.
 // 2ª edição: pedidos PAID do backup data/backups/titans_race_edicao2_backup_2026-11-21.dump
 // (o banco foi zerado depois dele). Os backups são lidos com pg_restore; nada é restaurado no banco.
 //
 //   node scripts/edition3-veterans/import.mjs            # só mostra as contagens
-//   node scripts/edition3-veterans/import.mjs --write    # grava no banco (idempotente, só adiciona)
+//   node scripts/edition3-veterans/import.mjs --write    # grava no banco (idempotente, não apaga CPFs)
 //
 // O script não imprime CPF, nome nem contato.
 
@@ -91,11 +92,12 @@ try {
   const first = loadPaidCpfsFromBackup(FIRST_EDITION_BACKUP);
   const second = loadPaidCpfsFromBackup(SECOND_EDITION_BACKUP);
   const veterans = [...new Set([...first, ...second])];
+  const both = [...second].filter((cpf) => first.has(cpf));
 
   const summary = {
     firstEditionPaidCpfs: first.size,
     secondEditionPaidCpfs: second.size,
-    ranBothEditions: [...second].filter((cpf) => first.has(cpf)).length,
+    ranBothEditions: both.length,
     ranAnyEdition: veterans.length,
   };
 
@@ -106,6 +108,12 @@ try {
       skipDuplicates: true,
     });
     summary.inserted = result.count;
+    const [marked, unmarked] = await db.$transaction([
+      db.veteranAthlete.updateMany({ where: { cpf: { in: both } }, data: { bothEditions: true } }),
+      db.veteranAthlete.updateMany({ where: { cpf: { notIn: both } }, data: { bothEditions: false } }),
+    ]);
+    summary.markedBothEditions = marked.count;
+    summary.markedOneEdition = unmarked.count;
     summary.totalInTable = await db.veteranAthlete.count();
   } else {
     summary.note = "Simulação. Use --write para gravar.";

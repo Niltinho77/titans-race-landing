@@ -161,6 +161,26 @@ export default async function AdminInscricoesPage() {
     0
   );
 
+  // Contador de cupons: atletas por cupom (pedidos pagos e pendentes).
+  const couponStats = Array.from(
+    orders
+      .filter((o) => o.couponCode && (o.status === "PAID" || o.status === "PENDING"))
+      .reduce((acc, o) => {
+        const code = o.couponCode!.toUpperCase();
+        const stat = acc.get(code) ?? { code, paidAthletes: 0, paidOrders: 0, pendingAthletes: 0, names: [] as { id: string; name: string }[] };
+        if (o.status === "PAID") {
+          stat.paidOrders += 1;
+          stat.paidAthletes += o.participants.length;
+          stat.names.push(...o.participants.map((p) => ({ id: p.id, name: p.fullName })));
+        } else {
+          stat.pendingAthletes += o.participants.length;
+        }
+        acc.set(code, stat);
+        return acc;
+      }, new Map<string, { code: string; paidAthletes: number; paidOrders: number; pendingAthletes: number; names: { id: string; name: string }[] }>())
+      .values()
+  ).sort((a, b) => b.paidAthletes - a.paidAthletes || a.code.localeCompare(b.code));
+
   const atletasPagos = orders
     .filter((o) => o.status === "PAID")
     .reduce((sum, o) => sum + o.participants.length, 0);
@@ -244,6 +264,46 @@ export default async function AdminInscricoesPage() {
             subtitle={`${complimentaryOrders.length} pedidos de cortesia`}
             color="emerald"
           />
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-black/70 p-5">
+          <p className="text-[11px] uppercase tracking-[0.25em] text-zinc-500">Contador de cupons</p>
+          <h2 className="mt-1 text-lg font-semibold text-white">Atletas por cupom</h2>
+          <p className="mt-1 text-xs text-zinc-400">
+            Conta só atletas de pedidos pagos. Clique no cupom para ver os nomes.
+          </p>
+          {couponStats.length === 0 ? (
+            <p className="mt-4 text-sm text-zinc-400">Nenhum cupom usado ainda.</p>
+          ) : (
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {couponStats.map((stat) => (
+                <details key={stat.code} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-mono text-sm font-semibold text-orange-300">{stat.code}</span>
+                      <span className="text-2xl font-semibold text-white">{stat.paidAthletes}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-zinc-500">
+                      {stat.paidAthletes === 1 ? "atleta" : "atletas"} em {stat.paidOrders}{" "}
+                      {stat.paidOrders === 1 ? "pedido pago" : "pedidos pagos"}
+                      {stat.pendingAthletes > 0 ? ` · ${stat.pendingAthletes} pendentes` : ""}
+                    </p>
+                  </summary>
+                  {stat.names.length > 0 && (
+                    <ol className="mt-3 list-decimal space-y-1 border-t border-white/10 pl-5 pt-3 text-sm text-zinc-200">
+                      {stat.names.map((n) => (
+                        <li key={n.id}>
+                          <Link href={`/portal/admin/participante/${n.id}`} className="hover:text-orange-300">
+                            {n.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </details>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="rounded-3xl border border-orange-500/30 bg-orange-500/5 p-5">

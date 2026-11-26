@@ -23,7 +23,7 @@ export type Lot = {
   adultPrice: number; // centavos por pessoa (Solo, Diversão, Duplas, Quartetos)
   kidsPrice: number; // centavos por criança
   veteransOnly: boolean; // só CPFs que correram a 1ª ou a 2ª edição
-  veteranDiscount: number; // centavos de desconto por veterano
+  veteranDiscount: number; // centavos de desconto por veterano (só quem correu a 1ª e a 2ª edição)
   includesShirt: boolean; // false = sem camiseta e sem itens extras (camisas pedidas à fábrica em 15/02)
   shortName: string; // rótulo curto para o gráfico de preços
   unlisted?: boolean; // fora do gráfico de preços e não anunciado antes; aparece no site só enquanto está aberto

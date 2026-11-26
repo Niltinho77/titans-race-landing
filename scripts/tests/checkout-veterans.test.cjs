@@ -15,6 +15,7 @@ function load(file, mocks = {}) {
 const checkout = load('src/config/checkout.ts');
 const VETERAN = '11111111111';
 const ROOKIE = '22222222222';
+const ONE_EDITION = '33333333333'; // correu só a 1ª ou só a 2ª edição
 
 async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = [] }) {
   const lots = loadLots(iso);
@@ -26,7 +27,7 @@ async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = 
   const route = load('src/app/api/checkout/start-asaas/route.ts', {
     '@/config/registration': { publicRegistrationsAreClosed: () => lots.getLotStatus().phase !== 'open', registrationClosedMessage: () => 'fechado' },
     '@/config/lots': lots,
-    '@/lib/lotPricing': loadLotPricing(lots, [VETERAN]),
+    '@/lib/lotPricing': loadLotPricing(lots, [VETERAN, ONE_EDITION], [VETERAN]),
     '@/config/checkout': checkout,
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/prisma': { prisma: db },
@@ -53,6 +54,15 @@ test('pré-venda aceita só pedidos em que todos os CPFs são veteranos', async 
   assert.equal(mixed.response.status, 403);
   const repeated = await run({ iso: '2026-11-25T10:00:00-03:00', modalityId: 'duplas', cpfs: [VETERAN, VETERAN] });
   assert.equal(repeated.response.status, 403);
+});
+
+test('quem correu só uma edição entra na pré-venda, mas não ganha desconto nos lotes', async () => {
+  const presale = await run({ iso: '2026-11-25T10:00:00-03:00', modalityId: 'duplas', cpfs: [VETERAN, ONE_EDITION] });
+  assert.equal(presale.response.status, 200);
+  assert.equal(presale.order.veteranDiscountAmount, 0);
+  const lote1 = await run({ iso: '2026-12-10T10:00:00-03:00', cpfs: [ONE_EDITION] });
+  assert.equal(lote1.order.veteranDiscountAmount, 0);
+  assert.equal(lote1.order.discountedTotalAmount, 14800);
 });
 
 test('sem desconto de veterano na Black Week (lote promocional, até 02/12)', async () => {

@@ -24,9 +24,10 @@ function loadLots(iso = '2026-12-10T12:00:00-03:00') {
   return exports;
 }
 
-function loadLotPricing(lots, veteranCpfs = []) {
+// veteranCpfs: correram a 1ª ou a 2ª edição. bothEditionCpfs: correram as duas (ganham o desconto).
+function loadLotPricing(lots, veteranCpfs = [], bothEditionCpfs = veteranCpfs) {
   const exports = {};
-  const prisma = { veteranAthlete: { findMany: async ({ where }) => where.cpf.in.filter((cpf) => veteranCpfs.includes(cpf)).map((cpf) => ({ cpf })) } };
+  const prisma = { veteranAthlete: { findMany: async ({ where }) => where.cpf.in.filter((cpf) => veteranCpfs.includes(cpf)).map((cpf) => ({ cpf, bothEditions: bothEditionCpfs.includes(cpf) })) } };
   vm.runInNewContext(transpile('src/lib/lotPricing.ts'), {
     exports, Set, Array,
     require: (name) => (name === '@/lib/prisma' ? { prisma } : name === '@/config/lots' ? lots : {}),

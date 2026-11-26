@@ -163,8 +163,10 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   // 1 = à vista (PIX ou cartão). > 1 = cartão parcelado.
   const [installments, setInstallments] = useState<number>(1);
 
-  // Veteranos (1ª ou 2ª edição) reconhecidos pelo CPF no servidor.
+  // Veteranos reconhecidos pelo CPF no servidor: 1ª ou 2ª edição libera a pré-venda;
+  // só quem correu as duas ganha o desconto.
   const [veteranFlags, setVeteranFlags] = useState<boolean[]>([]);
+  const [discountFlags, setDiscountFlags] = useState<boolean[]>([]);
   const [veteranCheckKey, setVeteranCheckKey] = useState("");
 
   useEffect(() => {
@@ -201,22 +203,28 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
   }, [step, modality, tickets, participantsCount]);
 
   const cpfKey = participants.map((p) => onlyDigits(p.cpf)).join(",");
-  const veteranCount = useMemo(() => {
-    const seen = new Set<string>();
-    participants.forEach((p, index) => {
-      if (veteranFlags[index] && veteranCheckKey === cpfKey) seen.add(onlyDigits(p.cpf));
-    });
-    return seen.size;
-  }, [participants, veteranFlags, veteranCheckKey, cpfKey]);
+  // accessCount: veteranos da 1ª ou 2ª edição (pré-venda). veteranCount: correram as duas (desconto).
+  const { accessCount, veteranCount } = useMemo(() => {
+    const access = new Set<string>();
+    const discount = new Set<string>();
+    if (veteranCheckKey === cpfKey) {
+      participants.forEach((p, index) => {
+        if (veteranFlags[index]) access.add(onlyDigits(p.cpf));
+        if (discountFlags[index]) discount.add(onlyDigits(p.cpf));
+      });
+    }
+    return { accessCount: access.size, veteranCount: discount.size };
+  }, [participants, veteranFlags, discountFlags, veteranCheckKey, cpfKey]);
   const veteranCheckPending = veteranCheckKey !== cpfKey;
   const allVeterans =
-    !veteranCheckPending && participants.length > 0 && veteranCount === participants.length;
+    !veteranCheckPending && participants.length > 0 && accessCount === participants.length;
 
   useEffect(() => {
     if (!modality || participants.length === 0) return;
     const cpfs = cpfKey.split(",");
     if (!cpfs.some((cpf) => cpf.length === 11)) {
       setVeteranFlags(cpfs.map(() => false));
+      setDiscountFlags(cpfs.map(() => false));
       setVeteranCheckKey(cpfKey);
       return;
     }
@@ -231,8 +239,12 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
         const data = await res.json().catch(() => null);
         if (cancelled) return;
         setVeteranFlags(res.ok && Array.isArray(data?.veteranFlags) ? data.veteranFlags : cpfs.map(() => false));
+        setDiscountFlags(res.ok && Array.isArray(data?.discountFlags) ? data.discountFlags : cpfs.map(() => false));
       } catch {
-        if (!cancelled) setVeteranFlags(cpfs.map(() => false));
+        if (!cancelled) {
+          setVeteranFlags(cpfs.map(() => false));
+          setDiscountFlags(cpfs.map(() => false));
+        }
       } finally {
         if (!cancelled) setVeteranCheckKey(cpfKey);
       }
@@ -641,6 +653,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
             veteransOnly={veteransOnly}
             veteranDiscount={lot.veteranDiscount}
             veteranFlags={veteranCheckPending ? [] : veteranFlags}
+            discountFlags={veteranCheckPending ? [] : discountFlags}
             includesShirt={EXTRAS_AVAILABLE}
             participants={participants}
             onChange={handleParticipantChange}
@@ -695,13 +708,15 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
                 </div>
               </div>
 
-              {appliedCoupon && !isExternalPaymentCoupon(appliedCoupon) && discountAmount > 0 && (
+              {appliedCoupon && !isExternalPaymentCoupon(appliedCoupon) && (
                 <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-200">
-                  Cupom <span className="font-semibold">{appliedCoupon}</span>{" "}
-                  aplicado. Desconto:{" "}
-                  <span className="font-semibold">
-                    {formatCurrency(discountAmount)}
-                  </span>
+                  Cupom <span className="font-semibold">{appliedCoupon}</span> aplicado com sucesso!
+                  {discountAmount > 0 && (
+                    <>
+                      {" "}Desconto:{" "}
+                      <span className="font-semibold">{formatCurrency(discountAmount)}</span>
+                    </>
+                  )}
                 </p>
               )}
 
@@ -1093,6 +1108,7 @@ function Step2Participants({
   veteransOnly,
   veteranDiscount,
   veteranFlags,
+  discountFlags,
   includesShirt,
   participants,
   onChange,
@@ -1102,6 +1118,7 @@ function Step2Participants({
   veteransOnly: boolean;
   veteranDiscount: number;
   veteranFlags: boolean[];
+  discountFlags: boolean[];
   includesShirt: boolean;
   participants: ParticipantForm[];
   onChange: (index: number, field: keyof ParticipantForm, value: string) => void;
@@ -1213,7 +1230,9 @@ function Step2Participants({
               {isValidCPF(participant.cpf) && veteranFlags[index] === true && (
                 <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
                   Veterano da Titans Race reconhecido.
-                  {veteranDiscount > 0 ? ` Desconto de ${formatCurrency(veteranDiscount)} aplicado.` : ""}
+                  {veteranDiscount > 0 && discountFlags[index] === true
+                    ? ` Desconto de ${formatCurrency(veteranDiscount)} aplicado.`
+                    : ""}
                 </p>
               )}
 
