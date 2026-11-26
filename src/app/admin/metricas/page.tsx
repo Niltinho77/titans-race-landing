@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/lib/portalAuth";
 import { BRAZIL_TIME_ZONE } from "@/lib/dateTime";
 import { getModalityById } from "@/config/checkout";
+import { isSalesRecoveryOrder } from "@/lib/salesRecovery";
 
 export const dynamic = "force-dynamic";
 
@@ -47,12 +48,6 @@ function channelLabel(source: string | null, campaign: string | null) {
 function daysAgo(days: number) {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date;
-}
-
-function minutesAgo(minutes: number) {
-  const date = new Date();
-  date.setMinutes(date.getMinutes() - minutes);
   return date;
 }
 
@@ -126,18 +121,18 @@ export default async function AdminMetricasPage() {
   const since7 = daysAgo(7);
   const since24h = daysAgo(1);
 
-  const [events30, events7, events24h, sponsorshipLeadCount, orders30] =
+  const [events30, events7, events24h, sponsorshipLeadCount, orders30, manualRecoveryEntries] =
     await Promise.all([
       prisma.analyticsEvent.findMany({
-        where: { createdAt: { gte: since30 } },
+        where: { createdAt: { gte: since30 }, eventName: { not: "sales_recovery_manual_include" } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.analyticsEvent.findMany({
-        where: { createdAt: { gte: since7 } },
+        where: { createdAt: { gte: since7 }, eventName: { not: "sales_recovery_manual_include" } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.analyticsEvent.findMany({
-        where: { createdAt: { gte: since24h } },
+        where: { createdAt: { gte: since24h }, eventName: { not: "sales_recovery_manual_include" } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.sponsorshipLead.count({ where: { createdAt: { gte: since30 } } }),
@@ -145,6 +140,9 @@ export default async function AdminMetricasPage() {
         where: { createdAt: { gte: since30 } },
         include: { participants: { orderBy: { id: "asc" } } },
         orderBy: { createdAt: "desc" },
+      }),
+      prisma.analyticsEvent.findMany({
+        where: { eventName: "sales_recovery_manual_include", createdAt: { gte: since30 } },
       }),
     ]);
 
@@ -173,11 +171,8 @@ export default async function AdminMetricasPage() {
   const checkoutCreated = uniqueEventSessions("checkout_order_created");
   const checkoutAbandoned = Math.max(0, checkoutStep1 - checkoutCreated);
   const paidOrders = orders30.filter((order) => order.status === "PAID");
-  const recoveryCutoff = minutesAgo(30);
-  const recoverableOrders = orders30.filter((order) => {
-    if (["FAILED", "OVERDUE", "CANCELED"].includes(order.status)) return true;
-    return order.status === "PENDING" && order.createdAt <= recoveryCutoff;
-  });
+  const manualRecoveryIds = new Set(manualRecoveryEntries.map((event) => metadataString(event, "orderId")));
+  const recoverableOrders = orders30.filter((order) => isSalesRecoveryOrder(order, manualRecoveryIds));
   const paidRevenue = paidOrders.reduce(
     (sum, order) => sum + (order.totalAmountWithFee ?? order.totalAmount ?? 0),
     0,
