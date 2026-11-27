@@ -27,6 +27,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { trackAnalyticsEvent } from "@/lib/analytics";
 import { getAnalyticsContext } from "@/components/AnalyticsTracker";
+import { TeamPicker, type TeamPickerValue } from "@/components/ranking/TeamPicker";
 
 type ParticipantExtra = {
   type: ExtraType;
@@ -44,6 +45,7 @@ type ParticipantForm = {
   tshirtSize: string;
   healthInfo: string;
   extras: ParticipantExtra[];
+  team?: TeamPickerValue | null; // equipe do ranking (opcional)
 };
 
 type CheckoutScreenProps = {
@@ -456,6 +458,14 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
     });
   };
 
+  const handleParticipantTeamChange = (index: number, team: TeamPickerValue | null) => {
+    setParticipants((prev) => {
+      const clone = [...prev];
+      clone[index] = { ...clone[index], team };
+      return clone;
+    });
+  };
+
   const handleExtraToggle = (
     participantIndex: number,
     extra: ExtraConfig,
@@ -548,6 +558,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
           tshirtSize: EXTRAS_AVAILABLE ? p.tshirtSize : NO_SHIRT_LABEL,
           healthInfo: p.healthInfo,
           extras: EXTRAS_AVAILABLE ? p.extras : [],
+          team: p.team?.choice ?? null,
         })),
         termsAccepted,
         couponCode: normalizedCoupon,
@@ -657,6 +668,7 @@ export function CheckoutScreen({ initialModality, inviteToken }: CheckoutScreenP
             includesShirt={EXTRAS_AVAILABLE}
             participants={participants}
             onChange={handleParticipantChange}
+            onTeamChange={handleParticipantTeamChange}
             showErrors={showErrors}
           />
         )}
@@ -1112,6 +1124,7 @@ function Step2Participants({
   includesShirt,
   participants,
   onChange,
+  onTeamChange,
   showErrors,
 }: {
   modality: Modality;
@@ -1122,6 +1135,7 @@ function Step2Participants({
   includesShirt: boolean;
   participants: ParticipantForm[];
   onChange: (index: number, field: keyof ParticipantForm, value: string) => void;
+  onTeamChange: (index: number, team: TeamPickerValue | null) => void;
   showErrors: boolean;
 }) {
   const isTeamMode = (modality.id as ModalityId) === "equipes";
@@ -1225,6 +1239,12 @@ function Step2Participants({
                   value={participant.city}
                   onChange={(v) => onChange(index, "city", v)}
                 />
+                <div className="md:col-span-2">
+                  <TeamPicker
+                    value={participant.team ?? null}
+                    onChange={(team) => onTeamChange(index, team)}
+                  />
+                </div>
               </div>
 
               {isValidCPF(participant.cpf) && veteranFlags[index] === true && (

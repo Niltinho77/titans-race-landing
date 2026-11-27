@@ -22,6 +22,7 @@ import {
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { cleanOrderAttribution, type OrderAttributionInput } from "@/lib/orderAttribution";
 import { claimRegistrationInvite, isInviteToken, INVITE_ERROR } from "@/lib/registrationInvites";
+import { resolveParticipantTeams } from "@/lib/teams";
 
 type ExtraType = "camisa" | "luva" | "meia";
 
@@ -44,6 +45,7 @@ type ParticipantInput = {
   emergencyPhone?: string;
   healthInfo?: string;
   extras?: ParticipantExtraInput[];
+  team?: unknown; // escolha de equipe do ranking (validada em resolveParticipantTeams)
 };
 
 type CheckoutPayload = {
@@ -275,6 +277,12 @@ export async function POST(req: Request) {
 
     const teamMode = body.modalityId === "equipes";
     const attribution = cleanOrderAttribution(body.attribution);
+    // Equipe do ranking: opcional e nunca bloqueia a inscrição (em erro, fica sem equipe).
+    const rankingTeamIds = await resolveParticipantTeams(
+      body.participants.map((participant) => participant.team),
+      appliedCouponCode,
+    );
+    const teamJoinedAt = new Date();
 
     const orderData = {
       modalityId: body.modalityId,
@@ -314,6 +322,8 @@ export async function POST(req: Request) {
               : null,
             healthInfo: participant.healthInfo?.trim() || null,
             teamIndex: teamMode ? Math.floor(index / 4) + 1 : null,
+            teamId: rankingTeamIds[index] ?? null,
+            teamJoinedAt: rankingTeamIds[index] ? teamJoinedAt : null,
             extras: {
               create: (participant.extras ?? []).map((extra) => ({
                 type: extra.type,

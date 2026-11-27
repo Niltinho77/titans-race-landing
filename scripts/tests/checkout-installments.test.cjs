@@ -42,6 +42,7 @@ async function run({ installments, couponCode = null, coupon = null } = {}) {
     '@/lib/email': { sendOrderConfirmationEmail: async () => {} },
     '@/lib/orderAttribution': { cleanOrderAttribution: () => ({}) },
     '@/lib/registrationInvites': load('src/lib/registrationInvites.ts'),
+    '@/lib/teams': { resolveParticipantTeams: async (choices) => choices.map(() => null) },
   });
   const participant = { fullName: 'Test Participant', cpf: '00000000000', birthDate: '01/01/1990', phone: '00000000000', email: 'test@example.test', tshirtSize: 'M', extras: [] };
   const response = await route.POST({

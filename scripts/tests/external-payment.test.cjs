@@ -37,6 +37,7 @@ async function run({ code = 'SOLOPORFORA100', tickets = 1, extras = [], claimed 
     '@/lib/email': { sendOrderConfirmationEmail: async () => { emails++; } },
     '@/lib/orderAttribution': { cleanOrderAttribution: () => ({}) },
     '@/lib/registrationInvites': load('src/lib/registrationInvites.ts'),
+    '@/lib/teams': { resolveParticipantTeams: async (choices) => choices.map(() => null) },
   });
   const participant = { fullName: 'Test Participant', cpf: '00000000000', phone: '00000000000', email: 'test@example.test', extras };
   const response = await route.POST({ json: async () => ({ couponCode: code, tickets, modalityId, termsAccepted: true, participants: Array.from({ length: tickets }, () => participant) }) });

@@ -42,6 +42,7 @@ function setup({ expired = false, revoked = false, used = false, modality = 'equ
     '@/config/lots': lots, '@/lib/lotPricing': lotPricing,
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/registrationInvites': helpers, '@/lib/email': {}, '@/lib/orderAttribution': { cleanOrderAttribution: () => ({}) },
+    '@/lib/teams': { resolveParticipantTeams: async (choices) => choices.map(() => null) },
     '@/lib/asaas': {
       normalizeCpfCnpj: s => s, normalizePhone: s => s, centsToAsaasValue: s => s / 100,
       createAsaasCheckout: async () => { gatewayCalls++; if (failGateway) throw Error('Gateway unavailable'); return { checkoutId: 'asaas-one', checkoutUrl: 'https://asaas.example/pay' }; },
@@ -88,6 +89,7 @@ test('finishing the invitation form sends its token and opens payment after publ
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/analytics': { trackAnalyticsEvent: () => {} },
     '@/components/AnalyticsTracker': { getAnalyticsContext: () => ({}) },
+    '@/components/ranking/TeamPicker': { TeamPicker: () => null },
     'framer-motion': { motion: { div: 'div' } },
     'next/link': { default: 'a' },
   }, {

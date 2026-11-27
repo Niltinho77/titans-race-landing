@@ -115,6 +115,33 @@ model Participant {
   bibNumber      Int?
   teamIndex      Int? // só faz sentido pra "equipes" (e opcionalmente "duplas" se quiser)
   changeLogs     ParticipantChangeLog[]
+
+  // Equipe que o atleta defende no ranking (academia, box, grupo ou Independentes).
+  teamId       String?
+  team         Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  teamJoinedAt DateTime?
+
+  @@index([teamId])
+}
+
+// Equipes do ranking. Criadas pelos atletas na inscrição (status NEW) ou pela organização.
+// Duplicatas são fundidas: status MERGED + mergedIntoId (os atletas passam para a outra).
+model Team {
+  id             String        @id @default(cuid())
+  name           String
+  normalizedName String        @unique // sem acento, minúsculo, só letras e números
+  instagram      String?
+  city           String?
+  logoUrl        String?
+  status         String        @default("NEW") // NEW | APPROVED | MERGED
+  mergedIntoId   String?
+  isIndependent  Boolean       @default(false)
+  couponCode     String?       @unique // inscrições com este cupom entram nesta equipe
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  participants   Participant[]
+
+  @@index([status])
 }
 
 model ParticipantExtra {

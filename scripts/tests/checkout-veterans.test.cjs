@@ -17,7 +17,7 @@ const VETERAN = '11111111111';
 const ROOKIE = '22222222222';
 const ONE_EDITION = '33333333333'; // correu só a 1ª ou só a 2ª edição
 
-async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = [], paidByLot = {} }) {
+async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = [], paidByLot = {}, teams = [] }) {
   const lots = loadLots(iso);
   const writes = [];
   const db = {
@@ -35,8 +35,9 @@ async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = 
     '@/lib/asaas': { normalizeCpfCnpj: (s) => s, normalizePhone: (s) => s, centsToAsaasValue: (c) => c / 100, createAsaasCheckout: async () => ({ checkoutId: 'c', checkoutUrl: 'https://pay.example' }) },
     '@/lib/email': {}, '@/lib/orderAttribution': { cleanOrderAttribution: () => ({}) },
     '@/lib/registrationInvites': {},
+    '@/lib/teams': { resolveParticipantTeams: async (choices, coupon) => choices.map((c) => (c && c.teamId) || (coupon ? 'coupon-team' : null)) },
   });
-  const participants = cpfs.map((cpf) => ({ fullName: 'Atleta Teste', cpf, phone: '55999999999', email: 'a@example.test', birthDate: '01/01/1990', tshirtSize: 'Camiseta M', extras }));
+  const participants = cpfs.map((cpf, i) => ({ fullName: 'Atleta Teste', cpf, phone: '55999999999', email: 'a@example.test', birthDate: '01/01/1990', tshirtSize: 'Camiseta M', extras, team: teams[i] }));
   const response = await route.POST({ url: 'https://titans.example/api', headers: { get: () => null }, json: async () => ({ modalityId, tickets: cpfs.length / ({ duplas: 2, equipes: 4 }[modalityId] ?? 1), termsAccepted: true, participants }) });
   return { response, order: writes[0] };
 }
@@ -121,4 +122,14 @@ test('Black Week fecha sozinha nas 100 vagas pagas (pré-venda + Black Week) e o
   assert.equal(full.response.status, 200);
   assert.equal(full.order.lotId, 'lote1');
   assert.equal(full.order.ticketsAmount, 14800);
+});
+
+test('equipe do ranking vai para cada participante; sem escolha, fica sem equipe', async () => {
+  const { response, order } = await run({ iso: '2026-12-10T10:00:00-03:00', modalityId: 'duplas', cpfs: [VETERAN, ROOKIE], teams: [{ teamId: 'team-a' }] });
+  assert.equal(response.status, 200);
+  const [first, second] = order.participants.create;
+  assert.equal(first.teamId, 'team-a');
+  assert.ok(first.teamJoinedAt instanceof Date || typeof first.teamJoinedAt === 'object');
+  assert.equal(second.teamId, null);
+  assert.equal(second.teamJoinedAt, null);
 });
