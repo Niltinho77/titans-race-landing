@@ -67,3 +67,16 @@ test('Lote Extra custa o mesmo que o Lote Final e não inclui camiseta', () => {
   assert.equal(final.includesShirt, true);
   assert.equal(extra.includesShirt, false);
 });
+
+test('Black Week esgotada (100 vagas) dá lugar ao Lote 1 na hora', () => {
+  const now = at('2026-11-28T10:00:00-03:00');
+  assert.equal(getLotStatus(now).current.id, 'blackWeek');
+  const soldOut = getLotStatus(now, ['blackWeek']);
+  assert.equal(soldOut.phase, 'open');
+  assert.equal(soldOut.current.id, 'lote1');
+  assert.equal(soldOut.next.id, 'lote2');
+  assert.equal(getPricingLot(now, ['blackWeek']).id, 'lote1');
+  assert.equal(exportsObject.getPublicLotStatus(now, ['blackWeek']).next.id, 'lote2');
+  // Depois do prazo normal, nada muda.
+  assert.equal(getLotStatus(at('2026-12-10T10:00:00-03:00'), ['blackWeek']).current.id, 'lote1');
+});

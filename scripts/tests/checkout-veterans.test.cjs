@@ -17,7 +17,7 @@ const VETERAN = '11111111111';
 const ROOKIE = '22222222222';
 const ONE_EDITION = '33333333333'; // correu só a 1ª ou só a 2ª edição
 
-async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = [] }) {
+async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = [], paidByLot = {} }) {
   const lots = loadLots(iso);
   const writes = [];
   const db = {
@@ -27,7 +27,7 @@ async function run({ iso, modalityId = 'competicao', cpfs = [VETERAN], extras = 
   const route = load('src/app/api/checkout/start-asaas/route.ts', {
     '@/config/registration': { publicRegistrationsAreClosed: () => lots.getLotStatus().phase !== 'open', registrationClosedMessage: () => 'fechado' },
     '@/config/lots': lots,
-    '@/lib/lotPricing': loadLotPricing(lots, [VETERAN, ONE_EDITION], [VETERAN]),
+    '@/lib/lotPricing': loadLotPricing(lots, [VETERAN, ONE_EDITION], [VETERAN], { paidByLot, iso }),
     '@/config/checkout': checkout,
     '@/config/externalPayment': { isExternalPaymentCoupon: () => false },
     '@/lib/prisma': { prisma: db },
@@ -107,4 +107,18 @@ test('veterano em pedido de 10+ atletas continua com o desconto de veterano', as
   const { order } = await run({ iso: '2026-12-10T10:00:00-03:00', cpfs: many(10, 1) });
   assert.equal(order.veteranDiscountAmount, 1000);
   assert.equal(order.discountedTotalAmount, 148000 - 1000);
+});
+
+test('Black Week fecha sozinha nas 100 vagas pagas (pré-venda + Black Week) e o pedido sai no Lote 1', async () => {
+  const open = await run({ iso: '2026-11-28T10:00:00-03:00', cpfs: [ROOKIE], paidByLot: { blackWeek: 99 } });
+  assert.equal(open.order.lotId, 'blackWeek');
+  assert.equal(open.order.ticketsAmount, 12800);
+  // Com 99 pagos, um quarteto ainda entra inteiro no preço da Black Week.
+  const quartet = await run({ iso: '2026-11-28T10:00:00-03:00', modalityId: 'equipes', cpfs: many(4), paidByLot: { preVendaVeteranos: 30, blackWeek: 69 } });
+  assert.equal(quartet.order.lotId, 'blackWeek');
+  assert.equal(quartet.order.ticketsAmount, 4 * 12800);
+  const full = await run({ iso: '2026-11-28T10:00:00-03:00', cpfs: [ROOKIE], paidByLot: { preVendaVeteranos: 30, blackWeek: 70 } });
+  assert.equal(full.response.status, 200);
+  assert.equal(full.order.lotId, 'lote1');
+  assert.equal(full.order.ticketsAmount, 14800);
 });

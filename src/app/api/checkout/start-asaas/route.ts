@@ -1,6 +1,6 @@
 import { publicRegistrationsAreClosed, registrationClosedMessage } from "@/config/registration";
-import { getLotStatus, getParticipantsPerTicket, getPricingLot, NO_SHIRT_LABEL } from "@/config/lots";
-import { quoteTickets } from "@/lib/lotPricing";
+import { getParticipantsPerTicket, NO_SHIRT_LABEL } from "@/config/lots";
+import { getSellingLot, quoteTickets } from "@/lib/lotPricing";
 import { isExternalPaymentCoupon } from "@/config/externalPayment";
 // src/app/api/checkout/start-asaas/route.ts
 
@@ -118,8 +118,9 @@ export async function POST(req: Request) {
       );
     }
 
+    // Lote vigente (um lote que completou as vagas dá lugar ao seguinte).
     // Convites fora da janela de venda usam o lote seguinte (ou o último).
-    const lot = getLotStatus().current ?? getPricingLot();
+    const lot = await getSellingLot();
     const quote = await quoteTickets({
       modalityId: body.modalityId,
       tickets: body.tickets,

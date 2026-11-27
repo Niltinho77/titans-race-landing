@@ -27,6 +27,8 @@ export type Lot = {
   includesShirt: boolean; // false = sem camiseta e sem itens extras (camisas pedidas à fábrica em 15/02)
   shortName: string; // rótulo curto para o gráfico de preços
   unlisted?: boolean; // fora do gráfico de preços e não anunciado antes; aparece no site só enquanto está aberto
+  capacity?: number; // vagas do lote (atletas em pedidos pagos); ao completar, o lote seguinte abre na hora
+  capacityCounts?: LotId[]; // lotes cujos atletas pagos contam nessas vagas (padrão: só o próprio lote)
 };
 
 export const LOTS: Lot[] = [
@@ -51,7 +53,10 @@ export const LOTS: Lot[] = [
     name: "Black Week",
     hook: "Preço promocional limitado a 100 vagas",
     periodLabel: "27/11 a 02/12",
-    lastDayLabel: "02/12 ou 100 vagas", // o que vier primeiro (o fechamento nas 100 vagas é manual)
+    lastDayLabel: "02/12 ou 100 vagas", // o que vier primeiro
+    // 100 vagas a R$ 128 somando a pré-venda dos veteranos (mesmo preço) e a Black Week.
+    capacity: 100,
+    capacityCounts: ["preVendaVeteranos", "blackWeek"],
     startsAt: "2026-11-27T00:01:00-03:00",
     endsAt: "2026-12-03T00:00:00-03:00",
     adultPrice: 12800,
@@ -133,10 +138,19 @@ export type LotStatus = {
   next: Lot | null;
 };
 
-export function getLotStatus(now = Date.now()): LotStatus {
-  const current =
-    LOTS.find((lot) => now >= Date.parse(lot.startsAt) && now < Date.parse(lot.endsAt)) ?? null;
-  const next = LOTS.find((lot) => now < Date.parse(lot.startsAt)) ?? null;
+// soldOut: lotes que já completaram as vagas (`capacity`). Um lote esgotado dá lugar,
+// na hora, ao lote seguinte, mesmo antes da data de abertura dele.
+export function getLotStatus(now = Date.now(), soldOut: readonly LotId[] = []): LotStatus {
+  const timeIndex = LOTS.findIndex(
+    (lot) => now >= Date.parse(lot.startsAt) && now < Date.parse(lot.endsAt),
+  );
+  let currentIndex = timeIndex;
+  while (currentIndex >= 0 && currentIndex < LOTS.length && soldOut.includes(LOTS[currentIndex].id)) {
+    currentIndex += 1;
+  }
+  const current = currentIndex >= 0 && currentIndex < LOTS.length ? LOTS[currentIndex] : null;
+  const next =
+    LOTS.find((lot, index) => index > currentIndex && now < Date.parse(lot.startsAt)) ?? null;
   const phase: LotPhase = current ? "open" : next ? "upcoming" : "ended";
   return { phase, current, next };
 }
@@ -146,9 +160,11 @@ export const PUBLIC_LOTS = LOTS.filter((lot) => !lot.unlisted);
 
 // Visão pública: um lote não listado só aparece enquanto está aberto; antes disso o site
 // anuncia o próximo lote listado (a pré-venda não é divulgada com antecedência).
-export function getPublicLotStatus(now = Date.now()): LotStatus {
-  const status = getLotStatus(now);
-  const next = PUBLIC_LOTS.find((lot) => now < Date.parse(lot.startsAt)) ?? null;
+export function getPublicLotStatus(now = Date.now(), soldOut: readonly LotId[] = []): LotStatus {
+  const status = getLotStatus(now, soldOut);
+  const after = status.current ? LOTS.indexOf(status.current) : -1;
+  const next =
+    PUBLIC_LOTS.find((lot) => LOTS.indexOf(lot) > after && now < Date.parse(lot.startsAt)) ?? null;
   return { ...status, next };
 }
 
@@ -166,8 +182,8 @@ export function getLotById(id?: string | null): Lot | null {
 }
 
 // Lote usado para precificar convites e pedidos manuais fora da janela de venda.
-export function getPricingLot(now = Date.now()): Lot {
-  const status = getLotStatus(now);
+export function getPricingLot(now = Date.now(), soldOut: readonly LotId[] = []): Lot {
+  const status = getLotStatus(now, soldOut);
   return status.current ?? status.next ?? LOTS[LOTS.length - 1];
 }
 

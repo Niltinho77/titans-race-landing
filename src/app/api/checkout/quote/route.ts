@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getModalityById } from "@/config/checkout";
-import { getLotStatus, getParticipantsPerTicket, getPricingLot } from "@/config/lots";
-import { quoteTickets } from "@/lib/lotPricing";
+import { getParticipantsPerTicket } from "@/config/lots";
+import { getSellingLot, quoteTickets } from "@/lib/lotPricing";
 
 // Calcula o valor dos ingressos no lote vigente e o desconto de veterano por CPF.
 export async function POST(req: Request) {
@@ -18,8 +18,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
     }
 
-    const status = getLotStatus();
-    const lot = status.current ?? getPricingLot();
+    const lot = await getSellingLot();
     const quote = await quoteTickets({ modalityId: modality.id, tickets, cpfs, lot });
 
     return NextResponse.json({

@@ -25,11 +25,16 @@ function loadLots(iso = '2026-12-10T12:00:00-03:00') {
 }
 
 // veteranCpfs: correram a 1ª ou a 2ª edição. bothEditionCpfs: correram as duas (ganham o desconto).
-function loadLotPricing(lots, veteranCpfs = [], bothEditionCpfs = veteranCpfs) {
+// paidByLot: atletas em pedidos pagos por lote, ex.: { blackWeek: 100 } (vagas esgotadas).
+function loadLotPricing(lots, veteranCpfs = [], bothEditionCpfs = veteranCpfs, { paidByLot = {}, iso } = {}) {
   const exports = {};
-  const prisma = { veteranAthlete: { findMany: async ({ where }) => where.cpf.in.filter((cpf) => veteranCpfs.includes(cpf)).map((cpf) => ({ cpf, bothEditions: bothEditionCpfs.includes(cpf) })) } };
+  const prisma = {
+    veteranAthlete: { findMany: async ({ where }) => where.cpf.in.filter((cpf) => veteranCpfs.includes(cpf)).map((cpf) => ({ cpf, bothEditions: bothEditionCpfs.includes(cpf) })) },
+    participant: { count: async ({ where }) => (where.order.status === 'PAID' ? where.order.lotId.in.reduce((sum, id) => sum + (paidByLot[id] ?? 0), 0) : 0) },
+  };
   vm.runInNewContext(transpile('src/lib/lotPricing.ts'), {
-    exports, Set, Array,
+    exports, Set, Array, Infinity, console: { error() {} },
+    ...(iso ? { Date: pinnedDate(iso) } : {}),
     require: (name) => (name === '@/lib/prisma' ? { prisma } : name === '@/config/lots' ? lots : {}),
   });
   return exports;

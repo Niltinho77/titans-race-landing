@@ -1,11 +1,46 @@
 import { prisma } from "@/lib/prisma";
 import type { ModalityId } from "@/config/checkout";
 import {
+  LOTS,
   getParticipantsPerTicket,
   getPeopleDiscount,
+  getPricingLot,
   getTicketPrice,
   type Lot,
+  type LotId,
 } from "@/config/lots";
+
+// Lotes com limite de vagas (`capacity`) que já completaram: conta atletas em pedidos pagos
+// (nos lotes de `capacityCounts`, se houver). Só confere os lotes dentro da própria janela.
+// O pedido que pega as últimas vagas entra inteiro, mesmo passando do limite (ex.: 99 pagos
+// + um quarteto = 103); o lote fecha logo depois. Se o banco falhar, o lote segue aberto
+// (melhor vender alguns a mais do que travar o checkout).
+export async function getSoldOutLotIds(now = Date.now()): Promise<LotId[]> {
+  const limited = LOTS.filter(
+    (lot) =>
+      lot.capacity !== undefined &&
+      now >= Date.parse(lot.startsAt) &&
+      now < Date.parse(lot.endsAt),
+  );
+  const soldOut: LotId[] = [];
+  for (const lot of limited) {
+    try {
+      const sold = await prisma.participant.count({
+        where: { order: { lotId: { in: lot.capacityCounts ?? [lot.id] }, status: "PAID" } },
+      });
+      if (sold >= (lot.capacity ?? Infinity)) soldOut.push(lot.id);
+    } catch (error) {
+      console.error(`Erro ao contar vagas do lote ${lot.id}:`, error);
+    }
+  }
+  return soldOut;
+}
+
+// Lote que precifica um pedido agora, considerando as vagas esgotadas: o vigente,
+// ou o seguinte fora da janela de venda.
+export async function getSellingLot(now?: number): Promise<Lot> {
+  return getPricingLot(now, await getSoldOutLotIds(now));
+}
 
 export function onlyCpfDigits(value: unknown) {
   return String(value ?? "").replace(/\D/g, "");
