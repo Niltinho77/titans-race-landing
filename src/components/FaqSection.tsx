@@ -4,8 +4,6 @@ import type { ReactNode } from "react";
 import { GROUP_DISCOUNT } from "@/config/lots";
 import { INSTALLMENTS } from "@/config/checkout";
 
-const reais = (cents: number) => `R$ ${Math.round(cents / 100)}`;
-
 // Respostas baseadas no regulamento oficial (public/regulamento.pdf).
 const FAQ: { q: string; a: ReactNode }[] = [
   {
@@ -39,7 +37,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Tem desconto para grupo ou assessoria?",
-    a: `Sim. A partir de ${GROUP_DISCOUNT.minParticipants} atletas no mesmo pedido, cada um ganha ${reais(GROUP_DISCOUNT.perPerson)} de desconto. Grupo com modalidades diferentes? Fale com a gente no WhatsApp.`,
+    a: `Sim. Grupos e assessorias com ${GROUP_DISCOUNT.minParticipants} atletas ou mais têm condições especiais. Fale com a gente no WhatsApp para receber as condições do seu grupo.`,
   },
   {
     q: "Como posso pagar?",

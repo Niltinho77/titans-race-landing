@@ -160,10 +160,10 @@ export function RegistrationSection() {
           </span>
           <div className="flex-1">
             <p className="heading-adventure text-2xl text-white md:text-3xl">
-              Grupo ou assessoria? <span className="text-emerald-400">{formatPrice(GROUP_DISCOUNT.perPerson)} off por atleta</span>
+              Grupo ou assessoria? <span className="text-emerald-400">Condições especiais</span>
             </p>
             <p className="mt-1 text-sm text-zinc-300">
-              A partir de {GROUP_DISCOUNT.minParticipants} atletas no mesmo pedido, o desconto entra sozinho no checkout.
+              Vai trazer {GROUP_DISCOUNT.minParticipants} atletas ou mais? Fale com a gente no WhatsApp e receba as condições especiais para o seu grupo.
             </p>
           </div>
           <a

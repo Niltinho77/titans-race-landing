@@ -196,15 +196,20 @@ export function getVeteranDiscount(
   return perPerson * Math.max(0, veteranCount);
 }
 
-// Grupos e assessorias: a partir de 10 atletas no mesmo pedido, desconto por pessoa.
-// Não acumula com o desconto de veterano (cada pessoa recebe o maior dos dois).
+// Grupos e assessorias (10+ atletas): condições especiais combinadas pelo WhatsApp,
+// em geral com um cupom do grupo. O desconto automático no checkout está desligado
+// (perPerson = 0); para religar, volte perPerson para o valor em centavos.
 export const GROUP_DISCOUNT = {
   minParticipants: 10,
-  perPerson: 1000, // centavos
+  perPerson: 0, // centavos
 };
 
 export function groupDiscountApplies(lot: Lot, participants: number) {
-  return !lot.veteransOnly && participants >= GROUP_DISCOUNT.minParticipants;
+  return (
+    GROUP_DISCOUNT.perPerson > 0 &&
+    !lot.veteransOnly &&
+    participants >= GROUP_DISCOUNT.minParticipants
+  );
 }
 
 // Descontos por pessoa do pedido (veterano e grupo), em centavos.

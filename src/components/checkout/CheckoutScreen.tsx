@@ -1095,8 +1095,8 @@ function Step1ModalityTickets({
             : "Quantidade de ingressos para esta modalidade."}
         </p>
         <p className="mt-2 text-[11px] text-emerald-300/90">
-          Grupo ou assessoria? A partir de {GROUP_DISCOUNT.minParticipants} atletas no mesmo pedido, cada um ganha{" "}
-          {formatCurrency(GROUP_DISCOUNT.perPerson)} de desconto.
+          Grupo ou assessoria com {GROUP_DISCOUNT.minParticipants} atletas ou mais? Temos condições especiais: fale com a
+          gente no WhatsApp (55) 99223-4690.
         </p>
       </div>
     </motion.div>
