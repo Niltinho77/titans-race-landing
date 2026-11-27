@@ -17,10 +17,11 @@ test('antes da pré-venda as inscrições ainda não abriram', () => {
   assert.equal(status.next.id, 'preVendaVeteranos');
 });
 
-test('viradas de lote acontecem à meia-noite de Brasília', () => {
+test('viradas de lote acontecem à meia-noite de Brasília (Black Week abre às 00:01)', () => {
   assert.equal(getLotStatus(at('2026-11-25T00:00:00-03:00')).current.id, 'preVendaVeteranos');
   assert.equal(getLotStatus(at('2026-11-26T23:59:59-03:00')).current.id, 'preVendaVeteranos');
-  assert.equal(getLotStatus(at('2026-11-27T00:00:00-03:00')).current.id, 'blackWeek');
+  assert.equal(getLotStatus(at('2026-11-27T00:00:59-03:00')).current.id, 'preVendaVeteranos');
+  assert.equal(getLotStatus(at('2026-11-27T00:01:00-03:00')).current.id, 'blackWeek');
   assert.equal(getLotStatus(at('2026-12-02T23:59:59-03:00')).current.id, 'blackWeek');
   assert.equal(getLotStatus(at('2026-12-03T00:00:00-03:00')).current.id, 'lote1');
   assert.equal(getLotStatus(at('2027-01-15T12:00:00-03:00')).current.id, 'lote2');
