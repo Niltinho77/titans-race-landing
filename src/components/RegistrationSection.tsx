@@ -9,7 +9,7 @@ import { usePublicLotStatus } from "@/hooks/useRegistrationClosed";
 import { GROUP_DISCOUNT, PUBLIC_LOTS, type Lot, type LotId } from "@/config/lots";
 
 const CHART_LABEL: Partial<Record<LotId, string>> = {
-  blackWeek: "27 nov–2 dez",
+  blackWeek: "27 nov–2 dez ou 100 vagas",
   lote1: "3–31 dez",
   lote2: "janeiro",
   loteFinal: "1–14 fev",
@@ -43,6 +43,7 @@ function countdownCopy(phase: string, current: Lot | null, next: Lot | null) {
     if (current.veteransOnly && next) return { title: `Pré-venda Veteranos aberta · ${next.name} abre em`, target: next.startsAt };
     if (current.id === "loteExtra") return { title: "Inscrições encerram em", target: current.endsAt };
     if (current.id === "loteFinal") return { title: "Camiseta garantida só por mais", target: current.endsAt };
+    if (current.id === "blackWeek") return { title: "O preço sobe em (ou antes, se as 100 vagas acabarem)", target: current.endsAt };
     return { title: "O preço sobe em", target: current.endsAt };
   }
   return null;

@@ -49,9 +49,9 @@ export const LOTS: Lot[] = [
   {
     id: "blackWeek",
     name: "Black Week",
-    hook: "Preço promocional até 02/12",
+    hook: "Preço promocional limitado a 100 vagas",
     periodLabel: "27/11 a 02/12",
-    lastDayLabel: "02/12",
+    lastDayLabel: "02/12 ou 100 vagas", // o que vier primeiro (o fechamento nas 100 vagas é manual)
     startsAt: "2026-11-27T00:01:00-03:00",
     endsAt: "2026-12-03T00:00:00-03:00",
     adultPrice: 12800,
